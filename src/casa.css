@@ -1,0 +1,509 @@
+/* reset general, sin margen ni relleno en nada */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; }
+#c { width: 100vw; height: 100vh; display: block; touch-action: none; }
+
+/* barra superior fija con blur y borde sutil */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  background: rgba(4,10,30,.95); backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(50,110,255,.22);
+  display: flex; align-items: center; padding: 0 14px; gap: 8px; z-index: 30;
+}
+#topbar .logo { color: #5588ff; font-size: 20px; margin-right: 4px; }
+#topbar .title {
+  color: rgba(190,215,255,.85); font-size: 11px;
+  letter-spacing: .12em; text-transform: uppercase; white-space: nowrap;
+}
+.sep { width: 1px; height: 28px; background: rgba(80,130,255,.2); margin: 0 2px; flex-shrink:0; }
+.spacer { flex: 1; }
+
+/* badge morado que muestra el objetivo de la actividad */
+#objetivo-badge {
+  background: rgba(180,100,255,.12);
+  border: 1px solid rgba(180,100,255,.30);
+  border-radius: 20px;
+  padding: 5px 12px;
+  color: rgba(210,170,255,.85);
+  font-size: 10.5px;
+  letter-spacing: .04em;
+  max-width: 420px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#objetivo-badge strong { color: rgba(230,190,255,1); }
+
+/* botones de la interfaz, con hover y estados activo/peligro */
+.btn {
+  background: rgba(10,22,60,.8); color: #7aacff;
+  border: 1px solid rgba(50,110,220,.35);
+  padding: 7px 13px; border-radius: 20px; cursor: pointer;
+  font-size: 11px; letter-spacing: .06em;
+  transition: all .18s; white-space: nowrap; font-family: inherit; flex-shrink:0;
+}
+.btn:hover { background: rgba(30,75,200,.8); color: #fff; border-color: rgba(100,165,255,.6); }
+.btn.active { background: rgba(25,70,210,.95); color: #fff; border-color: rgba(110,175,255,.75); }
+.btn.danger { color: #ff8888; border-color: rgba(255,80,80,.35); }
+.btn.danger:hover { background: rgba(180,30,30,.7); color: #fff; }
+.btn.storm-on { background: rgba(50,10,80,.9); color: #cc88ff; border-color: rgba(160,80,255,.6); }
+.btn.prog-on  { background: rgba(10,50,30,.9); color: #55ffaa; border-color: rgba(50,200,100,.6); }
+
+/* panel izquierdo con el catálogo de materiales */
+#catalog {
+  position: fixed; top: 60px; left: 14px;
+  background: rgba(4,10,30,.92); backdrop-filter: blur(18px);
+  border: 1px solid rgba(50,110,255,.22); border-radius: 14px;
+  width: 148px; z-index: 25; box-shadow: 0 8px 40px rgba(0,8,50,.6); overflow: hidden;
+}
+#cat-header {
+  padding: 10px 14px; cursor: pointer;
+  color: rgba(140,190,255,.8); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid rgba(50,110,255,.18);
+}
+#cat-list { max-height: 480px; overflow-y: auto; }
+.cat-item {
+  padding: 10px 14px; cursor: pointer;
+  color: rgba(170,205,255,.82); font-size: 12px;
+  display: flex; align-items: center; gap: 9px;
+  border-bottom: 1px solid rgba(50,110,255,.1);
+  transition: background .14s; user-select: none;
+}
+.cat-item:hover  { background: rgba(30,70,200,.35); }
+.cat-item:active { background: rgba(40,90,220,.5); }
+.cat-item .ico   { font-size: 15px; width: 20px; text-align: center; }
+
+/* panel derecho que lista los objetos ya colocados en escena */
+#objlist {
+  position: fixed; top: 60px; right: 14px;
+  background: rgba(4,10,30,.92); backdrop-filter: blur(18px);
+  border: 1px solid rgba(50,110,255,.22); border-radius: 14px;
+  width: 148px; z-index: 25; box-shadow: 0 8px 40px rgba(0,8,50,.6);
+  overflow: hidden; display: none;
+}
+#obj-header {
+  padding: 10px 14px; color: rgba(140,190,255,.7);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  border-bottom: 1px solid rgba(50,110,255,.18);
+}
+#obj-items { max-height: 380px; overflow-y: auto; }
+.obj-item {
+  padding: 9px 14px; cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; gap: 8px;
+  color: rgba(160,195,255,.65); border-bottom: 1px solid rgba(50,110,255,.1); transition: all .14s;
+}
+.obj-item:hover { background: rgba(30,70,200,.25); color: rgba(180,215,255,.9); }
+.obj-item.sel   { background: rgba(25,65,200,.38); color: #aaccff; }
+.obj-item span:nth-child(2) { flex: 1; }
+.obj-clone-hint {
+  margin-left: auto; opacity: 0; font-size: 14px; color: rgba(120,180,255,.85);
+  cursor: pointer; padding: 0 2px; transition: opacity .15s;
+}
+.obj-item:hover .obj-clone-hint { opacity: 1; }
+
+/* tooltip de ayuda abajo al centro de la pantalla */
+#tip {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: rgba(4,10,30,.85); backdrop-filter: blur(14px);
+  border: 1px solid rgba(50,110,255,.28); border-radius: 10px;
+  padding: 10px 20px; color: rgba(155,195,255,.75);
+  font-size: 11px; letter-spacing: .07em; z-index: 25;
+  text-align: center; line-height: 1.8; pointer-events: none; transition: opacity .3s;
+}
+
+/* pantalla de carga inicial que desaparece con fade */
+#loading {
+  position: fixed; inset: 0; background: #04080f;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 200; transition: opacity .9s;
+}
+#loading h2 { color: #4a88ff; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; font-weight: 300; margin-bottom: 16px; }
+#lbar  { width: 240px; height: 2px; background: rgba(70,120,255,.12); border-radius: 2px; overflow: hidden; }
+#lfill { height: 100%; width: 0%; background: linear-gradient(90deg,#1a4fcf,#60aaff); transition: width .4s ease; border-radius: 2px; }
+#lmsg  { color: rgba(90,145,255,.45); font-size: 11px; margin-top: 12px; letter-spacing: .08em; }
+
+/* info de posición y rotación del objeto seleccionado arriba al centro */
+#xinfo {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  background: rgba(4,10,30,.82); backdrop-filter: blur(12px);
+  border: 1px solid rgba(50,110,255,.22); border-radius: 9px;
+  padding: 7px 18px; color: rgba(140,190,255,.7);
+  font-size: 11px; letter-spacing: .07em; z-index: 25; display: none; pointer-events: none;
+}
+
+/* lluvia, relámpago y barra de viento — están desactivados pero se conservan */
+#rain-canvas {
+  position: fixed; inset: 0; width: 100vw; height: 100vh;
+  pointer-events: none; z-index: 15; display: none;
+}
+#lightning-flash {
+  position: fixed; inset: 0; background: rgba(200,180,255,0);
+  pointer-events: none; z-index: 16; transition: background .06s;
+}
+#storm-wind-bar {
+  position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+  background: rgba(4,10,30,.88); backdrop-filter: blur(14px);
+  border: 1px solid rgba(160,80,255,.35); border-radius: 10px;
+  padding: 8px 18px; z-index: 25; display: none;
+  align-items: center; gap: 10px; min-width: 280px;
+}
+#storm-wind-label { color: rgba(200,160,255,.8); font-size: 11px; white-space: nowrap; }
+#storm-wind-track {
+  flex: 1; height: 6px; background: rgba(100,40,180,.25); border-radius: 3px; overflow: hidden;
+}
+#storm-wind-fill {
+  height: 100%; width: 0%; background: linear-gradient(90deg,#7040cc,#cc60ff);
+  border-radius: 3px; transition: width .15s;
+}
+#storm-resist-msg { font-size: 10px; color: rgba(200,160,255,.7); white-space: nowrap; min-width: 110px; text-align: right; }
+
+/* modal de programación por bloques con overlay oscuro */
+#prog-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+  z-index: 100; display: none; align-items: center; justify-content: center;
+}
+#prog-overlay.open { display: flex; }
+#prog-modal {
+  background: rgba(5,12,35,.97); border: 1px solid rgba(50,200,100,.28);
+  border-radius: 18px; width: min(820px, 96vw); max-height: 86vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 20px 80px rgba(0,0,0,.7), 0 0 40px rgba(30,180,80,.08);
+}
+#prog-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid rgba(50,200,100,.18);
+  color: rgba(100,255,160,.9); font-size: 13px; letter-spacing: .08em; font-weight: 600;
+}
+#prog-body {
+  display: flex; flex: 1; overflow: hidden; gap: 0;
+}
+#prog-blocks-panel {
+  width: 210px; flex-shrink: 0; padding: 14px 12px; overflow-y: auto;
+  border-right: 1px solid rgba(50,200,100,.12);
+}
+.prog-section-title {
+  color: rgba(80,220,150,.65); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; margin-bottom: 10px; padding-bottom: 4px;
+  border-bottom: 1px solid rgba(50,200,100,.15);
+}
+.prog-block-group-title {
+  color: rgba(100,180,255,.5); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; margin: 10px 0 5px; padding-left: 2px;
+}
+.prog-block {
+  padding: 8px 12px; border-radius: 8px; cursor: grab; font-size: 12px;
+  margin-bottom: 5px; user-select: none; transition: transform .12s, box-shadow .12s;
+}
+.prog-block:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+.prog-block.trigger {
+  background: rgba(30,80,200,.35); color: rgba(140,190,255,.9);
+  border: 1px solid rgba(60,120,255,.35);
+}
+.prog-block.action {
+  background: rgba(20,120,60,.35); color: rgba(100,230,150,.9);
+  border: 1px solid rgba(40,180,90,.35);
+}
+#prog-canvas-panel {
+  flex: 1; padding: 14px 16px; display: flex; flex-direction: column; overflow: hidden;
+}
+#prog-drop-area {
+  flex: 1; border: 2px dashed rgba(50,200,100,.25); border-radius: 12px;
+  min-height: 120px; max-height: 220px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px; padding: 12px;
+  transition: border-color .18s;
+}
+#prog-drop-area.drag-over { border-color: rgba(80,255,150,.6); background: rgba(20,80,40,.15); }
+#prog-drop-hint { color: rgba(80,160,100,.45); font-size: 12px; text-align: center; margin: auto; letter-spacing: .06em; }
+#prog-rules-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 160px; }
+.prog-rule {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: rgba(10,30,20,.6); border: 1px solid rgba(40,160,80,.25); border-radius: 10px;
+}
+.prog-rule .rule-trigger { background: rgba(30,60,160,.4); color: rgba(140,190,255,.9); padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+.prog-rule .rule-arrow   { color: rgba(100,200,100,.6); font-size: 14px; }
+.prog-rule .rule-action  { background: rgba(20,100,50,.4); color: rgba(100,220,140,.9); padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+.prog-rule .rule-del     { margin-left: auto; cursor: pointer; color: rgba(255,80,80,.5); font-size: 14px; }
+.prog-rule .rule-del:hover { color: rgba(255,80,80,1); }
+#prog-output {
+  padding: 10px 18px; border-top: 1px solid rgba(50,200,100,.15);
+  color: rgba(100,230,150,.8); font-size: 11px; min-height: 36px; letter-spacing: .05em;
+}
+
+/* bloque que se ve mientras el usuario arrastra la condición pendiente */
+.prog-pending-block {
+  padding: 7px 12px; border-radius: 8px; font-size: 12px; cursor: default;
+}
+.prog-pending-block.trigger { background: rgba(30,80,200,.25); color: rgba(140,190,255,.8); border: 1px dashed rgba(60,120,255,.4); }
+.prog-pending-block.action  { background: rgba(20,120,60,.25); color: rgba(100,230,150,.8); border: 1px dashed rgba(40,180,90,.4); }
+.prog-pending-hint { color: rgba(80,200,120,.5); font-size: 11px; margin-top: 4px; letter-spacing: .05em; }
+
+/* panel de medidas de la zona de construcción abajo a la derecha */
+#measure-panel {
+  position: fixed; bottom: 80px; right: 14px;
+  background: rgba(4,10,30,.92); backdrop-filter: blur(18px);
+  border: 1px solid rgba(30,200,120,.35); border-radius: 14px;
+  padding: 14px 16px; width: 186px; z-index: 25;
+  box-shadow: 0 8px 40px rgba(0,8,50,.6), 0 0 18px rgba(20,180,100,.08);
+  color: rgba(160,255,200,.85); font-size: 11px;
+}
+.mp-title { font-size: 11px; letter-spacing: .10em; text-transform: uppercase; color: rgba(80,220,150,.9); margin-bottom: 10px; font-weight: 600; }
+.mp-grid  { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mp-side  { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+.mp-icon  { font-size: 14px; color: rgba(80,220,150,.7); }
+.mp-val   { font-size: 18px; font-weight: 700; color: rgba(120,255,190,1); letter-spacing: .02em; }
+.mp-sub   { font-size: 10px; color: rgba(100,200,150,.55); letter-spacing: .08em; text-transform: uppercase; }
+.mp-divider { width: 1px; height: 36px; background: rgba(30,200,120,.25); margin: 0 8px; }
+.mp-area  { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(30,200,120,.18); padding-top: 8px; margin-bottom: 8px; }
+.mp-area-label { color: rgba(100,200,150,.65); font-size: 11px; letter-spacing: .06em; }
+.mp-area-val   { font-size: 14px; font-weight: 700; color: rgba(120,255,190,.95); }
+.mp-scale { color: rgba(80,180,130,.45); font-size: 10px; letter-spacing: .07em; text-align: center; border-top: 1px solid rgba(30,200,120,.12); padding-top: 7px; }
+
+/* etiquetas 3D proyectadas al espacio de pantalla */
+.world-label {
+  position: fixed; transform: translate(-50%, -50%);
+  background: rgba(4,14,28,.88); border: 1px solid rgba(30,200,120,.55);
+  border-radius: 6px; padding: 3px 9px;
+  color: rgba(100,255,170,.95); font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; pointer-events: none; z-index: 20; white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0,0,0,.5);
+}
+
+/* modal del constructor de paredes y pisos */
+#wall-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+  z-index: 100; display: none; align-items: center; justify-content: center;
+}
+#wall-overlay.open { display: flex; }
+#wall-modal {
+  background: rgba(5,12,35,.97); border: 1px solid rgba(50,150,255,.35);
+  border-radius: 18px; width: min(460px, 94vw);
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 20px 80px rgba(0,0,0,.75), 0 0 40px rgba(30,100,255,.10);
+}
+#wall-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid rgba(50,150,255,.18);
+  color: rgba(140,200,255,.95); font-size: 14px; letter-spacing: .07em; font-weight: 700;
+}
+#wall-body {
+  padding: 20px 22px; display: flex; flex-direction: column; gap: 18px;
+}
+.wb-section { display: flex; flex-direction: column; gap: 8px; }
+.wb-label {
+  color: rgba(140,190,255,.75); font-size: 11px; letter-spacing: .10em;
+  text-transform: uppercase; font-weight: 600;
+}
+.wb-range { color: rgba(90,140,255,.45); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.wb-options { display: flex; gap: 10px; }
+.wb-opt {
+  flex: 1; padding: 10px; border-radius: 10px; cursor: pointer; text-align: center;
+  font-size: 13px; border: 1px solid rgba(50,100,255,.25);
+  color: rgba(120,170,255,.65); background: rgba(10,20,60,.5); transition: all .15s;
+}
+.wb-opt:hover    { background: rgba(25,60,180,.45); color: rgba(160,210,255,.9); border-color: rgba(80,140,255,.45); }
+.wb-opt.selected { background: rgba(25,75,220,.6);  color: #fff; border-color: rgba(100,170,255,.7); box-shadow: 0 0 14px rgba(50,120,255,.25); }
+.wb-slider-row {
+  display: flex; align-items: center; gap: 12px;
+}
+.wb-slider-row input[type=range] {
+  flex: 1; -webkit-appearance: none; height: 5px;
+  background: rgba(40,80,200,.3); border-radius: 3px; outline: none; cursor: pointer;
+}
+.wb-slider-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: linear-gradient(135deg,#4488ff,#2255cc); border: 2px solid rgba(120,180,255,.6);
+  box-shadow: 0 2px 8px rgba(0,0,0,.5); cursor: pointer;
+}
+.wb-num {
+  min-width: 32px; text-align: center; font-size: 18px; font-weight: 700;
+  color: rgba(120,200,255,1); letter-spacing: .02em;
+}
+#wb-preview {
+  background: rgba(8,20,55,.6); border: 1px solid rgba(40,90,200,.25);
+  border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 7px;
+}
+.wb-prev-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; color: rgba(120,175,255,.65);
+}
+.wb-prev-row span:last-child { font-weight: 700; color: rgba(160,215,255,.95); }
+.wb-build-btn {
+  width: 100%; padding: 13px; font-size: 13px; font-weight: 700;
+  letter-spacing: .08em; border-radius: 12px;
+  background: linear-gradient(135deg,rgba(30,80,220,.85),rgba(15,50,160,.85));
+  color: #fff; border: 1px solid rgba(80,150,255,.5);
+  box-shadow: 0 4px 20px rgba(20,60,220,.3);
+  transition: all .18s; cursor: pointer;
+}
+.wb-build-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg,rgba(50,110,255,.95),rgba(25,70,200,.95));
+  box-shadow: 0 6px 28px rgba(30,80,255,.45); transform: translateY(-1px);
+}
+.wb-build-btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+/* ítems del catálogo bloqueados hasta que se desbloqueen */
+.cat-item.cat-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* modal de mezcla de concreto con overlay semitransparente */
+#concreto-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.70); backdrop-filter: blur(6px);
+  z-index: 100; display: none; align-items: center; justify-content: center;
+}
+#concreto-overlay.open { display: flex; }
+#concreto-modal {
+  background: rgba(5,12,35,.97); border: 1px solid rgba(150,100,255,.35);
+  border-radius: 18px; width: min(820px, 96vw); max-height: 90vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 20px 80px rgba(0,0,0,.8), 0 0 40px rgba(100,50,255,.12);
+}
+#concreto-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid rgba(150,100,255,.20);
+  color: rgba(200,170,255,.95); font-size: 14px; letter-spacing: .07em; font-weight: 700;
+}
+#concreto-body {
+  display: flex; flex: 1; overflow: hidden; gap: 0;
+}
+
+/* panel izquierdo de instrucciones de la mezcla */
+#concreto-instrucciones {
+  width: 220px; flex-shrink: 0; padding: 18px 16px; overflow-y: auto;
+  border-right: 1px solid rgba(150,100,255,.15);
+  background: rgba(10,5,30,.4);
+}
+.ci-title {
+  color: rgba(200,160,255,.9); font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; font-weight: 700; margin-bottom: 12px;
+}
+.ci-subtitle {
+  color: rgba(160,130,220,.7); font-size: 10px; letter-spacing: .08em;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.ci-rule {
+  display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;
+  color: rgba(180,160,240,.85); font-size: 12px; line-height: 1.5;
+}
+.ci-num {
+  width: 22px; height: 22px; background: rgba(140,80,255,.35); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: rgba(200,170,255,1); flex-shrink: 0;
+}
+.ci-note {
+  margin-top: 14px; padding: 10px 12px;
+  background: rgba(100,50,200,.15); border: 1px solid rgba(120,70,220,.25);
+  border-radius: 8px; color: rgba(160,140,220,.7); font-size: 11px; line-height: 1.6;
+}
+
+/* panel derecho de la mezcla con los materiales y el vaso */
+#concreto-panel {
+  flex: 1; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto;
+}
+#concreto-mats { display: flex; flex-direction: column; gap: 10px; }
+.cmat-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: rgba(8,18,50,.5); border: 1px solid rgba(100,60,220,.25); border-radius: 10px;
+  transition: all .18s;
+}
+.cmat-row.cmat-locked {
+  opacity: 0.4; pointer-events: none;
+}
+.cmat-ico { font-size: 18px; }
+.cmat-name { font-size: 12px; color: rgba(160,140,240,.9); min-width: 52px; }
+.cmat-slider-wrap {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+}
+.cmat-slider-wrap input[type=range] {
+  flex: 1; -webkit-appearance: none; height: 5px;
+  background: rgba(80,40,200,.3); border-radius: 3px; outline: none; cursor: pointer;
+}
+.cmat-slider-wrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: linear-gradient(135deg,#8844ff,#5522cc); border: 2px solid rgba(180,120,255,.6);
+  box-shadow: 0 2px 8px rgba(0,0,0,.5); cursor: pointer;
+}
+.cmat-slider-wrap input[type=range]:disabled { opacity: .4; cursor: not-allowed; }
+.cmat-val { min-width: 24px; text-align: center; font-size: 16px; font-weight: 700; color: rgba(180,140,255,1); }
+.cmat-add {
+  padding: 6px 12px !important; font-size: 11px !important; flex-shrink: 0;
+  background: rgba(80,30,180,.5) !important; color: rgba(200,160,255,.9) !important;
+  border-color: rgba(130,70,255,.4) !important;
+}
+.cmat-add:hover:not(:disabled) { background: rgba(120,60,240,.7) !important; }
+
+/* vaso de simulación donde se van llenando los materiales */
+#concreto-sim { }
+.csim-title {
+  color: rgba(160,140,220,.7); font-size: 10px; letter-spacing: .10em;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+#csim-area { display: flex; align-items: flex-end; gap: 14px; }
+#csim-beaker {
+  width: 80px; height: 120px; border: 2px solid rgba(120,80,255,.4); border-top: none;
+  border-radius: 0 0 12px 12px; background: rgba(5,3,20,.8);
+  display: flex; flex-direction: column-reverse; overflow: hidden; position: relative;
+  flex-shrink: 0;
+}
+.csim-layer { width: 100%; transition: height .6s ease; }
+.csim-cemento { background: rgba(180,160,140,.7); }
+.csim-arena   { background: rgba(230,200,100,.7); }
+.csim-grava   { background: rgba(100,90,80,.8); }
+.csim-agua    { background: rgba(60,160,255,.55); }
+#csim-status {
+  flex: 1; font-size: 11px; color: rgba(160,140,220,.75); letter-spacing: .04em; line-height: 1.8;
+}
+
+/* resultado final después de mezclar, con confirmación verde */
+#concreto-resultado {
+  padding: 20px 24px; display: flex; flex-direction: column; gap: 18px;
+  border-top: 1px solid rgba(150,100,255,.18);
+}
+#concreto-result-inner {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  background: rgba(20,60,20,.4); border: 1px solid rgba(60,200,80,.3); border-radius: 12px;
+}
+#concreto-result-icon { font-size: 32px; }
+#concreto-result-text { color: rgba(100,240,120,.9); font-size: 14px; font-weight: 600; }
+
+/* tabs para cambiar entre pared y piso en el constructor */
+#wall-tabs {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+.wall-tab {
+  flex: 1; padding: 9px 0; border-radius: 10px; cursor: pointer; font-size: 12px;
+  font-family: inherit; letter-spacing: .06em; border: 1px solid rgba(50,110,255,.25);
+  background: rgba(8,18,55,.5); color: rgba(120,170,255,.6); transition: all .15s;
+}
+.wall-tab:hover { background: rgba(20,55,180,.4); color: rgba(160,210,255,.9); }
+.wall-tab.active {
+  background: rgba(25,75,220,.65); color: #fff; border-color: rgba(100,170,255,.7);
+  box-shadow: 0 0 12px rgba(50,120,255,.2);
+}
+
+/* popup del selector de color para personalizar materiales */
+#color-picker-popup {
+  position: fixed; bottom: 90px; left: 172px;
+  background: rgba(5,12,40,.97); border: 1px solid rgba(80,150,255,.40);
+  border-radius: 14px; padding: 14px 16px; z-index: 50; width: 220px;
+  box-shadow: 0 12px 50px rgba(0,0,0,.7), 0 0 20px rgba(50,120,255,.15);
+}
+#color-picker-header {
+  color: rgba(140,200,255,.9); font-size: 11px; letter-spacing: .10em;
+  text-transform: uppercase; font-weight: 700; margin-bottom: 12px;
+}
+#color-picker-input {
+  width: 100%; height: 44px; border: none; border-radius: 8px; cursor: pointer;
+  background: none; padding: 0; margin-bottom: 10px;
+}
+#color-swatches {
+  display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; margin-bottom: 4px;
+}
+.cswatch {
+  width: 100%; aspect-ratio: 1; border-radius: 6px; cursor: pointer;
+  border: 2px solid transparent; transition: all .14s;
+}
+.cswatch:hover { transform: scale(1.15); border-color: rgba(255,255,255,.5); }

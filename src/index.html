@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Constructor de Casa · STEAM</title>
+  <link rel="stylesheet" href="./casa.css">
+</head>
+<body>
+
+  <div id="loading">
+    <h2>Constructor de Casa · STEAM</h2>
+    <div id="lbar"><div id="lfill"></div></div>
+    <div id="lmsg">Cargando Babylon.js…</div>
+  </div>
+
+  <div id="topbar">
+    <span class="logo">🏗</span>
+    <span class="title">Constructor de Casa</span>
+    <div class="sep"></div>
+    <div id="objetivo-badge">
+      🎨 <strong>Objetivo:</strong> Diseña una vivienda para un habitante tranquilo que prioriza su salud emocional
+    </div>
+    <div class="spacer"></div>
+    <button class="btn danger" id="btnDel" onclick="deleteSelected()" style="display:none">✕ Eliminar</button>
+    <div class="sep"></div>
+    <button class="btn" onclick="toggleNight()" id="btnNight" disabled>🌙 Noche</button>
+    <button class="btn" onclick="openConcretoModal()" id="btnStorm">🪨 Crear Concreto</button>
+    <button class="btn" onclick="openWallBuilder()" id="btnWall" disabled>🧱 Construir</button>
+    <button class="btn" onclick="openProgramar()" id="btnProgramar" disabled>🔧 Programar</button>
+  </div>
+
+  <div id="catalog">
+    <div id="cat-header" onclick="toggleCatalog()">
+      <span>+ Materiales</span><span id="cat-arrow">▼</span>
+    </div>
+    <div id="cat-list">
+      <div class="cat-item cat-disabled" id="cat-block"     onclick="addObjIfAllowed('block')">    <span class="ico">🧱</span>Block    </div>
+      <div class="cat-item cat-disabled" id="cat-madera"    onclick="addObjIfAllowed('madera')">   <span class="ico">🪵</span>Madera   </div>
+      <div class="cat-item cat-disabled" id="cat-foco"      onclick="addObjIfAllowed('foco')">     <span class="ico">💡</span>Foco     </div>
+      <div class="cat-item cat-disabled" id="cat-puerta"    onclick="addObjIfAllowed('puerta')">   <span class="ico">🚪</span>Puerta   </div>
+      <div class="cat-item cat-disabled" id="cat-ventana"   onclick="addObjIfAllowed('ventana')">  <span class="ico">🪟</span>Ventana  </div>
+      <div class="cat-item cat-disabled" id="cat-vitropiso" onclick="addObjIfAllowed('vitropiso')"><span class="ico">🔷</span>Vitropiso</div>
+      <div class="cat-item" id="cat-concreto" onclick="addObjIfAllowed('concreto')" style="display:none"><span class="ico">🪨</span>Concreto</div>
+    </div>
+  </div>
+
+  <div id="objlist">
+    <div id="obj-header">Colocados (<span id="obj-count">0</span>)</div>
+    <div id="obj-items"></div>
+  </div>
+
+  <div id="xinfo"></div>
+
+  <div id="tip">
+    Primero crea el concreto con el botón 🪨 Crear Concreto para desbloquear el constructor<br>
+    <span style="opacity:.5">Scroll = zoom · Flechas ← → ↑ ↓ = rotar cámara · Q/E = rotar objeto seleccionado</span>
+  </div>
+
+  <canvas id="rain-canvas"></canvas>
+  <div id="lightning-flash"></div>
+  <div id="storm-wind-bar" style="display:none">
+    <span id="storm-wind-label">💨 Viento</span>
+    <div id="storm-wind-track"><div id="storm-wind-fill"></div></div>
+    <span id="storm-resist-msg"></span>
+  </div>
+
+  <div id="concreto-overlay" onclick="closeConcretoModal(event)">
+    <div id="concreto-modal">
+      <div id="concreto-header">
+        <span>🪨 Crear Concreto</span>
+        <button class="btn" onclick="closeConcretoModal()">✕</button>
+      </div>
+      <div id="concreto-body">
+        <!-- INSTRUCCIONES izquierda -->
+        <div id="concreto-instrucciones">
+          <div class="ci-title">📋 Instrucciones</div>
+          <div class="ci-subtitle">Regla General de Proporciones</div>
+          <div class="ci-rule"><span class="ci-num">1</span><span>Una parte <b>Cemento</b></span></div>
+          <div class="ci-rule"><span class="ci-num">2</span><span>Dos partes <b>Arena</b></span></div>
+          <div class="ci-rule"><span class="ci-num">3</span><span>Tres partes <b>Grava</b></span></div>
+          <div class="ci-rule"><span class="ci-num">4</span><span>El <b>Agua</b> se ajusta al final</span></div>
+          <div class="ci-note">Agrega cada material en orden.<br>¡Observa la simulación mientras mezclas!</div>
+        </div>
+
+        <!-- PANEL DERECHO -->
+        <div id="concreto-panel">
+          <div class="ci-title">⚗️ Mezcla de Materiales</div>
+          <div id="concreto-mats">
+            <div class="cmat-row" id="cmat-cemento">
+              <span class="cmat-ico">🏔️</span>
+              <span class="cmat-name">Cemento</span>
+              <div class="cmat-slider-wrap">
+                <input type="range" min="1" max="10" value="1" id="sl-cemento" oninput="concretoSliderUpdate('cemento')">
+                <span class="cmat-val" id="val-cemento">1</span>
+              </div>
+              <button class="btn cmat-add" id="btn-cemento" onclick="concretoAgregar('cemento')">+ Agregar</button>
+            </div>
+            <div class="cmat-row cmat-locked" id="cmat-arena">
+              <span class="cmat-ico">🏖️</span>
+              <span class="cmat-name">Arena</span>
+              <div class="cmat-slider-wrap">
+                <input type="range" min="1" max="10" value="2" id="sl-arena" oninput="concretoSliderUpdate('arena')" disabled>
+                <span class="cmat-val" id="val-arena">2</span>
+              </div>
+              <button class="btn cmat-add" id="btn-arena" onclick="concretoAgregar('arena')" disabled>+ Agregar</button>
+            </div>
+            <div class="cmat-row cmat-locked" id="cmat-grava">
+              <span class="cmat-ico">🪨</span>
+              <span class="cmat-name">Grava</span>
+              <div class="cmat-slider-wrap">
+                <input type="range" min="1" max="10" value="3" id="sl-grava" oninput="concretoSliderUpdate('grava')" disabled>
+                <span class="cmat-val" id="val-grava">3</span>
+              </div>
+              <button class="btn cmat-add" id="btn-grava" onclick="concretoAgregar('grava')" disabled>+ Agregar</button>
+            </div>
+            <div class="cmat-row cmat-locked" id="cmat-agua">
+              <span class="cmat-ico">💧</span>
+              <span class="cmat-name">Agua</span>
+              <div class="cmat-slider-wrap">
+                <input type="range" min="1" max="10" value="1" id="sl-agua" oninput="concretoSliderUpdate('agua')" disabled>
+                <span class="cmat-val" id="val-agua">1</span>
+              </div>
+              <button class="btn cmat-add" id="btn-agua" onclick="concretoAgregar('agua')" disabled>+ Agregar</button>
+            </div>
+          </div>
+
+          <!-- Simulación visual (vaso mezclador) -->
+          <div id="concreto-sim">
+            <div class="csim-title">🔬 Simulación</div>
+            <div id="csim-area">
+              <div id="csim-beaker">
+                <div id="csim-fill-cemento" class="csim-layer csim-cemento"></div>
+                <div id="csim-fill-arena"   class="csim-layer csim-arena"></div>
+                <div id="csim-fill-grava"   class="csim-layer csim-grava"></div>
+                <div id="csim-fill-agua"    class="csim-layer csim-agua"></div>
+              </div>
+              <div id="csim-status">Agrega los materiales en orden →</div>
+            </div>
+          </div>
+
+          <button class="btn wb-build-btn" id="btn-mezclar" onclick="concretoMezclar()" disabled>🔀 Mezclar y Obtener Concreto</button>
+        </div>
+      </div>
+
+      <!-- Resultado tras mezcla -->
+      <div id="concreto-resultado" style="display:none">
+        <div id="concreto-result-inner">
+          <span id="concreto-result-icon">🪨</span>
+          <span id="concreto-result-text">¡Concreto listo! Ahora elige las medidas de tu losa.</span>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div class="wb-section" style="flex:1">
+            <div class="wb-label">Largo <span class="wb-range">(mín 3 — máx 20)</span></div>
+            <div class="wb-slider-row">
+              <input type="range" id="con-largo" min="3" max="20" value="4" oninput="concretoMedidaUpdate()">
+              <span class="wb-num" id="val-con-largo">4</span>
+            </div>
+          </div>
+          <div class="wb-section" style="flex:1">
+            <div class="wb-label">Ancho <span class="wb-range">(mín 3 — máx 20)</span></div>
+            <div class="wb-slider-row">
+              <input type="range" id="con-ancho" min="3" max="20" value="3" oninput="concretoMedidaUpdate()">
+              <span class="wb-num" id="val-con-ancho">3</span>
+            </div>
+          </div>
+        </div>
+        <div id="concreto-medida-info" style="color:rgba(120,200,255,.7);font-size:12px;margin-bottom:14px">Área: 12 m²</div>
+        <div style="display:flex;gap:10px">
+          <button class="btn wb-build-btn" style="flex:2" onclick="concretoFinalizar(true)">✅ Agregar con medidas</button>
+          <button class="btn" style="flex:1;padding:13px;font-size:13px;border-radius:12px" onclick="concretoFinalizar(false)">⏭ Sin medidas</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="wall-overlay" onclick="closeWallBuilder(event)">
+    <div id="wall-modal">
+      <div id="wall-header">
+        <span>🧱 Construir</span>
+        <button class="btn" onclick="closeWallBuilder()">✕</button>
+      </div>
+      <div id="wall-body">
+        <div id="wall-tabs">
+          <button class="wall-tab active" id="tab-pared" onclick="switchWallTab('pared')">🧱 Pared</button>
+          <button class="wall-tab" id="tab-piso" onclick="switchWallTab('piso')">🟫 Piso</button>
+        </div>
+
+        <div id="tab-content-pared">
+          <div class="wb-section">
+            <div class="wb-label">Material</div>
+            <div class="wb-options" id="wb-mat-options">
+              <div class="wb-opt selected" data-mat="block" onclick="wbSelectMat(this)">🧱 Block</div>
+              <div class="wb-opt" data-mat="madera" onclick="wbSelectMat(this)">🪵 Madera</div>
+            </div>
+          </div>
+          <div class="wb-section">
+            <div class="wb-label">Ancho <span class="wb-range">(mín 3 — máx 20 cuadros)</span></div>
+            <div class="wb-slider-row">
+              <input type="range" id="wb-width" min="3" max="20" value="5" oninput="wbUpdate()">
+              <span class="wb-num" id="wb-width-val">5</span>
+            </div>
+          </div>
+          <div class="wb-section">
+            <div class="wb-label">Altura <span class="wb-range">(mín 4 — máx 10 filas)</span></div>
+            <div class="wb-slider-row">
+              <input type="range" id="wb-height" min="4" max="10" value="4" oninput="wbUpdate()">
+              <span class="wb-num" id="wb-height-val">4</span>
+            </div>
+          </div>
+          <div id="wb-preview">
+            <div class="wb-prev-row"><span>Bloques totales:</span><span id="wb-total">–</span></div>
+            <div class="wb-prev-row"><span>Dimensión:</span><span id="wb-dims">–</span></div>
+          </div>
+          <button class="btn wb-build-btn" id="wb-build-btn" onclick="buildWall()">⬆ Construir Pared</button>
+        </div>
+
+        <div id="tab-content-piso" style="display:none">
+          <div class="wb-section">
+            <div class="wb-label">Material</div>
+            <div class="wb-options" id="wp-mat-options">
+              <div class="wb-opt selected" data-mat="vitropiso" onclick="wpSelectMat(this)">🔷 Vitropiso</div>
+            </div>
+          </div>
+          <div class="wb-section">
+            <div class="wb-label">Ancho <span class="wb-range">(mín 3 — máx 20)</span></div>
+            <div class="wb-slider-row">
+              <input type="range" id="wp-width" min="3" max="20" value="5" oninput="wpUpdate()">
+              <span class="wb-num" id="wp-width-val">5</span>
+            </div>
+          </div>
+          <div class="wb-section">
+            <div class="wb-label">Largo <span class="wb-range">(mín 3 — máx 20)</span></div>
+            <div class="wb-slider-row">
+              <input type="range" id="wp-depth" min="3" max="20" value="5" oninput="wpUpdate()">
+              <span class="wb-num" id="wp-depth-val">5</span>
+            </div>
+          </div>
+          <div id="wp-preview">
+            <div class="wb-prev-row"><span>Piezas totales:</span><span id="wp-total">–</span></div>
+            <div class="wb-prev-row"><span>Dimensión:</span><span id="wp-dims">–</span></div>
+          </div>
+          <button class="btn wb-build-btn" id="wp-build-btn" onclick="buildFloor()">⬇ Construir Piso</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="prog-overlay" onclick="closeProgramar(event)">
+    <div id="prog-modal">
+      <div id="prog-header">
+        <span>🔧 Programación por Bloques</span>
+        <button class="btn" onclick="closeProgramar()">✕</button>
+      </div>
+      <div id="prog-body">
+        <div id="prog-blocks-panel">
+          <div class="prog-section-title">Bloques disponibles</div>
+          <div class="prog-block-group-title">Si (condición)</div>
+          <div class="prog-block trigger" draggable="true" data-type="trigger" data-val="puerta_abre">🚪 Puerta se abre</div>
+          <div class="prog-block trigger" draggable="true" data-type="trigger" data-val="puerta_cierra">🚪 Puerta se cierra</div>
+          <div class="prog-block trigger" draggable="true" data-type="trigger" data-val="es_de_noche">🌙 Es de noche</div>
+          <div class="prog-block-group-title">Entonces (acción)</div>
+          <div class="prog-block action" draggable="true" data-type="action" data-val="encender_luz">💡 Encender luz</div>
+          <div class="prog-block action" draggable="true" data-type="action" data-val="apagar_luz">🔆 Apagar luz</div>
+          <div class="prog-block action" draggable="true" data-type="action" data-val="activar_alarma">🚨 Activar alarma</div>
+        </div>
+        <div id="prog-canvas-panel">
+          <div class="prog-section-title">Mi programa</div>
+          <div id="prog-drop-area" ondragover="event.preventDefault()" ondrop="dropBlock(event)">
+            <div id="prog-drop-hint">Arrastra bloques aquí para crear reglas</div>
+          </div>
+          <div id="prog-rules-list"></div>
+          <button class="btn" id="btnRunProg" onclick="runProgram()" style="margin-top:10px;width:100%">▶ Ejecutar programa</button>
+        </div>
+      </div>
+      <div id="prog-output"></div>
+    </div>
+  </div>
+
+
+  <div id="color-picker-popup" style="display:none">
+    <div id="color-picker-header">🎨 Elige el color</div>
+    <input type="color" id="color-picker-input" value="#ff6600" oninput="applyColorPicker()">
+    <div id="color-swatches">
+      <div class="cswatch" style="background:#e53935" onclick="setSwatchColor('#e53935')"></div>
+      <div class="cswatch" style="background:#fb8c00" onclick="setSwatchColor('#fb8c00')"></div>
+      <div class="cswatch" style="background:#fdd835" onclick="setSwatchColor('#fdd835')"></div>
+      <div class="cswatch" style="background:#43a047" onclick="setSwatchColor('#43a047')"></div>
+      <div class="cswatch" style="background:#1e88e5" onclick="setSwatchColor('#1e88e5')"></div>
+      <div class="cswatch" style="background:#8e24aa" onclick="setSwatchColor('#8e24aa')"></div>
+      <div class="cswatch" style="background:#ffffff" onclick="setSwatchColor('#ffffff')"></div>
+      <div class="cswatch" style="background:#424242" onclick="setSwatchColor('#424242')"></div>
+      <div class="cswatch" style="background:#5d4037" onclick="setSwatchColor('#5d4037')"></div>
+      <div class="cswatch" style="background:#00acc1" onclick="setSwatchColor('#00acc1')"></div>
+    </div>
+  </div>
+
+   <!-- Aqui va en el canvas-->
+  <canvas id="c"></canvas>
+
+  <!--Script-->
+  <script type="module" src="./casa.js"></script>
+
+</body>
+</html>
