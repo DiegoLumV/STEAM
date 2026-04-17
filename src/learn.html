@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="img/icon.png">
+  <title>CasaSTEAM – Aprende a Construir</title>
+</head>
+
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo-block">
+      <div class="logo-icon"><img src="img/icon.png" alt="CasaSTEAM"></div>
+      <div class="logo-text">Casa<br>STEAM</div>
+    </div>
+
+    <div class="nav-label">Módulos</div>
+
+    <button class="nav-btn active-intro" data-module="intro">
+      <span class="dot"></span>Fundamentos y Preparación
+    </button>
+    <button class="nav-btn inactive-math" data-module="math">
+      <span class="dot"></span>Fundamentos Matemáticos
+    </button>
+    <button class="nav-btn inactive-science" data-module="science">
+      <span class="dot"></span>Mezclas y Proporciones
+    </button>
+    <button class="nav-btn inactive-eng" data-module="engineering">
+      <span class="dot"></span>Construcción
+    </button>
+    <button class="nav-btn inactive-tech" data-module="tech">
+      <span class="dot"></span>Casa Inteligente
+    </button>
+    <button class="nav-btn inactive-arts" data-module="arts">
+      <span class="dot"></span>Acabados y Decoración
+    </button>
+
+    <a href="sandbox.html" style="all: unset;">
+      <button class="nav-btn inactive-exam" id="btn-examen">
+        <span class="dot"></span>Examen Final
+      </button>
+    </a>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main" id="mainScroll">
+
+    <header class="learn-topbar">
+      <div class="user-chip">
+        <div class="avatar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="5.5" r="2.8" stroke="#4caf7d" stroke-width="1.4"/>
+            <path d="M2.5 13.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="#4caf7d" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="user-name">Estudiante</span>
+      </div>
+    </header>
+
+    <!-- ------------------------------------------------------------------------------------------------------------
+         MÓDULO 01 — FUNDAMENTOS Y PREPARACIÓN (Introducción)
+    ------------------------------------------------------------------------------------------------------------ -->
+    <section class="module-section intro" id="section-intro">
+      <div class="module-header">
+        <span class="module-badge">Módulo 01</span>
+        <h2 class="module-title">Fundamentos y Preparación.</h2>
+        <div class="progress-chip" id="prog-intro">0 / 6 completadas</div>
+      </div>
+      <p class="module-subtitle">Identificación de necesidades · Análisis del terreno y entorno </p>
+      <div class="path-container">
+        <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(245,200,66,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(245,200,66,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(245,200,66,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(245,200,66,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(245,200,66,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <polygon points="219,222 225,234 231,222" fill="rgba(245,200,66,0.35)"/>
+          <polygon points="349,82 355,94 361,82" fill="rgba(245,200,66,0.25)"/>
+          <polygon points="479,222 485,234 491,222" fill="rgba(245,200,66,0.25)"/>
+          <polygon points="609,82 615,94 621,82" fill="rgba(245,200,66,0.25)"/>
+          <polygon points="739,222 745,234 751,222" fill="rgba(245,200,66,0.25)"/>
+        </svg>
+        <div class="lesson-nodes" id="nodes-intro">
+          <div class="node-col top">
+            <div class="lesson-cube next-up clickable" data-module="intro" data-lesson="1">
+              <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Identificación de Necesidades y Recursos</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="intro" data-lesson="2">
+              <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">El Terreno y su Entorno</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="intro" data-lesson="3">
+              <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title"> Tipos de Suelo</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="intro" data-lesson="4">
+              <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Topografía : Planos e inclinaciones</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="intro" data-lesson="5">
+              <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Tipos de Clima y Diseño</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="intro" data-lesson="6">
+              <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Diseño Arquitectónico</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ------------------------------------------------------------------------------------------------------------
+         MÓDULO 02 — FUNDAMENTOS MATEMÁTICOS (Matemáticas)
+    ------------------------------------------------------------------------------------------------------------ -->
+    <section class="module-section math" id="section-math">
+      <div class="module-header">
+        <span class="module-badge">Módulo 02</span>
+        <h2 class="module-title">Fundamentos Matemáticos</h2>
+        <div class="progress-chip" id="prog-math">0 / 6 completadas</div>
+      </div>
+      <p class="module-subtitle">Cálculo de medidas · Áreas y proporciones · Planos numéricos</p>
+      <div class="path-container">
+        <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(224,123,106,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(224,123,106,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(224,123,106,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(224,123,106,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(224,123,106,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <polygon points="219,222 225,234 231,222" fill="rgba(224,123,106,0.3)"/>
+          <polygon points="349,82 355,94 361,82" fill="rgba(224,123,106,0.22)"/>
+          <polygon points="479,222 485,234 491,222" fill="rgba(224,123,106,0.22)"/>
+          <polygon points="609,82 615,94 621,82" fill="rgba(224,123,106,0.22)"/>
+          <polygon points="739,222 745,234 751,222" fill="rgba(224,123,106,0.22)"/>
+        </svg>
+        <div class="lesson-nodes" id="nodes-math">
+          <div class="node-col top">
+            <div class="lesson-cube next-up clickable" data-module="math" data-lesson="1">
+              <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Regla 60-30-10</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="math" data-lesson="2">
+              <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Proporciones y Áreas</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="math" data-lesson="3">
+              <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Topografía Numérica</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="math" data-lesson="4">
+              <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Cargas y Resistencia</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="math" data-lesson="5">
+              <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Dimensiones de Muros</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="math" data-lesson="6">
+              <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Evaluación</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ------------------------------------------------------------------------------------------------------------
+         MÓDULO 03 — MEZCLAS Y PROPORCIONES (Ciencia)
+    ------------------------------------------------------------------------------------------------------------ -->
+    <section class="module-section science" id="section-science">
+      <div class="module-header">
+        <span class="module-badge">Módulo 03</span>
+        <h2 class="module-title">Mezclas y proporciones</h2>
+        <div class="progress-chip" id="prog-science">0 / 6 completadas</div>
+      </div>
+      <p class="module-subtitle">Física de materiales · Impermeabilización</p>
+      <div class="path-container">
+        <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(76,175,125,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(76,175,125,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(76,175,125,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(76,175,125,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(76,175,125,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <polygon points="219,222 225,234 231,222" fill="rgba(76,175,125,0.35)"/>
+          <polygon points="349,82 355,94 361,82" fill="rgba(76,175,125,0.25)"/>
+          <polygon points="479,222 485,234 491,222" fill="rgba(76,175,125,0.25)"/>
+          <polygon points="609,82 615,94 621,82" fill="rgba(76,175,125,0.25)"/>
+          <polygon points="739,222 745,234 751,222" fill="rgba(76,175,125,0.25)"/>
+        </svg>
+        <div class="lesson-nodes" id="nodes-science">
+          <div class="node-col top">
+            <div class="lesson-cube next-up clickable" data-module="science" data-lesson="1">
+              <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Propiedades del concreto</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="science" data-lesson="2">
+              <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Agregados: Arena y Grava</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="science" data-lesson="3">
+              <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Fraguado y Curado</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="science" data-lesson="4">
+              <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Colado y Vibrado</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="science" data-lesson="5">
+              <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Control de Calidad y Fallas comunes</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="science" data-lesson="6">
+              <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Evaluación</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ------------------------------------------------------------------------------------------------------------
+         MÓDULO 04 — CONSTRUCCIÓN (Ingeniería)
+    ------------------------------------------------------------------------------------------------------------ -->
+    <section class="module-section engineering" id="section-engineering">
+      <div class="module-header">
+        <span class="module-badge">Módulo 04</span>
+        <h2 class="module-title">Construcción</h2>
+        <div class="progress-chip" id="prog-engineering">0 / 6 completadas</div>
+      </div>
+      <p class="module-subtitle">Cimentación · Estructura · Proceso constructivo completo</p>
+      <div class="path-container">
+        <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(138,138,154,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(138,138,154,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(138,138,154,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(138,138,154,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(138,138,154,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <polygon points="219,222 225,234 231,222" fill="rgba(138,138,154,0.3)"/>
+          <polygon points="349,82 355,94 361,82" fill="rgba(138,138,154,0.22)"/>
+          <polygon points="479,222 485,234 491,222" fill="rgba(138,138,154,0.22)"/>
+          <polygon points="609,82 615,94 621,82" fill="rgba(138,138,154,0.22)"/>
+          <polygon points="739,222 745,234 751,222" fill="rgba(138,138,154,0.22)"/>
+        </svg>
+        <div class="lesson-nodes" id="nodes-engineering">
+          <div class="node-col top">
+            <div class="lesson-cube next-up clickable" data-module="engineering" data-lesson="1">
+              <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Cimentación: El Anclaje al Suelo</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="engineering" data-lesson="2">
+              <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Contracimientos y Firmes</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="engineering" data-lesson="3">
+              <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Castillos: Los Huesos Verticales</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="engineering" data-lesson="4">
+              <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Mampostería y Vanos</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="engineering" data-lesson="5">
+              <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Dalas de Remate</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="engineering" data-lesson="6">
+              <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">La Losa: El Techo Protector</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ------------------------------------------------------------------------------------------------------------
+         MÓDULO 05 — CASA INTELIGENTE (Tecnología)
+    ------------------------------------------------------------------------------------------------------------ -->
+
+    <section class="module-section tech" id="section-tech">
+      <div class="module-header">
+        <span class="module-badge">Módulo 05</span>
+        <h2 class="module-title">Casa Inteligente</h2>
+        <div class="progress-chip" id="prog-tech">0 / 6 completadas</div>
+      </div>
+      <p class="module-subtitle">Circuitos eléctricos · Domótica · Focos y sensores inteligentes</p>
+      <div class="path-container">
+        <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(91,141,238,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(91,141,238,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(91,141,238,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(91,141,238,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(91,141,238,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <polygon points="219,222 225,234 231,222" fill="rgba(91,141,238,0.3)"/>
+          <polygon points="349,82 355,94 361,82" fill="rgba(91,141,238,0.22)"/>
+          <polygon points="479,222 485,234 491,222" fill="rgba(91,141,238,0.22)"/>
+          <polygon points="609,82 615,94 621,82" fill="rgba(91,141,238,0.22)"/>
+          <polygon points="739,222 745,234 751,222" fill="rgba(91,141,238,0.22)"/>
+        </svg>
+        <div class="lesson-nodes" id="nodes-tech">
+          <div class="node-col top">
+            <div class="lesson-cube next-up clickable" data-module="tech" data-lesson="1">
+              <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Fundamentos de la Domótica</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="tech" data-lesson="2">
+              <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Iluminación Inteligente y Ahorro</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="tech" data-lesson="3">
+              <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Climatización y Gestión Térmica</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="tech" data-lesson="4">
+              <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Seguridad y Acceso Biométrico</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="tech" data-lesson="5">
+              <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Gestión Energética Remota</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="tech" data-lesson="6">
+              <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Integración y Escenarios (Scenes)</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ------------------------------------------------------------------------------------------------------------
+         MÓDULO 06 — ACABADOS Y DECORACIÓN (Arte)
+    ------------------------------------------------------------------------------------------------------------ -->
+
+    <section class="module-section arts" id="section-arts">
+      <div class="module-header">
+        <span class="module-badge">Módulo 06</span>
+        <h2 class="module-title">Acabados y Decoración</h2>
+        <div class="progress-chip" id="prog-arts">0 / 6 completadas</div>
+      </div>
+      <p class="module-subtitle">Diseño de interiores · Paleta cromática · Acabados y decoración</p>
+      <div class="path-container">
+        <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(155,111,200,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(155,111,200,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(155,111,200,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(155,111,200,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(155,111,200,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <polygon points="219,222 225,234 231,222" fill="rgba(155,111,200,0.3)"/>
+          <polygon points="349,82 355,94 361,82" fill="rgba(155,111,200,0.22)"/>
+          <polygon points="479,222 485,234 491,222" fill="rgba(155,111,200,0.22)"/>
+          <polygon points="609,82 615,94 621,82" fill="rgba(155,111,200,0.22)"/>
+          <polygon points="739,222 745,234 751,222" fill="rgba(155,111,200,0.22)"/>
+        </svg>
+        <div class="lesson-nodes" id="nodes-arts">
+          <div class="node-col top">
+            <div class="lesson-cube next-up clickable" data-module="arts" data-lesson="1">
+              <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Diseño Cronomático</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="arts" data-lesson="2">
+              <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Psicología y Temperatura del Color</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="arts" data-lesson="3">
+              <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Recubrimiento de Muros</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="arts" data-lesson="4">
+              <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Pisos: Nivelación y Adherencia</div></div>
+          </div>
+          <div class="node-col top">
+            <div class="lesson-cube locked" data-module="arts" data-lesson="5">
+              <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Impermeabilización Avanzada</div></div>
+          </div>
+          <div class="node-col bottom">
+            <div class="lesson-cube locked" data-module="arts" data-lesson="6">
+              <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
+            </div>
+            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Relaciones en el Círculo Cromático</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODAL -->
+  <div id="lessonModal" class="modal-overlay">
+    <div class="modal-content">
+      <button class="close-modal" id="closeModalBtn">✕</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- UNLOCK TOAST -->
+  <div class="unlock-toast" id="unlockToast">
+    <span class="toast-icon">🔓</span>
+    <span id="toastMsg">¡Lección desbloqueada!</span>
+  </div>
+
+  <script>
+    // ---- STATE ------------------------------------------------------------------------------------------------------------------------------------
+    const completed = { intro: [], math: [], science: [], engineering: [], tech: [], arts: [] };
+    let currentModule = null;
+    let currentLesson = null;
+
+    // ---- LESSON DATA ------------------------------------------------------------------------------------------------------------------------
+    const lessons = {
+
+      // ----─ MÓDULO 01 · FUNDAMENTOS Y PREPARACIÓN (Introducción) --------------------------------------------------------─
+      intro: {
+        moduleLabel: 'Módulo 01 · Fundamentos y Preparación',
+        accent: '#f5c842',
+        soft: 'rgba(245,200,66,0.1)',
+        textColor: '#c8960a',
+        1: {
+          title: 'Definición de Necesidades',
+          subtitle: '¿Qué quiero construir y por qué? El primer paso antes de poner cualquier ladrillo.',
+          steps: [
+            {
+              num: '01', title: 'El punto de partida',
+              body: `<p>Antes de iniciar cualquier construcción, es fundamental entender <strong>por qué</strong> se necesita y <strong>qué espacios</strong> requiere. Esta etapa define el rumbo de todo el proyecto.</p>
+              <ul>
+                <li><strong>Alcances:</strong> ¿Qué tan grande será la construcción?</li>
+                <li><strong>Necesidades:</strong> Lista de espacios requeridos (habitaciones, baños, cocina…).</li>
+                <li><strong>Recursos disponibles:</strong> Presupuesto, tiempo y materiales.</li>
+                <li><strong>Visión:</strong> El estilo y función deseados.</li>
+                <li><strong>Tiempos:</strong> Cronograma estimado de obra.</li>
+                <li><strong>Privacidad:</strong> Separar zonas sociales de zonas privadas para mejorar el bienestar de los habitantes.
+              </ul>
+              <div class="tip-box" style="background:rgba(245,200,66,0.08);border-left-color:#f5c842;">
+                <strong>Tip:</strong> Prioriza la circulación y la iluminación natural desde el inicio. Una casa que fluye bien y aprovecha la luz solar ahorra energía y mejora la calidad de vida.
+              </div>`
+            },
+            {
+              num: '02', title: 'Materiales utilizados en la Obra',
+              body: `<p>La selección de los materiales con los que se construirá depende en gran medida del confort térmico interior y la capacidad de resistencia de cada uno. </p>
+              <p>Estos materiales se dividen generalmente en dos grandes etapas:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#f5c842">Obra Negra</div><p>cimentación, estructura y muros.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Obra gris y acabados</div><p>recubrimientos, detalles estéticos y protección final.</p></div>
+              </div>`
+            },
+            {
+              num: '03', title: 'Principales Materiales de obra negra',
+              body: `<div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#f5c842">Cemento</div><p>Al mezclarse con agua, arena y grava se convierte en concreto, la base de la mayoría de las estructuras.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Acero de refuerzo y varilla</div><p>El acero se utiliza como esqueleto de las estructuras. Las varillas y mallas metálicas brindan soporte al concreto.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Ladrillos y bloques</div><p>Son utilizados en muros y divisiones, ofrecen aislamiento térmico y garantizan estabilidad.</p></div>  
+                </div>`
+            },
+            {
+              num: '04', title: 'Principales Materiales de obra gris y acabados',
+              body: `<div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#f5c842">Arena y grava</div><p>La arena aporta cohesión y la grava resistencia, su calidad influye en la durabilidad de la obra.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Yeso y Morter</div><p>El yeso es usado en acabados interiores para nivelar superficies y preparar muros para pintura. El mortero, se utiliza como mezcla adhesiva en muros, pisos y recubrimientos.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Pintura y recubrimientos</div><p>La pintura protege los muros contra humedad y desgaste y mejora la apariencia estética de los espacios. Los recubrimientos ofrecen protección adicional frente a agentes externos.</p></div>  
+                </div>`
+            }
+          ]
+        },
+        2: {
+          title: 'El Terreno y su Entorno',
+          subtitle: '¿Cómo evaluar el sitio donde se construirá? Aspectos importantes antes de diseñar.',
+          steps: [
+            {
+              num: '01', title: 'Evaluación del Emplazamiento',
+              body: `<p>Antes de dibujar cualquier muro, es vital conocer las características físicas y del terreno. Un buen análisis evita sobrecostos por cimentaciones especiales o problemas con las autoridades locales.</p>
+              <p> Se deben considerar los siguientes puntos: </p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#f5c842">Servicios Disponibles</div><p>Verificar la cercanía de redes de agua potable, drenaje, electricidad y transporte.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Topografía</div><p>Identificar si el terreno es plano o inclinado. </p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Tipo de suelo</div><p>Reconocer si el suelo es firme o inestable</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Colindancias</div><p>Respetar los límites con los vecinos y las restricciones de construcción de la zona.</p></div>
+              </div>`
+            }
+          ]
+        },
+        3: {
+          title: 'Tipos de Suelo',
+          subtitle: '¿En qué tipo de suelo voy a construir? Reconocer características del terreno.',
+          steps: [
+            {
+              num: '01', title: 'Características de los Suelos',
+              body: `<p>El suelo no es simplemente tierra: es un material con propiedades físicas y mecánicas que determinan <strong> qué tan pesada puede ser la estructura</strong>  que soporta.</p>
+              <p>Evaluar el suelo permite elegir el tipo de cimentación correcto y evitar problemas futuros como grietas o hundimientos.</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#f5c842">Suelo Pedregoso</div><p>Alta resistencia y estabilidad. Ideal para cimientos directos. Poco riesgo de asentamiento.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Suelo Arcilloso</div><p>Retiene humedad y cambia de volumen al secarse. Requiere cimentaciones más profundas.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Suelo Arenoso</div><p>Baja cohesión. El agua lo erosiona fácilmente. Necesita compactación previa.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Suelo Orgánico</div><p>Muy compresible y no apto para cimentar directamente. Requiere relleno o pilotes.</p></div>
+              </div>`
+            }
+          ]
+        },
+        4: {
+          title: 'Topografía : Planos e inclinaciones',
+          subtitle: '¿Cómo es el terreno? Consideraciones a tener en cuenta.',
+          steps: [
+            {
+              num: '01', title: 'Topografía : Planos e inclinaciones',
+              body: `<p>Determina los desniveles del terreno y condiciona el diseño de la casa.</p>
+              <ul>
+                <li><strong>Terreno plano:</strong> Ofrece diseño libre y flexible. Las construcciones son más económicas.</li>
+                <li><strong>Terreno con pendiente:</strong> El diseño debe seguir la pendiente, dividiendo el piso en distintas plataformas conectadas por escalones.</li>
+                <li><strong>Terreno en zona de riesgo:</strong> Construir sobre estas zonas implica grave peligros y riesgos de construcción y seguridad. Se recomienda buscar otras opciones de ubicación.</li>
+              </ul>
+              <div class="tip-box" style="background:rgba(245,200,66,0.08);border-left-color:#f5c842;">
+                <strong>Dato:</strong> El "Nivel 0.00" es el punto de referencia absoluto para toda la altura de la construcción. Todo se mide desde este punto hacia arriba (+) o hacia abajo (−).
+              </div>`
+            }
+          ]
+        },
+        5: {
+          title: 'Tipos de Clima y Diseño',
+          subtitle: 'El clima del entorno determina cómo debe construirse tu casa.',
+          steps: [
+            {
+              num: '01', title: 'Climas y sus implicaciones constructivas',
+              body: `<p>El clima afecta el diseño de techos, ventanas, paredes y la orientación de la casa.</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#f5c842">Clima Cálido-Húmedo</div><p>Techos inclinados para evacuar lluvia. Ventanas grandes para ventilación.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Clima Cálido-Seco</div><p>Paredes gruesas y techos altos con pretiles para dar sombra. Patios interiores.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Clima Templado</div><p>Paredes gruesas. Ventanas orientadas al sur para captar calor.</p></div>
+              </div>`
+            },
+            {
+              num: '02', title: 'Orientación Solar',
+              body: `<p>La posición del sol es una herramienta de diseño poderosa:</p>
+              <ul>
+                <li><strong>Norte:</strong> Luz fría e indirecta. Ideal para estudios y oficinas.</li>
+                <li><strong>Sur:</strong> Luz cálida durante todo el año. Ideal para habitaciones principales.</li>
+                <li><strong>Este:</strong> Sol de mañana. Perfecto para cocinas y desayunadores.</li>
+                <li><strong>Oeste:</strong> Sol de tarde y calor intenso. Proteger con aleros o vegetación.</li>
+              </ul>
+              <div class="tip-box" style="background:rgba(245,200,66,0.08);border-left-color:#f5c842;">
+                <strong>Principio:</strong> Una casa bien orientada puede reducir su consumo de energía hasta en un 30%.
+              </div>`
+            }
+          ]
+        },
+        6: {
+          title: 'Diseño Arquitectónico',
+          subtitle: 'El arte de crear espacios que sean funcionales, bellos y adaptados a sus habitantes.',
+          steps: [
+            {
+              num: '01', title: 'Distribución de Espacios',
+              body: `<p>El diseño arquitectónico es el arte de distribuir espacios de manera que sean funcionales y estéticamente agradables. Los principios fundamentales a tener en cuenta durante este proceso son los siguientes:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#f5c842">Función</div><p>Cada espacio tiene un propósito específico. </p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Escala</div><p>El tamaño de las habitaciones depende de los muebles que se encontrarán y el espacio para circular.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Circulación</div><p> Los pasillos y accesos deben permitir el movimiento fluido e intuitivo entre habitaciones.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Ventilación</div><p>Todos los espacios deben tener al menos una ventana al exterior.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Orientación</div><p>La posición respecto al sol determina la iluminación y temperatura natural de cada espacio.</p></div>
+              </div>
+              <div class="tip-box" style="background:rgba(245,200,66,0.08);border-left-color:#f5c842;">
+                <strong>Considera:</strong> La evolución progresiva de la casa al momento de diseñar la construcción para evitar terminar con espacios desperdiciados.
+              </div>`
+            },
+            {
+              num: '02', title: 'Distribución de Espacios',
+              body: `<p>El diseño arquitectónico es el arte de distribuir espacios de manera que sean funcionales y estéticamente agradables. Los principios fundamentales a tener en cuenta durante este proceso son los siguientes:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#f5c842">Función</div><p>Cada espacio tiene un propósito específico. </p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Escala</div><p>El tamaño de las habitaciones depende de los muebles que se encontrarán y el espacio para circular.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Circulación</div><p> Los pasillos y accesos deben permitir el movimiento fluido e intuitivo entre habitaciones.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Ventilación</div><p>Todos los espacios deben tener al menos una ventana al exterior.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Orientación</div><p>La posición respecto al sol determina la iluminación y temperatura natural de cada espacio.</p></div>
+              </div>
+              <div class="tip-box" style="background:rgba(245,200,66,0.08);border-left-color:#f5c842;">
+                <strong>Considera:</strong> La evolución progresiva de la casa al momento de diseñar la construcción para evitar terminar con espacios desperdiciados.
+              </div>`
+            },
+            {
+              num: '03', title: 'Diseño Estructural',
+              body: `<p>El <strong>diseño estructural</strong> crea planos técnicos con todos los elementos resistentes:</p>
+              <ul>
+                <li><strong>Cimientos:</strong> Tipo, dimensiones, profundidad y armado.</li>
+                <li><strong>Columnas/Castillos:</strong> Ubicación, sección y refuerzo de acero.</li>
+                <li><strong>Trabes y Dalas:</strong> Vigas horizontales que unen columnas.</li>
+                <li><strong>Losas:</strong> Espesor, tipo de armado y pendientes.</li>
+              </ul>`
+            },
+            {
+              num: '04', title: 'Cargas y fuerzas',
+              body: `<p>Un ingeniero analiza todas las fuerzas que actúan sobre la estructura:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#f5c842">Carga Muerta</div><p>El peso permanente: muros, losas, acabados.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Carga Viva</div><p>El peso variable: personas, muebles, objetos.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Carga de Viento</div><p>La presión lateral sobre fachadas y techos.</p></div>
+                <div class="concept-card"><div class="label" style="color:#f5c842">Carga Sísmica</div><p>Las fuerzas horizontales generadas por un terremoto.</p></div>
+              </div>`
+            }
+          ]
+        },
+      },
+
+      // ----─ MÓDULO 02 · FUNDAMENTOS MATEMÁTICOS (Matemáticas) ----------------------------------------─
+      math: {
+        moduleLabel: 'Módulo 02 · Fundamentos Matemáticos',
+        accent: '#e07b6a',
+        soft: 'rgba(224,123,106,0.1)',
+        textColor: '#8a3528',
+        1: {
+          title: 'La Regla 60-30-10 en Números',
+          subtitle: 'Las matemáticas de la proporción visual: cómo calcular el color perfecto.',
+          steps: [
+            {
+              num: '01', title: 'Calculando la paleta de color',
+              body: `<p>La regla 60-30-10 se aplica matemáticamente a la superficie total de fachada. Si tu fachada tiene 120 m² de superficie:</p>
+              <ul>
+                <li><strong>60%:</strong> 120 × 0.60 = <strong>72 m²</strong> en color dominante.</li>
+                <li><strong>30%:</strong> 120 × 0.30 = <strong>36 m²</strong> en color secundario.</li>
+                <li><strong>10%:</strong> 120 × 0.10 = <strong>12 m²</strong> en color de acento.</li>
+              </ul>
+              <div class="tip-box" style="background:rgba(224,123,106,0.08);border-left-color:#e07b6a;">
+                <strong>Fórmula:</strong> Litros de pintura = Superficie (m²) ÷ Rendimiento (m²/L) × Número de manos
+              </div>`
+            },
+            {
+              num: '02', title: 'Proporciones y escala',
+              body: `<p>Las matemáticas de la proporción van más allá del color:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Proporción Áurea</div><p>La relación 1:1.618 (número de oro) aparece en la arquitectura más bella de la historia.</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Módulo</div><p>Unidad de medida que se repite. En México, el block de concreto (20×20×40 cm) es el módulo base.</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Escala Humana</div><p>Las alturas de puertas (2.10 m) y techos (2.40 m mín.) están definidas por el cuerpo humano.</p></div>
+              </div>`
+            }
+          ]
+        },
+        2: {
+          title: 'Cálculo de Áreas y Volúmenes',
+          subtitle: 'Las matemáticas para saber exactamente cuánto material necesitas.',
+          steps: [
+            {
+              num: '01', title: 'Área de muros',
+              body: `<p>Para calcular la cantidad de block necesario:</p>
+              <ul>
+                <li><strong>Área del muro:</strong> Largo (m) × Alto (m) = m²</li>
+                <li><strong>Descontar vanos:</strong> Restar el área de puertas y ventanas.</li>
+                <li><strong>Blocks necesarios:</strong> El block estándar cubre ~0.08 m². Divide el área neta entre 0.08.</li>
+                <li><strong>Desperdicio:</strong> Agrega un 5-10% por cortes y roturas.</li>
+              </ul>
+              <div class="tip-box" style="background:rgba(224,123,106,0.08);border-left-color:#e07b6a;">
+                <strong>Ejemplo:</strong> Muro 5m×2.5m = 12.5 m². Puerta 1m×2.1m = 2.1 m². Área neta = 10.4 m². Blocks = 10.4÷0.08 = <strong>130</strong> + 10% = <strong>143 blocks</strong>.
+              </div>`
+            },
+            {
+              num: '02', title: 'Volumen de concreto',
+              body: `<p>Para calcular el concreto de una losa: <strong>Largo × Ancho × Espesor</strong> (en metros).</p>
+              <p>Una losa de 6m × 5m × 0.12m = <strong>3.6 m³</strong> de concreto.</p>
+              <p>Un m³ de concreto requiere aproximadamente: 7 sacos de cemento, 0.5 m³ de arena, 0.75 m³ de grava.</p>`
+            }
+          ]
+        },
+        3: {
+          title: 'Topografía Numérica',
+          subtitle: 'Los números que describen el terreno y guían la construcción.',
+          steps: [
+            {
+              num: '01', title: 'Cotas y niveles',
+              body: `<p>Las <strong>cotas</strong> indican la altura de cada punto del terreno respecto a un punto de referencia (Nivel 0.00):</p>
+              <ul>
+                <li><strong>+0.30</strong> = 30 cm sobre el nivel de referencia.</li>
+                <li><strong>−0.60</strong> = 60 cm bajo el nivel de referencia (excavación).</li>
+              </ul>
+              <div class="tip-box" style="background:rgba(224,123,106,0.08);border-left-color:#e07b6a;">
+                <strong>Ejemplo:</strong> Si el terreno es 0.00 y los cimientos se excavan 0.60m, la cota de fondo es −0.60. El piso terminado suele estar a +0.15.
+              </div>`
+            },
+            {
+              num: '02', title: 'Pendientes y drenaje',
+              body: `<p><strong>Pendiente (%) = (Desnivel ÷ Distancia horizontal) × 100</strong></p>
+              <p>Un techo que baja 30 cm en 3 metros: (0.30 ÷ 3.00) × 100 = <strong>10%</strong>.</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Azotea</div><p>Mínimo 2% (2 cm por metro) para evacuar agua de lluvia.</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Techo inclinado</div><p>Entre 15% y 45% según el clima.</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Piso exterior</div><p>Mínimo 1.5% alejándose de la construcción.</p></div>
+              </div>`
+            }
+          ]
+        },
+        4: {
+          title: 'Cargas y Resistencia Estructural',
+          subtitle: 'Las matemáticas que garantizan que tu casa no se caiga.',
+          steps: [
+            {
+              num: '01', title: 'Peso y cargas',
+              body: `<p>Valores de referencia de peso por elemento:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Losa de concreto</div><p>~240-300 kg/m² por cada 10 cm de espesor.</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Muro de block</div><p>~150-200 kg/m² según el espesor.</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Carga viva</div><p>~150-200 kg/m² para vivienda (personas + muebles).</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Agua en azotea</div><p>~100 kg/m² por cada 10 cm de lámina de agua.</p></div>
+              </div>`
+            },
+            {
+              num: '02', title: 'Resistencia del concreto (f\'c)',
+              body: `<p>El concreto se especifica por su resistencia a compresión (<strong>f'c</strong>) en kg/cm²:</p>
+              <ul>
+                <li><strong>f'c = 150:</strong> Para cimentaciones en suelo firme.</li>
+                <li><strong>f'c = 200:</strong> Estándar para vivienda: losas, castillos, dalas.</li>
+                <li><strong>f'c = 250:</strong> Para elementos con cargas elevadas.</li>
+              </ul>
+              <div class="tip-box" style="background:rgba(224,123,106,0.08);border-left-color:#e07b6a;">
+                <strong>Proporción para f'c 200:</strong> 1 parte cemento : 2 partes arena : 3 partes grava : 0.6 partes agua.
+              </div>`
+            }
+          ]
+        },
+        5: {
+          title: 'Dimensiones de Muros y Castillos',
+          subtitle: 'Los números precisos que definen cada elemento estructural de tu casa.',
+          steps: [
+            {
+              num: '01', title: 'Dimensiones de puertas y ventanas',
+              body: `<p>Las alturas responden a proporciones humanas y constructivas:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Puerta exterior</div><p>Ancho: 90-100 cm. Alto vano: 210 cm.</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Puerta interior</div><p>Ancho: 70-90 cm. Alto vano: 210 cm.</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Ventana estándar</div><p>Repisa: 90 cm. Alto del vano: 120 cm. Cabecero: a 210 cm del piso.</p></div>
+                <div class="concept-card"><div class="label" style="color:#e07b6a">Altura libre mínima</div><p>2.40 m habitaciones. 2.10 m pasillos y baños.</p></div>
+              </div>`
+            },
+            {
+              num: '02', title: 'El piso terminado: cálculo de peraltes',
+              body: `<p>Para <strong>escaleras</strong> la proporción ideal es:</p>
+              <ul>
+                <li><strong>Huella:</strong> 28-30 cm</li>
+                <li><strong>Peralte:</strong> 17-18 cm</li>
+                <li><strong>Fórmula de Blondel:</strong> 2 × Peralte + Huella = 63-65 cm</li>
+              </ul>
+              <p>Nivel de piso terminado: firme 10 cm + boquete 1.5 cm + cerámica 1 cm = <strong>+0.12 a +0.15 m</strong>.</p>`
+            }
+          ]
+        },
+        6: {
+          title: 'Evaluación Final: Fundamentos Matemáticos',
+          subtitle: 'Demuestra tu dominio de los números que hacen posible la construcción.',
+          steps: [
+            {
+              num: '🏆', title: 'Resumen del módulo',
+              body: `<p>En este módulo aprendiste las matemáticas de la construcción:</p>
+              <ul>
+                <li>✅ La regla 60-30-10 y el cálculo de materiales de pintura.</li>
+                <li>✅ Cálculo de áreas de muros y volúmenes de concreto.</li>
+                <li>✅ Cotas, niveles y cálculo de pendientes.</li>
+                <li>✅ Cargas estructurales y resistencia del concreto.</li>
+                <li>✅ Dimensiones estándar de puertas, ventanas y escaleras.</li>
+              </ul>
+              <div class="tip-box" style="background:rgba(224,123,106,0.08);border-left-color:#e07b6a;margin-top:16px;">
+                <strong>¡Módulo completado!</strong> Los números son el lenguaje universal de la construcción. Ahora los hablas.
+              </div>`
+            }
+          ]
+        }
+      },
+
+      // ----─ MÓDULO 03 · MEZCLAS Y PROPORCIONES (Ciencia) --------------------------------------------------------─
+      science: {
+        moduleLabel: 'Módulo 03 · Mezclas y Proporciones',
+        accent: '#4caf7d',
+        soft: 'rgba(76,175,125,0.1)',
+        textColor: '#1d6642',
+        1: {
+          title: 'Propiedades del Concreto',
+          subtitle: 'El material más usado en construcción tiene una ciencia fascinante detrás.',
+          steps: [
+            {
+              num: '01', title: '¿Qué es el concreto?',
+              body: `<p>El concreto es un material compuesto formado por <strong>cemento, agua, arena y grava</strong>. Al mezclarse, ocurre una reacción química llamada <em>hidratación</em> que lo endurece.</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#4caf7d">Cemento</div><p>El aglutinante. Al reaccionar con el agua, forma los cristales que dan resistencia.</p></div>
+                <div class="concept-card"><div class="label" style="color:#4caf7d">Arena y Grava</div><p>El agregado. Le da volumen y reduce el costo. El tamaño del grano afecta la resistencia.</p></div>
+                <div class="concept-card"><div class="label" style="color:#4caf7d">Agua</div><p>Activa la reacción química. Demasiada agua debilita el concreto aunque lo haga más manejable.</p></div>
+                <div class="concept-card"><div class="label" style="color:#4caf7d">Acero</div><p>El concreto resiste compresión pero no tensión. El acero (varillas) compensa esa debilidad.</p></div>
+              </div>`
+            },
+            {
+              num: '02', title: 'Concreto Armado: La dupla perfecta',
+              body: `<p>El <strong>concreto armado</strong> combina concreto con varillas de acero en su interior:</p>
+              <ul>
+                <li>El concreto soporta fuerzas de <strong>compresión</strong>.</li>
+                <li>El acero soporta fuerzas de <strong>tensión</strong>.</li>
+              </ul>
+              <p>Juntos, pueden resistir terremotos, el peso de losas y la presión del suelo.</p>
+              <div class="tip-box" style="background:rgba(76,175,125,0.08);border-left-color:#4caf7d;">
+                 <strong>Proceso de colado:</strong> El concreto necesita 28 días para alcanzar el 100% de su resistencia especificada.
+              </div>`
+            },
+            {
+              num: '03', title: 'La Reacción de Hidratación',
+              body: `<p>El cemento no se "seca" por evaporación como el lodo; se transforma mediante una <strong>reacción química exotérmica</strong> al contacto con el agua.</p>
+              <div class="tip-box" style="background:rgba(16,185,129,0.08);border-left-color:#10b981;">
+                <strong>De esta manera:</strong> Esta reacción crea cristales entrelazados a nivel microscópico que dan la dureza final. Al ser exotérmica, la mezcla liberará calor mientras endurece.
+              </div>`
+            },
+            {
+              num: '04', title: 'Tablas de Proporción (Bulto 50kg)',
+              body: `<p>La resistencia se mide en kg/cm². Estas son las recetas para los elementos estructurales:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#10b981">Castillos y Cadenas (150 kg/cm²)</div><p>1 cemento + 5.5 botes de arena + 7 botes de grava + 2 botes de agua.</p></div>
+                <div class="concept-card"><div class="label" style="color:#10b981">Losas y Trabes (200 kg/cm²)</div><p>1 cemento + 4.5 botes de arena + 6 botes de grava + 1.5 botes de agua.</p></div>
+                <div class="concept-card"><div class="label" style="color:#10b981">Columnas Fuertes (250 kg/cm²)</div><p>1 cemento + 3.5 botes de arena + 5 botes de grava + 1.25 botes de agua.</p></div>
+              </div>`
+            },
+            {
+              num: '05', title: 'La mezcla de alta resistencia',
+              body: `<p>El concreto es la unión de cemento, agua y ambos agregados (arena y grava). Es el material de construcción más resistente a la <strong>compresión</strong> (aplastamiento).</p>`
+            },
+            {
+              num: '06', title: 'El factor Agua-Cemento',
+              body: `<p>Es la regla de oro de la ingeniería civil: <strong>A menor cantidad de agua (siempre que permita la mezcla), mayor resistencia.</strong></p>
+              <div class="tip-box" style="background:rgba(16,185,129,0.08);border-left-color:#10b981;">
+                <strong>¡Cuidado!:</strong> Agregar agua extra para que la mezcla sea "más aguada" y fácil de trabajar debilita la estructura al crear poros cuando el agua sobrante se evapora.
+              </div>`
+            }
+          ]
+        },
+        2: {
+          title: 'Agregados: Arena y Grava',
+          subtitle: 'El esqueleto de la mezcla: Por qué el tamaño de las rocas determina la resistencia.',
+          steps: [
+            {
+              num: '01', title: 'Clasificación por tamaño',
+              body: `<p>Los agregados ocupan entre el 60% y 75% del volumen total de la mezcla y se dividen en dos categorías críticas:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#10b981">Agregado Fino (Arena)</div><p>Rellena los huecos pequeños entre las piedras grandes y aporta cohesión.</p></div>
+                <div class="concept-card"><div class="label" style="color:#10b981">Agregado Grueso (Grava)</div><p>Proporciona la masa mecánica y la resistencia al impacto y desgaste.</p></div>
+              </div>`
+            },
+            {
+              num: '02', title: 'La importancia de la limpieza',
+              body: `<p>Para que el cemento se adhiera correctamente, los agregados deben estar libres de materia orgánica, limos o arcillas.</p>
+              <div class="tip-box" style="background:rgba(16,185,129,0.08);border-left-color:#10b981;">
+                <strong>Dato Científico:</strong> Si la arena tiene mucha "tierra", los granos se rodean de una capa débil que impide que el cemento los sujete, provocando grietas futuras.
+              </div>`
+            }
+          ]
+        },
+        3: {
+          title: 'Fraguado y Curado',
+          subtitle: 'El tiempo de espera: Cómo el agua post-construcción garantiza la solidez.',
+          steps: [
+            {
+              num: '01', title: 'Etapas del endurecimiento',
+              body: `<p>El concreto pasa por tres estados principales:</p>
+              <ol>
+                <li><strong>Estado Plástico:</strong> Recién mezclado, permite ser moldeado en cimbras.</li>
+                <li><strong>Fraguado:</strong> Cuando deja de ser deformable y empieza a endurecer.</li>
+                <li><strong>Endurecimiento:</strong> Proceso que dura años, aunque alcanza su resistencia de diseño a los 28 días.</li>
+              </ol>`
+            },
+            {
+              num: '02', title: 'La importancia del Curado',
+              body: `<p>El curado consiste en mantener el concreto húmedo durante los primeros 7 días después de colado.</p>
+              <div class="tip-box" style="background:rgba(16,185,129,0.08);border-left-color:#10b981;">
+                <strong>Ciencia:</strong> Si el agua interna se evapora por el sol antes de reaccionar con el cemento, la cristalización se detiene y el concreto se vuelve quebradizo.
+              </div>`
+            }
+          ]
+        },
+        4: {
+          title: 'El Arte del Colado y Vibrado',
+          subtitle: 'Procedimiento físico para eliminar el aire atrapado.',
+          steps: [
+            {
+              num: '01', title: 'Pasos para un colado perfecto',
+              body: `<ol>
+                <li><strong>Humedecer la cimbra:</strong> Para que la madera no le robe agua a la mezcla.</li>
+                <li><strong>Vaciado:</strong> No soltar el concreto desde más de 1.5 metros de altura para evitar que la grava se separe (segregación).</li>
+                <li><strong>Vibrado:</strong> Usar una varilla o vibrador mecánico para que las burbujas de aire suban a la superficie.</li>
+              </ol>
+              <div class="tip-box" style="background:rgba(16,185,129,0.08);border-left-color:#10b981;">
+                <strong>Tip de ingeniería:</strong> Un concreto bien vibrado puede ser hasta un 20% más resistente que uno con huecos de aire.
+              </div>`
+            }
+          ]
+        },
+        5: {
+          title: 'Control de Calidad y Fallas comunes',
+          subtitle: 'La ciencia de la inspección: Cómo saber si una mezcla fallará antes de que endurezca.',
+          steps: [
+            {
+              num: '01', title: 'La Prueba del Revenimiento (Slump Test)',
+              body: `<p>En la ingeniería profesional, no se confía solo en la vista. Se utiliza el <strong>Cono de Abrams</strong> para medir la consistencia de la mezcla.</p>
+              <ul>
+                <li><strong>El proceso:</strong> Se llena un cono metálico con concreto en tres capas, se compacta con una varilla y luego se levanta el cono.</li>
+                <li><strong>La medida:</strong> Se mide cuánto se "asienta" o se baja la mezcla.</li>
+                <li><strong>Interpretación:</strong> 
+                  <br>• 2-5 cm: Mezcla seca (pavimentos).
+                  <br>• 10-15 cm: Mezcla fluida (columnas y losas densas).
+                </li>
+              </ul>
+              `
+            },
+            {
+              num: '02', title: 'Patologías: ¿Por qué se agrieta el concreto?',
+              body: `<p>Entender por qué falla una mezcla es tan importante como saber hacerla. Las grietas no son fallos del azar, son respuestas físicas a errores de proporción:</p>
+              <div class="key-concept">
+                <div class="concept-card">
+                  <div class="label" style="color:#10b981">Segregación</div>
+                  <p>Cuando la grava se va al fondo y el agua sube. Causado por exceso de vibrado o caída libre desde mucha altura.</p>
+                </div>
+                <div class="concept-card">
+                  <div class="label" style="color:#10b981">Contracción Plástica</div>
+                  <p>Grietas que aparecen en las primeras horas. Ocurren cuando el agua se evapora más rápido de lo que la mezcla puede sangrar (común en climas secos).</p>
+                </div>
+                <div class="concept-card">
+                  <div class="label" style="color:#10b981">Eflorescencia</div>
+                  <p>Manchas blancas de sal. Indican que la arena estaba sucia o el agua de mezcla tenía demasiados minerales.</p>
+                </div>
+              </div>`
+            },
+            {
+              num: '03', title: 'Cálculo de Volumen (Fórmula de Cubicación)',
+              body: `<p>Para no desperdiciar material, aplicamos matemáticas básicas de volumen. Antes de mezclar, debemos calcular cuánto espacio ocupará el concreto sólido:</p>
+              <div class="tip-box" style="background:rgba(16,185,129,0.08);border-left-color:#10b981;">
+                <strong>Fórmula Geométrica:</strong> Largo × Ancho × Espesor = Metros Cúbicos (m³).
+                <br><br>
+                <em>Ejemplo:</em> Para una losa de 4m x 5m con 10cm de espesor:
+                <br>4 * 5 * 0.10 = <strong>2.0 m³ de concreto.</strong>
+              </div>
+              <p>Considerando que 1 m³ de concreto estructural requiere aprox. 7 bultos de cemento, para este ejemplo necesitarías preparar 14 mezclas completas (bultos).</p>`
+            }
+          ]
+        },
+        6: {
+          title: 'Evaluación Final: Mezclas y Proporciones',
+          subtitle: 'Demuestra lo que aprendiste sobre la ciencia de los materiales.',
+          steps: [
+            {
+              num: '🏆', title: 'Resumen del módulo',
+              body: `<p>En este módulo exploraste la ciencia detrás de construir una casa:</p>
+              <ul>
+                <li>✅ Cómo definir necesidades antes de construir.</li>
+                <li>✅ Los tipos de suelo y su capacidad de carga.</li>
+                <li>✅ Cómo el clima determina el diseño.</li>
+                <li>✅ Las propiedades del concreto armado.</li>
+                <li>✅ La importancia de la impermeabilización.</li>
+              </ul>
+              <div class="tip-box" style="background:rgba(76,175,125,0.08);border-left-color:#4caf7d;margin-top:16px;">
+                <strong>¡Módulo completado!</strong> Cada decisión de construcción tiene una base científica que garantiza seguridad y durabilidad.
+              </div>`
+            }
+          ]
+        }
+      },
+
+      // ---- MÓDULO 04 · CONSTRUCCION  (Ingeniería) ------------------------------------------------
+      engineering: {
+        moduleLabel: 'Módulo 04 · Construcción',
+        accent: '#8a8a9a',
+        soft: 'rgba(138,138,154,0.1)',
+        textColor: '#44445a',
+        1: {
+          title: 'Cimentación: El Anclaje al Suelo',
+          subtitle: 'Excavación y tipos de base según el terreno.',
+          steps: [
+            {
+              num: '01', title: 'Movimiento de Tierras',
+              body: `<p>Todo comienza con la limpieza y el trazo. Debemos excavar hasta encontrar la "capa firme", eliminando raíces y basura que puedan pudrirse y generar huecos bajo la casa.</p>
+              <div class="tip-box" style="background:rgba(138,138,154,0.08);border-left-color:#8a8a9a;">
+                <strong>Recuerda:</strong> La profundidad de la zanja depende de la capacidad de carga del suelo. Un suelo blando requiere zanjas más profundas o bases más anchas.
+              </div>`
+            },
+            {
+              num: '02', title: 'Tipos de Cimentación',
+              body: `<p>Elegimos la base según el peso de la casa y el tipo de tierra:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#8a8a9a">Cimentación Corrida</div><p>Ideal para terrenos duros. Es una franja continua de concreto bajo todos los muros.</p></div>
+                <div class="concept-card"><div class="label" style="color:#8a8a9a">Cimentación Aislada</div><p>Para terrenos blandos o edificios altos. Son "zapatas" cuadradas en puntos estratégicos de carga.</p></div>
+              </div>
+              `
+            }
+          ]
+        },
+
+        2: {
+          title: 'Contracimientos y Firmes',
+          subtitle: 'La transición entre el suelo y las paredes.',
+          steps: [
+            {
+              num: '01', title: 'El Contracimiento',
+              body: `<p>Son vigas de concreto armado (normalmente de 20 cm de altura) que unen las cimentaciones con los muros. Su función es repartir el peso de forma uniforme para que la casa no se asiente de un solo lado.</p>`
+            },
+            {
+              num: '02', title: 'El Firme de Concreto',
+              body: `<p>Es la "plataforma" de piso. Se coloca un plástico sobre la tierra antes de vaciar el concreto para evitar que la humedad del suelo suba por capilaridad a las habitaciones.</p>
+              <div class="tip-box" style="background:rgba(138,138,154,0.08);border-left-color:#8a8a9a;">
+                <strong>Tip:</strong> El firme debe estar reforzado con malla electrosoldada para evitar que se agriete por cambios de temperatura.
+              </div>`
+            }
+          ]
+        },
+
+        3: {
+          title: 'Castillos: Los Huesos Verticales',
+          subtitle: 'Refuerzos que dan rigidez y confinan los muros.',
+          steps: [
+            {
+              num: '01', title: 'Instalación y Amarre',
+              body: `<p>Los castillos son columnas de acero y concreto que se amarran desde los contracimientos mediante varillas dobladas en escuadra. No solo cargan peso, sino que evitan que los muros se "abran".</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#8a8a9a">Dato</div><p>Se colocan típicamente en cada esquina, en cruces de muros y a distancias no mayores a 3 o 4 metros.</p></div>
+              </div>`
+            }
+          ]
+        },
+
+        4: {
+          title: 'Mampostería y Vanos',
+          subtitle: 'Levantando muros y dejando espacios para luz y aire.',
+          steps: [
+            {
+              num: '01', title: 'Muros Dentados',
+              body: `<p>Al levantar muros de block o ladrillo, se deja una forma "dentada" en los extremos donde irá el castillo. Esto garantiza que, al colar el concreto, el muro y la columna se vuelvan una sola pieza sólida.</p>`
+            },
+            {
+              num: '02', title: 'Cerramientos y Vanos',
+              body: `<p>Los "vanos" son los huecos para puertas y ventanas. Para que el muro no se caiga sobre el hueco, colocamos <strong>cerramientos</strong> (vigas horizontales) que sostienen el peso superior.</p>
+              `
+            }
+          ]
+        },
+
+        5: {
+          title: 'Dalas de Remate',
+          subtitle: 'Cerrando el marco estructural de la casa.',
+          steps: [
+            {
+              num: '01', title: 'Dalas o Cadenas',
+              body: `<p>Son vigas horizontales que corren por encima de todos los muros. Se amarran a las puntas de las varillas de los castillos, formando un "marco" rígido alrededor de cada cuarto.</p>
+              <ul>
+                <li><strong>Función 1:</strong> Repartir el peso de la losa hacia los muros.</li>
+                <li><strong>Función 2:</strong> Actuar como cinturón de seguridad ante sismos.</li>
+              </ul>`
+            }
+          ]
+        },
+
+        6: {
+          title: 'La Losa: El Techo Protector',
+          subtitle: 'Sólida, aligerada o mixta: Cómo cubrir grandes claros.',
+          steps: [
+            {
+              num: '01', title: 'Tipos de Losa',
+              body: `<p>Dependiendo del presupuesto y la distancia entre muros, elegimos:</p>
+              <div class="key-concept">
+                <div class="concept-card"><div class="label" style="color:#8a8a9a">Sólida</div><p>Pura varilla y concreto. Pesada pero muy resistente.</p></div>
+                <div class="concept-card"><div class="label" style="color:#8a8a9a">Aligerada</div><p>Usa bloques de poliestireno o barro para quitar peso muerto.</p></div>
+                <div class="concept-card"><div class="label" style="color:#8a8a9a">Mixta</div><p>Combina sistemas prefabricados (vigueta y bovedilla) con colado artesanal.</p></div>
+              </div>`
+            },
+            {
+              num: '02', title: 'Cimbrado y Pendientes',
+              body: `<p>El cimbrado es el molde de madera que sostiene el concreto fresco. Es vital dejar una <strong>pendiente</strong> (inclinación) mínima del 2% hacia las bajadas de agua para evitar encharcamientos.</p>`
+            }
+          ]
+        }
+      },
+
+      // ----─ MÓDULO 05 · CASA INTELIGENTE (Tecnología) ------------------------------------------------─
+      tech: {
+        moduleLabel: 'Módulo 05 · Casa Inteligente',
+        accent: '#5b8dee',
+        soft: 'rgba(91,141,238,0.1)',
+        textColor: '#2a52aa',
+        1: {
+          title: 'Fundamentos de la Domótica',
+          subtitle: 'Sensores, Actuadores y el Cerebro de la Casa.',
+          steps: [
+            {
+              num: '01', title: '¿Cómo "piensa" una casa?',
+              body: `<p>La automatización se basa en el ciclo de control: <strong>Entrada → Procesamiento → Salida</strong>.</p>
+              <ul>
+                <li><strong>Sensores (Entrada):</strong> Son los "sentidos" (presencia, temperatura, luz).</li>
+                <li><strong>Controlador (Cerebro):</strong> El software que decide qué hacer (Arduino, Raspberry Pi, o Hub inteligente).</li>
+                <li><strong>Actuadores (Salida):</strong> Los que ejecutan la acción (motores de persianas, focos, cerraduras).</li>
+              </ul>`
+            },
+            {
+              num: '02', title: 'Lógica Programada',
+              body: `<p>En la casa del futuro, todo funciona bajo condicionales. Mira este ejemplo de lógica básica para una luz automática:</p>
+              <pre><code>
+      INICIO
+        SI sensor_presencia detecta movimiento ENTONCES
+          encender_luz()
+          ESPERAR 5 minutos
+          apagar_luz()
+        FIN SI
+      FIN
+              </code></pre>`
+            }
+          ]
+        },
+
+        2: {
+          title: 'Iluminación Inteligente y Ahorro',
+          subtitle: 'Control por PWM y fotoceldas para eficiencia energética.',
+          steps: [
+            {
+              num: '01', title: 'Sistemas de Regulación',
+              body: `<p>No solo es prender o apagar; la domótica permite regular la intensidad mediante PWM (Modulación por Ancho de Pulso) para ahorrar energía según la luz natural disponible.</p>
+              <div class="tip-box" style="background:rgba(91,141,238,0.08);border-left-color:#5b8dee;">
+                <strong>Recuerda:</strong> Si el sensor de luz ambiental detecta que es mediodía, el sistema baja la potencia de los focos al 10%.
+              </div>`
+            },
+            {
+              num: '02', title: 'Pseudocódigo de Gestión Lumínica',
+              body: `<pre><code>
+      VARIABLE nivel_luz = leer_fotocelda()
+      SI nivel_luz < 300 ENTONCES
+          intensidad_foco = 100%
+      SINO SI nivel_luz < 700 ENTONCES
+          intensidad_foco = 50%
+      SINO
+          intensidad_foco = 0%
+      FIN SI
+              </code></pre>`
+            }
+          ]
+        },
+
+        3: {
+          title: 'Climatización y Gestión Térmica',
+          subtitle: 'Sensores de temperatura y control de ventilación.',
+          steps: [
+            {
+              num: '01', title: 'Confort Automático',
+              body: `<p>Integrar sensores DHT (Humedad y Temperatura) permite que la casa gestione ventanas o aire acondicionado sin intervención humana, optimizando el uso de electricidad.</p>`
+            },
+            {
+              num: '02', title: 'Lógica de Ventilación',
+              body: `<pre><code>
+      MIENTRAS casa_encendida sea VERDADERO:
+          SI temperatura_interior > 25°C Y temperatura_exterior < 22°C ENTONCES
+              abrir_ventanas()
+              detener_aire_acondicionado()
+          SINO SI temperatura_interior > 28°C ENTONCES
+              cerrar_ventanas()
+              encender_aire_acondicionado(24°C)
+          FIN SI
+              </code></pre>`
+            }
+          ]
+        },
+
+        4: {
+          title: 'Seguridad y Acceso Biométrico',
+          subtitle: 'Sistemas de alarma y gestión de cerraduras inteligentes.',
+          steps: [
+            {
+              num: '01', title: 'Capas de Seguridad',
+              body: `<p>La casa del futuro utiliza cámaras con reconocimiento facial o lectores de huella. Si se detecta un intruso, el sistema no solo suena una alarma, sino que ejecuta un protocolo de bloqueo.</p>`
+            },
+            {
+              num: '02', title: 'Pseudocódigo de Alarma',
+              body: `<pre><code>
+      SI estado_alarma == "ARMADO" ENTONCES
+          SI sensor_ventana == "ABIERTO" O sensor_movimiento == "DETECTADO" ENTONCES
+              enviar_notificacion_movil("¡Alerta de Intruso!")
+              activar_sirena()
+              encender_todas_luces_emergencia()
+          FIN SI
+      FIN SI
+              </code></pre>`
+            }
+          ]
+        },
+
+        5: {
+          title: 'Gestión Energética Remota',
+          subtitle: 'Monitoreo de consumo en tiempo real y Smart Grids.',
+          steps: [
+            {
+              num: '01', title: 'Medición Inteligente',
+              body: `<p>Mediante sensores de corriente (como el ACS712), la casa mide cuántos Watts consume cada electrodoméstico y puede desconectar cargas no críticas si se supera un límite contratado.</p>
+              <div class="tip-box" style="background:rgba(91,141,238,0.08);border-left-color:#5b8dee;">
+                <strong>Importante:</strong> Esto ayuda a prevenir sobrecargas en la instalación eléctrica de la casa.
+              </div>`
+            },
+            {
+              num: '02', title: 'Lógica de Desconexión',
+              body: `<pre><code>
+      consumo_total = leer_medidor()
+      LIMITE_MAX = 5000 // Watts
+
+      SI consumo_total > LIMITE_MAX ENTONCES
+          apagar_dispositivo("Calentador_Agua")
+          apagar_dispositivo("Cargador_EV")
+          notificar_usuario("Cargas pesadas desconectadas por ahorro")
+      FIN SI
+              </code></pre>`
+            }
+          ]
+        },
+
+        6: {
+          title: 'Integración y Escenarios (Scenes)',
+          subtitle: 'Combinando múltiples sistemas en un solo comando.',
+          steps: [
+            {
+              num: '01', title: '¿Qué es una Escena?',
+              body: `<p>Es un conjunto de instrucciones que se ejecutan simultáneamente para crear una atmósfera. Ejemplo: Escena "Cine" o Escena "Salir de Casa".</p>`
+            },
+            {
+              num: '02', title: 'Pseudocódigo de Escena "Cine"',
+              body: `<pre><code>
+      FUNCION EscenaCine():
+          bajar_persianas_sala()
+          atenuar_luces(10%)
+          encender_proyector()
+          activar_sonido_envolvente()
+          bloquear_timbre_puerta()
+      FIN FUNCION
+              </code></pre>
+              `
+            }
+          ]
+        }
+      },
+
+      // ----─ MÓDULO 06 · ACABADOS Y DECORACION (Arte) ------------------------------------------------------------─
+      arts: {
+        moduleLabel: 'Módulo 06 · Acabados y Decoración',
+        accent: '#9b6fc8',
+        soft: 'rgba(155,111,200,0.1)',
+        textColor: '#5a2d88', 
+        1: {
+        title: 'Diseño Cromático: La Regla 60-30-10',
+        subtitle: 'Matemáticas aplicadas a la armonía visual.',
+        steps: [
+          {
+            num: '01', title: 'Proporción Visual',
+            body: `<p>Para que un espacio se sienta diseñado por un profesional, aplicamos esta fórmula:</p>
+            <ul>
+              <li><strong>60% Color Dominante:</strong> Tono neutro para las paredes principales.</li>
+              <li><strong>30% Color Secundario:</strong> Aplicado en molduras, una pared de acento o muebles grandes.</li>
+              <li><strong>10% Color de Acento:</strong> Un contraste fuerte en puertas, cojines o marcos.</li>
+            </ul>
+            `
+          }
+        ]
+      },
+      2: {
+        title: 'Psicología y Temperatura del Color',
+        subtitle: 'Cómo los colores afectan la sensación térmica y el ánimo.',
+        steps: [
+          {
+            num: '01', title: 'Cálidos vs Fríos',
+            body: `<div class="key-concept">
+              <div class="concept-card"><div class="label" style="color:#9b6fc8">Cálidos (Rojos/Amarillos)</div><p>Hacen que los espacios grandes se sientan acogedores. Ideales para climas fríos.</p></div>
+              <div class="concept-card"><div class="label" style="color:#9b6fc8">Fríos (Azules/Verdes)</div><p>Aportan serenidad y frescura. Ideales para dormitorios y zonas calurosas.</p></div>
+            </div>`
+          },
+          {
+            num: '02', title: 'Reflectancia Térmica',
+            body: `<p><strong>Ciencia de materiales:</strong> Los colores claros reflejan la radiación solar, manteniendo la casa hasta 5°C más fresca que una pintada de colores oscuros, los cuales absorben la energía térmica.</p>`
+          }
+        ]
+      },
+
+      3: {
+        title: 'Recubrimiento de Muros',
+        subtitle: 'Protección y estética: Del repellado al afine.',
+        steps: [
+          {
+            num: '01', title: 'Etapas del Aplanado',
+            body: `<p>No se aplica la pintura directo al block. Se requiere un proceso de capas:</p>
+            <ol>
+              <li><strong>Repellado (Zarpeo):</strong> Capa rústica para nivelar el muro.</li>
+              <li><strong>Afine:</strong> Mezcla fina que se alisa con esponja para dejar la superficie lista para pintar.</li>
+              <li><strong>Yeso:</strong> Para interiores, brinda un acabado blanco y terso de alta calidad.</li>
+            </ol>`
+          }
+        ]
+      },
+
+      4: {
+        title: 'Pisos: Nivelación y Adherencia',
+        subtitle: 'El arte de colocar cerámica y porcelanato.',
+        steps: [
+          {
+            num: '01', title: 'Instalación Técnica',
+            body: `<p>Un piso mal pegado se "suena hueco" o se levanta. El secreto está en el <strong>Doble Rayado</strong>:</p>
+            <ol>
+              <li>Aplicar adhesivo con llana dentada en el firme.</li>
+              <li>Hacer un rayado horizontal en una sola dirección.</li>
+              <li>Colocar la pieza y golpearla levemente con un mazo de goma para eliminar aire.</li>
+            </ol>`
+          }
+        ]
+      },
+
+      5: {
+        title: 'Impermeabilización Avanzada',
+        subtitle: 'Sistemas químicos para una losa sin goteras.',
+        steps: [
+          {
+            num: '01', title: 'Protección Final',
+            body: `<p>Después de la construcción, la losa necesita una barrera contra la lluvia. Existen opciones líquidas (acrílicas) o mantos prefabricados.</p>
+            <div class="tip-box" style="background:rgba(155,111,200,0.08);border-left-color:#9b6fc8;">
+              <strong>Estrategia Térmica:</strong> Usar ladrillo de barro sobre el impermeabilizante no solo protege la capa química del sol, sino que añade una masa térmica que mantiene la casa fresca en verano.
+            </div>`
+          }
+        ]
+      },
+
+      6: {
+        title: 'Relaciones en el Círculo Cromático',
+        subtitle: 'Combinaciones maestras para interiores.',
+        steps: [
+          {
+            num: '01', title: 'Esquemas de Diseño',
+            body: `<div class="key-concept">
+              <div class="concept-card"><div class="label" style="color:#9b6fc8">Monocromático</div><p>Un solo color en diferentes tonos. Elegante y sencillo.</p></div>
+              <div class="concept-card"><div class="label" style="color:#9b6fc8">Análogo</div><p>Colores vecinos (ej. Verde y Azul). Armonía natural.</p></div>
+              <div class="concept-card"><div class="label" style="color:#9b6fc8">Complementario</div><p>Opuestos (ej. Naranja y Azul). Impacto moderno y vibrante.</p></div>
+            </div>`
+          }
+          ]
+        }
+      }
+    };
+
+    // ---- RENDERING ----------------------------------------------------------------------------------------------------------------------------
+    function buildLessonHTML(moduleKey, lessonNum) {
+      const mod = lessons[moduleKey];
+      const lesson = mod[lessonNum];
+      const total = 6;
+      const completedCount = completed[moduleKey].length;
+      const accentColor = mod.accent;
+      const softBg = mod.soft;
+
+      const isLast = lessonNum === 6;
+      const nextLabel = isLast ? '✓ Completar módulo' : 'Siguiente lección →';
+
+      let stepsHTML = '';
+      lesson.steps.forEach(step => {
+        stepsHTML += `
+          <div class="lesson-step">
+            <div class="step-header">
+              <div class="step-num" style="background:${accentColor}">${step.num}</div>
+              <h2>${step.title}</h2>
+            </div>
+            <div class="step-body">${step.body}</div>
+          </div>`;
+      });
+
+      const prevBtn = lessonNum > 1
+        ? `<button class="btn-secondary" onclick="openLesson('${moduleKey}', ${lessonNum - 1})">← Lección anterior</button>`
+        : `<button class="btn-secondary" onclick="closeLesson()">← Volver al mapa</button>`;
+
+      return `
+        <div class="lesson-container">
+          <div class="lesson-hero" style="background:linear-gradient(180deg,${softBg} 0%,transparent 100%)">
+            <div class="hero-badge" style="background:${softBg};color:${mod.accent}">${mod.moduleLabel} · Lección ${lessonNum}</div>
+            <h1>${lesson.title}</h1>
+            <p>${lesson.subtitle}</p>
+            <div style="margin-top:16px;max-width:280px;margin-left:auto;margin-right:auto;">
+              <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;font-family:'DM Mono',monospace">${completedCount} / ${total} completadas</div>
+              <div class="progress-bar-wrap">
+                <div class="progress-bar-fill" style="width:${(completedCount / total) * 100}%;background:${accentColor}"></div>
+              </div>
+            </div>
+          </div>
+
+          ${stepsHTML}
+
+          <div class="lesson-nav-footer">
+            ${prevBtn}
+            <button class="btn-primary" style="background:${accentColor}" onclick="completeLesson('${moduleKey}', ${lessonNum})">
+              ${nextLabel}
+            </button>
+          </div>
+        </div>`;
+    }
+
+    function openLesson(moduleKey, lessonNum) {
+      const cube = document.querySelector(`[data-module="${moduleKey}"][data-lesson="${lessonNum}"]`);
+      if (cube && cube.classList.contains('locked')) {
+        cube.style.transform = 'scale(0.95)';
+        setTimeout(() => cube.style.transform = '', 150);
+        return;
+      }
+      currentModule = moduleKey;
+      currentLesson = lessonNum;
+
+      const modal = document.getElementById('lessonModal');
+      const body = document.getElementById('modalBody');
+
+      body.style.opacity = '0';
+      body.style.transform = 'translateY(8px)';
+      modal.style.display = 'flex';
+
+      setTimeout(() => {
+        body.innerHTML = buildLessonHTML(moduleKey, lessonNum);
+        body.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        body.style.opacity = '1';
+        body.style.transform = 'translateY(0)';
+        document.querySelector('.modal-content').scrollTop = 0;
+      }, 50);
+    }
+
+    function completeLesson(moduleKey, lessonNum) {
+      if (!completed[moduleKey].includes(lessonNum)) {
+        completed[moduleKey].push(lessonNum);
+      }
+      updateNodes(moduleKey);
+      updateProgressChip(moduleKey);
+
+      const total = 6;
+      if (lessonNum < total) {
+        showToast(`🔓 ¡Lección ${lessonNum + 1} desbloqueada!`);
+        setTimeout(() => openLesson(moduleKey, lessonNum + 1), 300);
+      } else {
+        closeLesson();
+        showToast(`🏆 ¡Módulo completado!`);
+      }
+    }
+
+    function updateNodes(moduleKey) {
+      const nodes = document.querySelectorAll(`[data-module="${moduleKey}"][data-lesson]`);
+      const comp = completed[moduleKey];
+      const maxCompleted = comp.length > 0 ? Math.max(...comp) : 0;
+
+      nodes.forEach(node => {
+        const lessonNum = parseInt(node.dataset.lesson);
+        node.classList.remove('clickable', 'locked', 'completed', 'next-up');
+        const lockIcon = node.querySelector('.lock-icon');
+        const checkIcon = node.querySelector('.check-icon');
+        if (lockIcon) lockIcon.remove();
+        if (checkIcon) checkIcon.remove();
+
+        if (comp.includes(lessonNum)) {
+          node.classList.add('completed', 'clickable');
+          const check = document.createElement('span');
+          check.className = 'check-icon';
+          check.textContent = '✓';
+          node.appendChild(check);
+        } else if (lessonNum === maxCompleted + 1) {
+          node.classList.add('clickable', 'next-up');
+        } else {
+          node.classList.add('locked');
+          const lock = document.createElement('span');
+          lock.className = 'lock-icon';
+          lock.textContent = '🔒';
+          node.appendChild(lock);
+        }
+      });
+    }
+
+    function updateProgressChip(moduleKey) {
+      const chip = document.getElementById(`prog-${moduleKey}`);
+      if (chip) chip.textContent = `${completed[moduleKey].length} / 6 completadas`;
+    }
+
+    function closeLesson() {
+      const modal = document.getElementById('lessonModal');
+      modal.style.opacity = '0';
+      setTimeout(() => { modal.style.display = 'none'; modal.style.opacity = '1'; }, 200);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('unlockToast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ---- EVENT LISTENERS --------------------------------------------------------------------------------------------------------─
+    document.addEventListener('click', function(e) {
+      const cube = e.target.closest('[data-module][data-lesson]');
+      if (cube) {
+        const moduleKey = cube.dataset.module;
+        const lessonNum = parseInt(cube.dataset.lesson);
+        if (cube.classList.contains('clickable') || cube.classList.contains('completed')) {
+          openLesson(moduleKey, lessonNum);
+        } else if (cube.classList.contains('locked')) {
+          cube.style.transform = 'scale(0.95)';
+          setTimeout(() => cube.style.transform = '', 150);
+        }
+      }
+    });
+
+    document.getElementById('closeModalBtn').addEventListener('click', closeLesson);
+    document.getElementById('lessonModal').addEventListener('click', function(e) {
+      if (e.target === this) closeLesson();
+    });
+
+    // ---- SIDEBAR NAV --------------------------------------------------------------------------------------------------------------------
+    const moduleKeys = ['intro', 'math', 'science', 'engineering', 'tech', 'arts'];
+    const activeMap = { intro:'active-intro', math:'active-math', science:'active-science', engineering:'active-eng', tech:'active-tech', arts:'active-arts' };
+    const inactiveMap = { intro:'inactive-intro', math:'inactive-math', science:'inactive-science', engineering:'inactive-eng', tech:'inactive-tech', arts:'inactive-arts' };
+
+    const navBtns = document.querySelectorAll('.nav-btn:not(#btn-examen)');
+    const mainEl = document.getElementById('mainScroll');
+
+    function updateActiveButton(current) {
+      navBtns.forEach((btn, i) => {
+        const m = moduleKeys[i];
+        btn.className = 'nav-btn ' + (m === current ? activeMap[m] : inactiveMap[m]);
+      });
+    }
+
+    mainEl.addEventListener('scroll', () => {
+      const sections = document.querySelectorAll('.module-section');
+      let current = 'intro';
+      sections.forEach(sec => {
+        const top = sec.getBoundingClientRect().top;
+        if (top < mainEl.clientHeight * 0.5) {
+          const cls = moduleKeys.find(m => sec.classList.contains(m));
+          if (cls) current = cls;
+        }
+      });
+      updateActiveButton(current);
+    });
+
+    navBtns.forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        const target = moduleKeys[i];
+        updateActiveButton(target);
+        document.getElementById(`section-${target}`).scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLesson(); });
+
+    document.getElementById('btn-examen').addEventListener('click', () => {
+      window.location.href = 'examen.html';
+    });
+
+  </script>
+</body>
+</html>

@@ -1,529 +1,147 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Constructor de Casa · STEAM</title>
-  <link rel="stylesheet" href="./casa.css">
+  <title>CasaSTEAM – Construye conocimiento</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="img/icon.png">
 </head>
-<body>
 
-  <div id="loading">
-    <h2>Constructor de Casa · STEAM</h2>
-    <div id="lbar"><div id="lfill"></div></div>
-    <div id="lmsg">Cargando Babylon.js…</div>
-  </div>
+<body class="index-body">
 
-  <div id="topbar">
-    <button class="btn" id="btnBack" onclick="history.back()" title="Regresar">Boton mr.vladi</button>
-    <span class="logo">🏗</span>
-    <span class="title">Constructor de Casa</span>
-    <div class="sep"></div>
-    <div id="objetivo-badge">
-      🎨 <strong>Objetivo:</strong> Diseña una vivienda para un habitante tranquilo que prioriza su salud emocional
+  <header class="topbar">
+    <div class="topbar-icon">
+      <img src="img/iconv2.png" alt="CasaSTEAM">
+      <h2>CasaSTEAM</h2>
     </div>
-    <div id="opening-counters" style="display:flex;gap:8px;align-items:center;font-size:11px;">
-      <span>🚪 0/2</span><span>🪟 0/3</span>
-    </div>
-    <div class="spacer"></div>
-    <button class="btn danger" id="btnDel" onclick="deleteSelected()" style="display:none">✕ Eliminar</button>
-    <div class="sep"></div>
-    <button class="btn" onclick="openMatematicasModalGuarded()" id="btnMatematicas">📐 Calcular Área</button>
-    <button class="btn" onclick="openConcretoModal()" id="btnStorm" disabled style="opacity:0.45" title="Completa primero Calcular Área">🪨 Crear Concreto</button>
-    <button class="btn" onclick="openWallBuilder()" id="btnWall" disabled style="opacity:0.45" title="Crea el concreto primero">🧱 Construir</button>
-    <button class="btn" onclick="openProgramar()" id="btnProgramar" disabled style="opacity:0.45" title="Construye al menos 4 paredes primero">🔧 Programar</button>
-    <span id="wall-counter-badge" style="font-size:10px;color:rgba(150,200,255,.7);white-space:nowrap"></span>
-    <div class="sep"></div>
-    <button class="btn" id="btnNight" onclick="toggleNight()">🌙 Noche</button>
-  </div>
+    <a href="learn.html" class="btn-main" style="padding:10px 22px;font-size:0.78rem;min-width:auto;">Entrar →</a>
+  </header>
 
-  <div id="catalog">
-    <div id="cat-header" onclick="toggleCatalog()">
-      <span>+ Materiales</span><span id="cat-arrow">▼</span>
+  <!-- ---- HERO ---- -->
+  <div class="hero">
+    <div class="hero-image">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 90L50 50L90 90H10Z" fill="#4caf7d" />
+        <rect x="30" y="60" width="40" height="30" fill="#5b8dee" />
+        <path d="M50 10L90 50H10L50 10Z" fill="#ff8c42" />
+      </svg>
     </div>
-    <div id="cat-list">
-      <div class="cat-item" id="cat-block"     onclick="addObjIfAllowed('block')">    <span class="ico">🧱</span>Block    </div>
-      <div class="cat-item" id="cat-madera"    onclick="addObjIfAllowed('madera')">   <span class="ico">🪵</span>Madera   </div>
-      <div class="cat-item" id="cat-foco"      onclick="addObjIfAllowed('foco')">     <span class="ico">💡</span>Foco     </div>
-      <div class="cat-item" id="cat-puerta" onclick="addObjIfAllowed('puerta')">   <span class="ico">🚪</span>Puerta   </div>
-      <div class="cat-item" id="cat-ventana" onclick="addObjIfAllowed('ventana')">  <span class="ico">🪟</span>Ventana  </div>
-      <div class="cat-item" id="cat-vitropiso" onclick="addObjIfAllowed('vitropiso')"><span class="ico">🔷</span>Vitropiso</div>
-      <div class="cat-item" id="cat-lampara" onclick="addObjIfAllowed('lampara')"><span class="ico">🔦</span>Lámpara</div>
-      <div class="cat-item" id="cat-concreto" onclick="addObjIfAllowed('concreto')" style="display:none"><span class="ico">🪨</span>Concreto</div>
+    <h1>Aprende a construir tu casa desde cero.</h1>
+    <p>Una ruta de aprendizaje STEAM que te lleva paso a paso: del análisis del terreno hasta los acabados finales.</p>
+    <div class="cta-container">
+      <a href="learn.html" class="btn-main">Empieza ahora</a>
+      <a href="#" class="btn-login">Ya tengo una cuenta</a>
     </div>
   </div>
 
-  <div id="objlist">
-    <div id="obj-header">Colocados (<span id="obj-count">0</span>)</div>
-    <div id="obj-items"></div>
+  <!-- Módulo pill strip -->
+  <div class="modules-strip">
+    <span class="strip-pill" style="color:var(--intro-accent);border-color:var(--intro-accent);">01 · Fundamentos y preparación</span>
+    <span class="strip-pill" style="color:var(--math-accent);border-color:var(--math-accent);">02 · Fundamentos de Matematicas</span>
+    <span class="strip-pill" style="color:var(--science-accent);border-color:var(--science-accent);">03 · Mezclas y Proporciones</span>
+    <span class="strip-pill" style="color:var(--eng-accent);border-color:var(--eng-accent);">04 · Construcción</span>
+    <span class="strip-pill" style="color:var(--tech-accent);border-color:var(--tech-accent);">05 · Casa Inteligente</span>
+    <span class="strip-pill" style="color:var(--arts-accent);border-color:var(--arts-accent);">06 · Acabados y Decoración</span>
   </div>
 
-  <div id="xinfo"></div>
-
-  <div id="tip">
-    Empieza calculando el área con el botón 📐 Calcular Área para desbloquear los siguientes pasos<br>
-    <span style="opacity:.5">Scroll = zoom · Flechas ← → ↑ ↓ = rotar cámara · Q/E = rotar objeto seleccionado</span>
-  </div>
-
-  <canvas id="rain-canvas"></canvas>
-  <div id="lightning-flash"></div>
-  <div id="storm-wind-bar" style="display:none">
-    <span id="storm-wind-label">💨 Viento</span>
-    <div id="storm-wind-track"><div id="storm-wind-fill"></div></div>
-    <span id="storm-resist-msg"></span>
-  </div>
-
-  <div id="concreto-overlay" onclick="closeConcretoModal(event)">
-    <div id="concreto-modal">
-      <div id="concreto-header">
-        <span>🪨 Crear Concreto</span>
-        <button class="btn" onclick="closeConcretoModal()">✕</button>
+  <!-- ---- MÓDULO 01 – INTRODUCCIÓN ---- -->
+  <section class="info-section intro-section">
+    <div class="info-container">
+      <div class="info-text">
+        <span class="module-number">MÓDULO 01</span>
+        <span class="badge badge-intro">Fundamentos y preparación</span>
+        <h2>Conoce el terreno antes de poner el primer ladrillo</h2>
+        <p>Todo proyecto habitacional nace de una necesidad. Aprende a identificar requisitos, analizar el entorno, evaluar el suelo y entender las condiciones climáticas que definen qué tipo de casa puedes construir.</p>
       </div>
-      <div id="concreto-body">
-        <!-- INSTRUCCIONES izquierda -->
-        <div id="concreto-instrucciones">
-          <div class="ci-title">📋 Instrucciones</div>
-          <div class="ci-note" style="margin-bottom:14px; border-color:rgba(80,200,255,.3); background:rgba(20,80,120,.2);">
-            📐 <b>Volumen total necesario:</b><br>
-            <span style="color:rgba(100,220,255,.9); font-size:20px; font-weight:700;">6,000 m³</span><br>
-            <span style="font-size:10px; opacity:.7;">Calculado por ti en el módulo anterior</span>
-          </div>
-          <div class="ci-subtitle">¿Cómo se divide el volumen?</div>
-          <div class="ci-note" style="font-size:11px; line-height:1.9;">
-            La mezcla usa proporciones <b>1 : 2 : 3</b><br>
-            — eso son <b>6 partes</b> en total —<br><br>
-            Divide 6000 ÷ 6 = <b>1000 m³</b> por parte<br><br>
-            🏔️ Cemento → <b>1</b> parte<br>
-            🏖️ Arena &nbsp;&nbsp;→ <b>2</b> partes<br>
-            🪨 Grava &nbsp;&nbsp;→ <b>3</b> partes<br>
-            💧 Agua &nbsp;&nbsp;&nbsp;→ <b>10%</b> del total
-          </div>
-          <div class="ci-note" style="margin-top:10px; font-size:10.5px; border-color:rgba(255,200,80,.25); background:rgba(80,60,10,.2); color:rgba(240,210,120,.85);">
-            ✏️ Calcula cada cantidad y escríbela en los campos de la derecha.
-          </div>
-        </div>
-
-        <!-- PANEL DERECHO — inputs numéricos -->
-        <div id="concreto-panel">
-          <div class="ci-title"> Ingresa las cantidades de cada material (m³)</div>
-
-          <div class="cmat-row" id="cmat-cemento">
-           <img src="img/cemento.png" alt="Icono de cemento" class="cmat-ico">
-            <div class="cmat-info">
-              <span class="cmat-name">Cemento</span>
-              <span class="cmat-hint">1 parte del total</span>
-            </div>
-            <input type="number" class="cmat-input" id="inp-cemento" placeholder="0" min="0">
-            <span class="cmat-unit">m³</span>
-          </div>
-
-          <div class="cmat-row" id="cmat-arena">
-            <img src="img/arena.png" alt="Icono de arena" class="cmat-ico">
-            <div class="cmat-info">
-              <span class="cmat-name">Arena</span>
-              <span class="cmat-hint">2 partes del total</span>
-            </div>
-            <input type="number" class="cmat-input" id="inp-arena" placeholder="0" min="0">
-            <span class="cmat-unit">m³</span>
-          </div>
-
-          <div class="cmat-row" id="cmat-grava">
-            <img src="img/grava_.png" alt="Icono de grava" class="cmat-ico">
-            <div class="cmat-info">
-              <span class="cmat-name">Grava</span>
-              <span class="cmat-hint">3 partes del total</span>
-            </div>
-            <input type="number" class="cmat-input" id="inp-grava" placeholder="0" min="0">
-            <span class="cmat-unit">m³</span>
-          </div>
-
-          <div class="cmat-row" id="cmat-agua">
-            <img src="img/agua.png" alt="Icono de agua" class="cmat-ico">
-            <div class="cmat-info">
-              <span class="cmat-name">Agua</span>
-              <span class="cmat-hint">10% del volumen total</span>
-            </div>
-            <input type="number" class="cmat-input" id="inp-agua" placeholder="0" min="0">
-            <span class="cmat-unit">m³</span>
-          </div>
-
-          <!-- Barra de progreso visual del total -->
-          <div id="cmat-total-bar-wrap">
-            <div id="cmat-total-label">Total ingresado: <span id="cmat-total-val">0</span> / 6,600 m³</div>
-            <div id="cmat-bar-track">
-              <div id="cmat-bar-cemento" class="cmat-bar-seg cmat-bar-cem"></div>
-              <div id="cmat-bar-arena"   class="cmat-bar-seg cmat-bar-are"></div>
-              <div id="cmat-bar-grava"   class="cmat-bar-seg cmat-bar-gra"></div>
-              <div id="cmat-bar-agua"    class="cmat-bar-seg cmat-bar-agu"></div>
-            </div>
-            <div id="cmat-bar-legend">
-              <span><span class="cleg cleg-cem"></span>Cemento</span>
-              <span><span class="cleg cleg-are"></span>Arena</span>
-              <span><span class="cleg cleg-gra"></span>Grava</span>
-              <span><span class="cleg cleg-agu"></span>Agua</span>
-            </div>
-          </div>
-
-          <div id="cmat-error" class="mat-error" style="display:none"></div>
-          <button class="btn wb-build-btn" id="btn-mezclar" onclick="concretoMezclar()">🔀 Validar y Mezclar Concreto</button>
-        </div>
-      </div>
-
-      <!-- resultado automático - no se muestra UI, se crea directo -->
-      <div id="concreto-resultado" style="display:none"></div>
-    </div>
-  </div>
-
-  <div id="wall-overlay" onclick="closeWallBuilder(event)">
-    <div id="wall-modal">
-      <div id="wall-header">
-        <span>🧱 Construir</span>
-        <button class="btn" onclick="closeWallBuilder()">✕</button>
-      </div>
-      <div id="wall-body">
-        <div id="wall-tabs">
-          <button class="wall-tab active" id="tab-pared" onclick="switchWallTab('pared')">🧱 Pared</button>
-          <button class="wall-tab" id="tab-piso" onclick="switchWallTab('piso')">🟫 Piso</button>
-        </div>
-
-        <div id="tab-content-pared">
-
-          <!-- PASO 1: Tipo de pared -->
-          <div class="wb-section">
-            <div class="wb-label">1 · ¿Qué tipo de pared vas a construir?</div>
-            <div class="wb-mode-cards">
-              <div class="wb-mode-card selected" id="wb-mode-simple" onclick="wbSelectMode('simple')">
-                <div class="wb-mode-icon">🧱</div>
-                <div class="wb-mode-name">Pared Simple</div>
-                <div class="wb-mode-desc">Solo bloques, sin huecos</div>
-              </div>
-              <div class="wb-mode-card" id="wb-mode-puerta" onclick="wbSelectMode('puerta')">
-                <div class="wb-mode-icon">🚪</div>
-                <div class="wb-mode-name">Con Puerta</div>
-                <div class="wb-mode-desc">Hueco central para puerta</div>
-                <div class="wb-mode-counter" id="wb-counter-puerta">0/2 usadas</div>
-              </div>
-              <div class="wb-mode-card" id="wb-mode-ventana" onclick="wbSelectMode('ventana')">
-                <div class="wb-mode-icon">🪟</div>
-                <div class="wb-mode-name">Con Ventana(s)</div>
-                <div class="wb-mode-desc">1 o 2 ventanas integradas</div>
-                <div class="wb-mode-counter" id="wb-counter-ventana">0/3 usadas</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Opciones de número de ventanas (solo visible en modo ventana) -->
-          <div id="wb-vent-count-row" style="display:none" class="wb-section">
-            <div class="wb-label">¿Cuántas ventanas?</div>
-            <div class="wb-options">
-              <div class="wb-vent-btn selected" id="wb-vent-btn-1" onclick="wbSetVentCount(1)">🪟 Una ventana</div>
-              <div class="wb-vent-btn" id="wb-vent-btn-2" onclick="wbSetVentCount(2)">🪟🪟 Dos ventanas</div>
-            </div>
-          </div>
-
-          <!-- PASO 2: Material -->
-          <div class="wb-section">
-            <div class="wb-label">2 · Material</div>
-            <div class="wb-options" id="wb-mat-options">
-              <div class="wb-opt selected" data-mat="block" onclick="wbSelectMat(this)">🧱 Block</div>
-              <div class="wb-opt" data-mat="madera" onclick="wbSelectMat(this)">🪵 Madera</div>
-            </div>
-          </div>
-
-          <!-- PASO 3: Dimensiones -->
-          <div class="wb-section">
-            <div class="wb-label">3 · Ancho <span class="wb-range">(3 — 20 columnas)</span></div>
-            <div class="wb-slider-row">
-              <input type="range" id="wb-width" min="3" max="20" value="5" oninput="wbUpdate()">
-              <span class="wb-num" id="wb-width-val">5</span>
-            </div>
-          </div>
-          <div class="wb-section">
-            <div class="wb-label">Altura <span class="wb-range">(2 — 15 filas)</span></div>
-            <div class="wb-slider-row">
-              <input type="range" id="wb-height" min="2" max="15" value="5" oninput="wbUpdate()">
-              <span class="wb-num" id="wb-height-val">5</span>
-            </div>
-          </div>
-
-          <!-- VISTA PREVIA SVG -->
-          <div class="wb-section">
-            <div class="wb-label">Vista previa de la pared</div>
-            <div id="wb-svg-wrap">
-              <svg id="wb-wall-svg" viewBox="0 0 110 80" width="110" height="80" style="display:block;margin:0 auto"></svg>
-            </div>
-          </div>
-
-          <!-- Info y advertencia -->
-          <div id="wb-preview">
-            <div class="wb-prev-row"><span>Bloques:</span><span id="wb-total">–</span></div>
-            <div class="wb-prev-row"><span>Dimensión:</span><span id="wb-dims">–</span></div>
-          </div>
-          <div id="wb-preview-warn" style="color:rgba(255,160,80,.85);font-size:11px;min-height:16px;margin-bottom:6px;text-align:center"></div>
-          <button class="btn wb-build-btn" id="wb-build-btn" onclick="buildWall()">⬆ Construir Pared</button>
-        </div>
-
-        <div id="tab-content-piso" style="display:none">
-
-          <!-- SECCIÓN: Tamaño del vitropiso -->
-          <div class="wp-section-block">
-            <div class="wp-section-title">📐 Elige el tamaño del vitropiso</div>
-            <div id="wp-size-grid">
-              <div class="wp-size-opt selected" data-w="20" data-d="20" onclick="wpSelectSize(this)">
-                <span class="wp-size-dim">20 × 20</span>
-                <span class="wp-size-area">400 m²</span>
-                <span class="wp-size-tag">Completo</span>
-              </div>
-              <div class="wp-size-opt" data-w="10" data-d="20" onclick="wpSelectSize(this)">
-                <span class="wp-size-dim">10 × 20</span>
-                <span class="wp-size-area">200 m²</span>
-                <span class="wp-size-tag">½ piso</span>
-              </div>
-              <div class="wp-size-opt" data-w="10" data-d="10" onclick="wpSelectSize(this)">
-                <span class="wp-size-dim">10 × 10</span>
-                <span class="wp-size-area">100 m²</span>
-                <span class="wp-size-tag">¼ piso</span>
-              </div>
-              <div class="wp-size-opt" data-w="5" data-d="20" onclick="wpSelectSize(this)">
-                <span class="wp-size-dim">5 × 20</span>
-                <span class="wp-size-area">100 m²</span>
-                <span class="wp-size-tag">Franja</span>
-              </div>
-              <div class="wp-size-opt" data-w="5" data-d="10" onclick="wpSelectSize(this)">
-                <span class="wp-size-dim">5 × 10</span>
-                <span class="wp-size-area">50 m²</span>
-                <span class="wp-size-tag">Medio</span>
-              </div>
-              <div class="wp-size-opt" data-w="5" data-d="5" onclick="wpSelectSize(this)">
-                <span class="wp-size-dim">5 × 5</span>
-                <span class="wp-size-area">25 m²</span>
-                <span class="wp-size-tag">Pequeño</span>
-              </div>
-              <div class="wp-size-opt" data-w="4" data-d="5" onclick="wpSelectSize(this)">
-                <span class="wp-size-dim">4 × 5</span>
-                <span class="wp-size-area">20 m²</span>
-                <span class="wp-size-tag">Mini</span>
-              </div>
-              <div class="wp-size-opt" data-w="4" data-d="10" onclick="wpSelectSize(this)">
-                <span class="wp-size-dim">4 × 10</span>
-                <span class="wp-size-area">40 m²</span>
-                <span class="wp-size-tag">Tira</span>
-              </div>
-            </div>
-
-            <!-- Barra de progreso de cobertura -->
-            <div id="wp-coverage-wrap">
-              <div id="wp-coverage-header">
-                <span>Área cubierta</span>
-                <span id="wp-coverage-nums"><b id="wp-covered">0</b> / 400 m²</span>
-              </div>
-              <div id="wp-coverage-track">
-                <div id="wp-coverage-fill"></div>
-                <div id="wp-coverage-preview-fill"></div>
-              </div>
-              <div id="wp-coverage-msg">Selecciona un tamaño para comenzar</div>
-            </div>
-          </div>
-
-          <!-- SECCIÓN: Color — botón que abre panel flotante dentro del modal -->
-          <div class="wp-section-block" id="wp-color-section">
-            <div class="wp-section-title">🎨 Color del Vitropiso</div>
-            <div id="wp-color-btn-row">
-              <div id="wp-color-selected-preview">
-                <div id="wp-color-selected-circle" style="background:#5ba8ff"></div>
-                <span id="wp-color-selected-name">Azul</span>
-              </div>
-              <button class="btn" id="wp-open-palette-btn" onclick="wpTogglePalette()">🎨 Cambiar color</button>
-            </div>
-
-            <!-- Panel flotante de colores DENTRO del modal -->
-            <div id="wp-palette-popup" style="display:none">
-              <div id="wp-palette-popup-inner">
-                <div class="wp-palette-title">Elige un color</div>
-                <div id="wp-color-palette">
-                  <button class="wp-color-btn selected" data-color="#5ba8ff" data-name="Azul" style="--c:#5ba8ff" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Azul</span></button>
-                  <button class="wp-color-btn" data-color="#ff6b6b" data-name="Rojo" style="--c:#ff6b6b" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Rojo</span></button>
-                  <button class="wp-color-btn" data-color="#51e898" data-name="Verde" style="--c:#51e898" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Verde</span></button>
-                  <button class="wp-color-btn" data-color="#ffd460" data-name="Dorado" style="--c:#ffd460" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Dorado</span></button>
-                  <button class="wp-color-btn" data-color="#c084fc" data-name="Violeta" style="--c:#c084fc" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Violeta</span></button>
-                  <button class="wp-color-btn" data-color="#fb923c" data-name="Naranja" style="--c:#fb923c" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Naranja</span></button>
-                  <button class="wp-color-btn" data-color="#22d3ee" data-name="Cian" style="--c:#22d3ee" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Cian</span></button>
-                  <button class="wp-color-btn" data-color="#f472b6" data-name="Rosa" style="--c:#f472b6" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Rosa</span></button>
-                  <button class="wp-color-btn" data-color="#e2e8f0" data-name="Perla" style="--c:#e2e8f0" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Perla</span></button>
-                  <button class="wp-color-btn" data-color="#94a3b8" data-name="Gris" style="--c:#94a3b8" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Gris</span></button>
-                </div>
-                <div id="wp-custom-color-row">
-                  <span class="wp-custom-label">🖌 Personalizado</span>
-                  <input type="color" id="wp-color-custom" value="#5ba8ff" oninput="wpSelectCustomColor(this.value)">
-                  <div id="wp-color-preview" style="background:#5ba8ff"></div>
-                </div>
-                <button class="btn" style="width:100%;margin-top:8px;border-radius:10px;padding:9px" onclick="wpTogglePalette()">✓ Listo</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Preview y botón -->
-          <div id="wp-build-row">
-            <div id="wp-build-info">
-              <span id="wp-build-dim">20 × 20 m</span>
-              <span id="wp-build-area-tag">400 m²</span>
-            </div>
-            <button class="btn wb-build-btn" id="wp-build-btn" onclick="buildFloor()">⬇ Construir Piso</button>
-          </div>
-
-        </div>
+      <div class="info-visual">
+        <div class="placeholder-box box-intro">🗺️</div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div id="prog-overlay" onclick="closeProgramar(event)">
-    <div id="prog-modal">
-      <div id="prog-header">
-        <span>🔧 Programación por Bloques</span>
-        <button class="btn" onclick="closeProgramar()">✕</button>
+  <!-- ---- MÓDULO 02 – MATEMÁTICAS ---- -->
+  <section class="info-section math-section reverse">
+    <div class="info-container reverse">
+      <div class="info-text">
+        <span class="module-number">MÓDULO 02</span>
+        <span class="badge badge-math">Fundamentos Matemáticos</span>
+        <h2>Los números que dan forma a tu hogar</h2>
+        <p>Calcula áreas, proporciones y distribución de habitaciones con precisión. Traduce planos en metros cuadrados reales y aprende a leer la geometría detrás de cada pared y pasillo.</p>
       </div>
-      <div id="prog-body">
-        <!-- Panel izquierdo: bloques disponibles -->
-        <div id="prog-blocks-panel">
-          <div class="prog-section-title">Bloques disponibles</div>
-          <div class="prog-section-hint">Arrastra cada bloque al programa.<br>Cada bloque se usa <b>una sola vez</b>.</div>
-
-          <div class="prog-block-group-title">🔵 Condiciones (SI)</div>
-          <div class="prog-block condition" draggable="true" id="pb-es_dia" data-type="condition" data-val="es_dia">☀️ Es de día</div>
-          <div class="prog-block condition" draggable="true" id="pb-es_noche" data-type="condition" data-val="es_noche">🌙 Es de noche</div>
-
-          <div class="prog-block-group-title">🟡 Estructura</div>
-          <div class="prog-block structure" draggable="true" id="pb-if" data-type="structure" data-val="if">🔀 Si (If)</div>
-          <div class="prog-block structure" draggable="true" id="pb-else" data-type="structure" data-val="else">↩️ Sino (Else)</div>
-
-          <div class="prog-block-group-title">🟢 Acciones</div>
-          <div class="prog-block action" draggable="true" id="pb-enciende_foco" data-type="action" data-val="enciende_foco">💡 Enciende el foco</div>
-          <div class="prog-block action" draggable="true" id="pb-apaga_foco" data-type="action" data-val="apaga_foco">🔆 Apaga el foco</div>
-        </div>
-
-        <!-- Panel central: área de programa -->
-        <div id="prog-canvas-panel">
-          <div class="prog-section-title">Mi programa</div>
-          <div id="prog-workspace"
-            ondragover="event.preventDefault(); event.currentTarget.classList.add('drag-over')"
-            ondragleave="event.currentTarget.classList.remove('drag-over')"
-            ondrop="dropBlockNew(event)">
-            <div id="prog-workspace-hint">Arrastra bloques aquí para construir tu programa</div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:10px">
-            <button class="btn prog-run-btn" onclick="runProgramNew()">▶ Ejecutar</button>
-            <button class="btn prog-clear-btn" onclick="clearProgram()">🗑 Limpiar</button>
-          </div>
-        </div>
-
-        <!-- Panel derecho: pseudocódigo -->
-        <div id="prog-code-panel">
-          <div class="prog-section-title">📄 Pseudocódigo</div>
-          <div id="prog-pseudocode">
-            <span class="pseudo-hint">El código aparecerá aquí cuando agregues bloques...</span>
-          </div>
-          <div id="prog-output-new"></div>
-        </div>
+      <div class="info-visual">
+        <div class="placeholder-box box-math">📐</div>
       </div>
     </div>
-  </div>
+  </section>
 
-
-  <div id="color-picker-popup" style="display:none">
-    <div id="color-picker-header">🎨 Elige el color</div>
-    <input type="color" id="color-picker-input" value="#ff6600" oninput="applyColorPicker()">
-    <div id="color-swatches">
-      <div class="cswatch" style="background:#e53935" onclick="setSwatchColor('#e53935')"></div>
-      <div class="cswatch" style="background:#fb8c00" onclick="setSwatchColor('#fb8c00')"></div>
-      <div class="cswatch" style="background:#fdd835" onclick="setSwatchColor('#fdd835')"></div>
-      <div class="cswatch" style="background:#43a047" onclick="setSwatchColor('#43a047')"></div>
-      <div class="cswatch" style="background:#1e88e5" onclick="setSwatchColor('#1e88e5')"></div>
-      <div class="cswatch" style="background:#8e24aa" onclick="setSwatchColor('#8e24aa')"></div>
-      <div class="cswatch" style="background:#ffffff" onclick="setSwatchColor('#ffffff')"></div>
-      <div class="cswatch" style="background:#424242" onclick="setSwatchColor('#424242')"></div>
-      <div class="cswatch" style="background:#5d4037" onclick="setSwatchColor('#5d4037')"></div>
-      <div class="cswatch" style="background:#00acc1" onclick="setSwatchColor('#00acc1')"></div>
-    </div>
-  </div>
-
-   <!-- Modal de Matemáticas -->
-  <div id="matematicas-overlay" onclick="closeMatematicasModal(event)">
-    <div id="matematicas-modal">
-      <div id="matematicas-header">
-        <span>📐 Calcular Área</span>
-        <button class="btn" onclick="closeMatematicasModal()">✕</button>
+  <!-- ---- MÓDULO 03 – CIENCIA ---- -->
+  <section class="info-section science-section">
+    <div class="info-container">
+      <div class="info-text">
+        <span class="module-number">MÓDULO 03</span>
+        <span class="badge badge-science">Mezclas y Proporciones</span>
+        <h2>La ciencia detrás de cada mezcla</h2>
+        <p>Domina las propiedades del concreto, morteros e impermeabilizantes. Aprende las reacciones químicas del fraguado y por qué la proporción correcta de agua, cemento y arena lo cambia todo.</p>
       </div>
-      <div id="matematicas-body">
-        <!-- Instrucciones izquierda -->
-        <div id="mat-instrucciones">
-          <div class="ci-title">📏 Instrucciones</div>
-          <div class="ci-note" style="margin-bottom:14px">
-            Cada cuadro individual del plano representa <b>1 metro</b> en la vida real.
-          </div>
-          <div class="ci-subtitle">Tu tarea</div>
-          <div class="ci-rule"><span class="ci-num">1</span><span>Calcula el <b>Perímetro</b> del recuadro verde del plano</span></div>
-          <div class="ci-rule"><span class="ci-num">2</span><span>Calcula el <b>Área</b> del recuadro verde del plano</span></div>
-          <div class="ci-rule"><span class="ci-num">3</span><span>Calcula el <b>Volumen</b> del prisma rectangular (la casa tendrá <b>15 m</b> de altura)</span></div>
-          <div class="ci-note" style="margin-top:10px">
-            📌 <b>Fórmulas:</b><br>
-            Perímetro = suma de todos los lados<br>
-            Área = largo × ancho<br>
-            Volumen = Área × altura
-          </div>
-        </div>
-        <!-- Panel derecho con inputs -->
-        <div id="mat-panel">
-          <div class="ci-title">✏️ Ingresa tus respuestas</div>
-          <div class="mat-field">
-            <label class="mat-label">Perímetro total</label>
-            <div class="mat-input-row">
-              <input type="number" id="mat-perimetro" placeholder="0" min="0" class="mat-input">
-              <select id="mat-perimetro-unit" class="mat-select">
-                <option value="" selected disabled></option>
-                <option value="m">m</option>
-                <option value="m2">m²</option>
-                <option value="m3">m³</option>
-              </select>
-            </div>
-          </div>
-          <div class="mat-field">
-            <label class="mat-label">Área total</label>
-            <div class="mat-input-row">
-              <input type="number" id="mat-area" placeholder="0" min="0" class="mat-input">
-              <select id="mat-area-unit" class="mat-select">
-                <option value="" selected disabled></option>
-                <option value="m">m</option>
-                <option value="m2">m²</option>
-                <option value="m3">m³</option>
-              </select>
-            </div>
-          </div>
-          <div class="mat-field">
-            <label class="mat-label">Volumen del prisma rectangular</label>
-            <div class="mat-input-row">
-              <input type="number" id="mat-volumen" placeholder="0" min="0" class="mat-input">
-              <select id="mat-volumen-unit" class="mat-select">
-                <option value="" selected disabled></option>
-                <option value="m">m</option>
-                <option value="m2">m²</option>
-                <option value="m3">m³</option>
-              </select>
-            </div>
-          </div>
-          <div id="mat-error" class="mat-error" style="display:none"></div>
-          <button class="btn wb-build-btn" id="btn-validar-mat" onclick="validarMatematicas()">✅ Validar respuestas</button>
-        </div>
+      <div class="info-visual">
+        <div class="placeholder-box box-science">🧪</div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Aqui va en el canvas-->
+  <!-- ---- MÓDULO 04 – INGENIERÍA ---- -->
+  <section class="info-section eng-section reverse">
+    <div class="info-container reverse">
+      <div class="info-text">
+        <span class="module-number">MÓDULO 04</span>
+        <span class="badge badge-eng">Construcción</span>
+        <h2>De la cimentación a la losa: el proceso real</h2>
+        <p>Sigue el proceso constructivo de principio a fin. Zanjas, armados, castillos, dalas y mampostería. Aprende cómo cada etapa depende de la anterior para garantizar una estructura segura y duradera.</p>
+      </div>
+      <div class="info-visual">
+        <div class="placeholder-box box-eng">🏗️</div>
+      </div>
+    </div>
+  </section>
 
+  <!-- ---- MÓDULO 05 – TECNOLOGÍA ---- -->
+  <section class="info-section tech-section">
+    <div class="info-container">
+      <div class="info-text">
+        <span class="module-number">MÓDULO 05</span>
+        <span class="badge badge-tech">Casa Inteligente</span>
+        <h2>Programa la casa del futuro</h2>
+        <p>Integra domótica y automatización desde el diseño. Configura circuitos para focos inteligentes, sensores de presencia y gestión energética remota. La tecnología al servicio del confort.</p>
+      </div>
+      <div class="info-visual">
+        <div class="placeholder-box box-tech">⚡</div>
+      </div>
+    </div>
+  </section>
 
-  <canvas id="c"></canvas>
+  <!-- ---- MÓDULO 06 – ARTE ---- -->
+  <section class="info-section arts-section reverse">
+    <div class="info-container reverse">
+      <div class="info-text">
+        <span class="module-number">MÓDULO 06</span>
+        <span class="badge badge-arts">Acabados y Decoración</span>
+        <h2>Acabados y decoración que dan vida</h2>
+        <p>Elige paletas cromáticas, texturas y materiales de recubrimiento que expresen personalidad. Aprende los principios del diseño de interiores aplicados a espacios habitacionales reales.</p>
+      </div>
+      <div class="info-visual">
+        <div class="placeholder-box box-arts">🎨</div>
+      </div>
+    </div>
+  </section>
 
-  <!--Script-->
-  <script type="module" src="./casa.js"></script>
+  <!-- ---- CTA FINAL ---- -->
+  <section class="final-cta">
+    <h2>¿Listo para construir?</h2>
+    <p style="color:var(--text-muted);font-size:1rem;">6 módulos · 36 lecciones · 0 conocimientos previos necesarios</p>
+    <a href="learn.html" class="btn-main">¡Empezar ahora!</a>
+  </section>
 
 </body>
 </html>
