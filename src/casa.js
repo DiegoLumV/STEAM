@@ -50,20 +50,30 @@ let progRules = [];
 
 // variables del sistema de desbloqueo por fases
 let concretoUnlocked = false;
-// fase 0=solo concreto, 1=solo piso, 2=solo pared, 3=todo desbloqueado
+// fase 0=solo matematicas, 1=concreto desbloqueado, 2=construir desbloqueado, 3=pared construida, 4=todo desbloqueado (programar)
 let buildPhase = 0;
 
-// estado del modal de mezcla de concreto
-let concretoStep = 'cemento';
-const CONCRETO_ORDER = ['cemento','arena','grava','agua'];
-const CONCRETO_DONE = { cemento:false, arena:false, grava:false, agua:false };
+// estado del módulo de matemáticas
+let matematicasValidadas = false;
+
+// (estado del modal de concreto ahora se maneja por inputs numéricos)
 
 // estado del constructor de pisos
 let wpMat = 'block';
 
 // tipos que se pueden colorear y referencia al objeto activo en el picker
-const COLORABLE_TYPES = ['block','madera','puerta'];
+const COLORABLE_TYPES = ['block','madera','puerta','vitropiso','ventana'];
 let colorPickerTarget = null;
+
+// límites de puertas y ventanas
+const MAX_PUERTAS  = 2;
+const MAX_VENTANAS = 3;
+let puertas_colocadas  = 0;
+let ventanas_colocadas = 0;
+
+// tipo de pared seleccionado en el modal: 'simple' | 'puerta' | 'ventana'
+let wbWallMode = 'simple';
+let wbVentanasCount = 1; // cuántas ventanas quiere (1 o 2)
 
 // actualiza la barra de progreso y el mensaje durante la carga
 const P = (p, msg) => {
@@ -319,17 +329,42 @@ const BUILDERS = {
     box('vit_gx',1.0,0.04,0.02,0,0.025,0,gm).parent=root;
     box('vit_gz',0.02,0.04,1.0,0,0.025,0,gm).parent=root;
   },
+  lampara(root) {
+    // Base del poste
+    cyl('lamp_post',0.06,0.08,2.0,0,1.0,0,MAT.lampBase,10).parent=root;
+    // Cabezal curvo
+    cyl('lamp_head',0.22,0.22,0.12,0,2.12,0,MAT.lampBase,18).parent=root;
+    // Tapa
+    cyl('lamp_cap',0.26,0.22,0.06,0,2.21,0,MAT.lampBase,18).parent=root;
+    // Foco emisor
+    const bulb=sph('lamp_bulb',0.14,0,2.0,0,null);
+    const bm=new StandardMaterial('lamparaM'+objIdCounter,scene);
+    bm.emissiveColor=new Color3(0,0,0); // apagado por defecto
+    bm.diffuseColor=new Color3(1.0,0.95,0.75);
+    bulb.material=bm; bulb.parent=root;
+    // Luz puntual
+    const lpt=new PointLight('lamparaL'+objIdCounter,new Vector3(0,2.0,0),scene);
+    lpt.intensity=0; lpt.range=14; lpt.diffuse=new Color3(1,0.92,0.65); lpt.parent=root;
+    // Marcar como lampara para restriccion de esquina
+    root.userData = root.userData || {};
+    root.userData.isLampara = true;
+  },
 };
 
-const LABELS = {block:'Block',madera:'Madera',foco:'Foco',puerta:'Puerta',barillas:'Barillas',ventana:'Ventana',concreto:'Concreto',vitropiso:'Vitropiso'};
-const EMOJIS = {block:'🧱',madera:'🪵',foco:'💡',puerta:'🚪',barillas:'⚙',ventana:'🪟',concreto:'🪨',vitropiso:'🔷'};
-const RESISTANCE = {block:0.9,concreto:0.95,barillas:0.85,vitropiso:0.7,madera:0.25,puerta:0.5,ventana:0.4,foco:0.3};
+const LABELS = {block:'Block',madera:'Madera',foco:'Foco',puerta:'Puerta',barillas:'Barillas',ventana:'Ventana',concreto:'Concreto',vitropiso:'Vitropiso',lampara:'Lámpara'};
+const EMOJIS = {block:'🧱',madera:'🪵',foco:'💡',puerta:'🚪',barillas:'⚙',ventana:'🪟',concreto:'🪨',vitropiso:'🔷',lampara:'🔦'};
+const RESISTANCE = {block:0.9,concreto:0.95,barillas:0.85,vitropiso:0.7,madera:0.25,puerta:0.5,ventana:0.4,foco:0.3,lampara:0.4};
 
 // límites de la zona de construcción y mínimo en Y
 const BUILD_ZONE = 10;
 const MIN_Y = 0;
 
 function clampToZone(root) {
+  // La lampara queda fija en su esquina exterior, nunca entra a la zona verde
+  if (root.userData && root.userData.isLampara) {
+    if (root.position.y < MIN_Y) root.position.y = MIN_Y;
+    return;
+  }
   const children = root.getChildMeshes();
   if (children.length === 0) {
     root.position.x = Math.max(-BUILD_ZONE + 0.5, Math.min(BUILD_ZONE - 0.5, root.position.x));
@@ -360,37 +395,52 @@ function clampToZone(root) {
 
 // desbloquea fases en orden: primero piso, luego paredes, luego todo
 function unlockPhase1() {
-  concretoUnlocked = true;
+  // Desbloquea Crear Concreto despues de Matematicas
   buildPhase = 1;
-  const btnWall = document.getElementById('btnWall');
-  if (btnWall) btnWall.disabled = false;
-  document.getElementById('cat-concreto').style.display = '';
-  setTip('🎉 ¡Concreto creado! Ahora construye el piso con el botón 🧱 Construir');
+  const btnStorm = document.getElementById('btnStorm');
+  if (btnStorm) { btnStorm.disabled = false; btnStorm.style.opacity = ''; btnStorm.title = ''; }
+  setTip('Matematicas completadas! Ahora crea el concreto con el boton Crear Concreto');
 }
 function unlockPhase2() {
+  // Desbloquea Construir despues de Concreto
+  concretoUnlocked = true;
   buildPhase = 2;
-  setTip('✅ ¡Piso construido! Ahora construye las paredes con el botón 🧱 Construir');
+  const btnWall = document.getElementById('btnWall');
+  if (btnWall) { btnWall.disabled = false; btnWall.style.opacity = ''; btnWall.title = ''; }
+  document.getElementById('cat-concreto').style.display = '';
+  setTip('Concreto creado! Ahora construye con el boton Construir');
 }
 function unlockAll() {
-  buildPhase = 3;
+  // Desbloquea Programar cuando hay al menos 4 paredes
+  buildPhase = 4;
   document.getElementById('btnNight').disabled = false;
   ['cat-block','cat-madera','cat-foco','cat-puerta','cat-ventana','cat-vitropiso'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('cat-disabled');
   });
-  setTip('🏠 ¡Todo desbloqueado! Agrega elementos desde el panel izquierdo');
+  const btnProg = document.getElementById('btnProgramar');
+  if (btnProg) { btnProg.disabled = false; btnProg.style.opacity = ''; btnProg.title = ''; }
+  setTip('Programacion desbloqueada! Tienes 4 o mas paredes. Ya puedes programar tu casa.');
+}
+// Cuenta solo paredes reales (wall_block o wall_madera)
+function countWalls() {
+  return objList.filter(o => o.type === 'wall_block' || o.type === 'wall_madera').length;
 }
 
 function addObjIfAllowed(type) {
-  if (!concretoUnlocked || buildPhase < 3) {
-    if (!concretoUnlocked) setTip('⚠ Primero debes crear el Concreto usando el botón 🪨 Crear Concreto');
-    else setTip('⚠ Debes construir el piso y las paredes primero antes de agregar elementos');
+  // Restricción de lámpara: solo una, solo en esquina exterior
+  if (type === 'lampara') {
+    const existing = objList.find(o => o.type === 'lampara');
+    if (existing) {
+      showLockedMessage('🔦 Solo puedes colocar UNA lámpara. Elimina la actual si quieres moverla a otra esquina.');
+      return;
+    }
+    addLamparaToCorner();
     return;
   }
   addObj(type);
 }
 
-// coloca un nuevo objeto en la escena y lo registra en la lista
 function addObj(type) {
   const id = objIdCounter++;
   const root = new TransformNode('obj_'+id+'_'+type, scene);
@@ -408,6 +458,67 @@ function addObj(type) {
   setTip(`<b>${EMOJIS[type]} ${LABELS[type]}</b> añadido · Arrastra las flechas de colores para moverlo · Q/E para rotar`);
   if (COLORABLE_TYPES.includes(type)) openColorPicker(root);
 }
+
+// Coloca la lámpara en una esquina exterior del grid (fuera de la zona verde 20x20)
+function addLamparaToCorner() {
+  // Las 4 esquinas exteriores (fuera de la zona verde de ±10)
+  const CORNERS = [
+    { label: 'Esquina NO (↖)', x: -12, z: -12 },
+    { label: 'Esquina NE (↗)', x:  12, z: -12 },
+    { label: 'Esquina SO (↙)', x: -12, z:  12 },
+    { label: 'Esquina SE (↘)', x:  12, z:  12 },
+  ];
+
+  // Crear overlay de selección de esquina
+  const overlay = document.createElement('div');
+  overlay.id = 'corner-select-overlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,5,20,.82);backdrop-filter:blur(8px);
+    z-index:200;display:flex;align-items:center;justify-content:center;
+  `;
+  overlay.innerHTML = `
+    <div style="background:rgba(4,10,32,.97);border:1px solid rgba(80,140,255,.35);border-radius:18px;
+      padding:28px 32px;text-align:center;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.7);">
+      <div style="font-size:28px;margin-bottom:8px">🔦</div>
+      <div style="color:rgba(200,225,255,.95);font-size:14px;font-weight:700;margin-bottom:6px">Colocar Lámpara</div>
+      <div style="color:rgba(130,175,255,.7);font-size:11px;margin-bottom:20px;line-height:1.6">
+        Elige en qué esquina exterior del plano colocarás la lámpara.<br>
+        <b style="color:rgba(255,210,80,.9)">No puede colocarse dentro de la zona verde.</b>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        ${CORNERS.map((c,i)=>`
+          <button onclick="placeLamparaAt(${c.x},${c.z})"
+            style="background:rgba(12,28,80,.8);border:1.5px solid rgba(60,120,255,.3);
+            color:rgba(170,210,255,.9);border-radius:12px;padding:14px 10px;cursor:pointer;
+            font-size:12px;font-family:inherit;transition:all .16s;"
+            onmouseover="this.style.background='rgba(30,75,200,.7)';this.style.borderColor='rgba(100,170,255,.7)'"
+            onmouseout="this.style.background='rgba(12,28,80,.8)';this.style.borderColor='rgba(60,120,255,.3)'">
+            ${c.label}
+          </button>`).join('')}
+      </div>
+      <button onclick="document.getElementById('corner-select-overlay').remove()"
+        style="margin-top:14px;background:transparent;border:1px solid rgba(80,120,255,.2);
+        color:rgba(130,175,255,.7);border-radius:10px;padding:8px 18px;cursor:pointer;
+        font-size:11px;font-family:inherit;">Cancelar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+window.placeLamparaAt = function(x, z) {
+  document.getElementById('corner-select-overlay')?.remove();
+  const id = objIdCounter++;
+  const root = new TransformNode('obj_'+id+'_lampara', scene);
+  root.position.set(x, 0, z);
+  BUILDERS['lampara'](root);
+  root.getChildMeshes().forEach(m => {
+    if (shadowGen) shadowGen.addShadowCaster(m, false);
+  });
+  root.userData = {id, type:'lampara', label:'Lámpara', emoji:'🔦', isLampara:true};
+  objList.push({id, type:'lampara', label:'Lámpara', emoji:'🔦', node:root});
+  updateObjListUI();
+  selectObject(root);
+  setTip('🔦 Lámpara colocada en la esquina · Se encenderá según tu programa');
+};
 
 // configura el gizmo de posición y los controles de teclado para cámara y objetos
 function setupGizmos() {
@@ -433,13 +544,13 @@ function setupGizmos() {
       case 'ArrowRight': camera.alpha += CAM_STEP; handled = true; break;
       case 'ArrowUp':    camera.beta = Math.max(BETA_MIN, camera.beta - CAM_STEP); handled = true; break;
       case 'ArrowDown':  camera.beta = Math.min(BETA_MAX, camera.beta + CAM_STEP); handled = true; break;
-      case 'KeyQ': if (selectedMesh) { selectedMesh.rotation.y -= Math.PI/12; handled=true; } break;
-      case 'KeyE': if (selectedMesh) { selectedMesh.rotation.y += Math.PI/12; handled=true; } break;
-      case 'KeyR': if (selectedMesh) { selectedMesh.rotation.x -= Math.PI/12; handled=true; } break;
-      case 'KeyF': if (selectedMesh) { selectedMesh.rotation.x += Math.PI/12; handled=true; } break;
-      case 'KeyT': if (selectedMesh) { selectedMesh.rotation.z -= Math.PI/12; handled=true; } break;
-      case 'KeyG': if (selectedMesh) { selectedMesh.rotation.z += Math.PI/12; handled=true; } break;
-      case 'KeyX': if (selectedMesh) { selectedMesh.rotation.x=0; selectedMesh.rotation.z=0; handled=true; } break;
+      case 'KeyQ': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.y -= Math.PI/12; handled=true; } break;
+      case 'KeyE': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.y += Math.PI/12; handled=true; } break;
+      case 'KeyR': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x -= Math.PI/12; handled=true; } break;
+      case 'KeyF': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x += Math.PI/12; handled=true; } break;
+      case 'KeyT': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.z -= Math.PI/12; handled=true; } break;
+      case 'KeyG': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.z += Math.PI/12; handled=true; } break;
+      case 'KeyX': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x=0; selectedMesh.rotation.z=0; handled=true; } break;
     }
     if (handled) e.preventDefault();
   });
@@ -469,11 +580,20 @@ function selectObject(node) {
       try { highlightLayer.addMesh(c, new Color3(0.3, 0.6, 1.0)); } catch(e) {}
     });
   }
-  gizmoMgr.attachToNode(node);
+  // Lampara fija: sin gizmo, sin mover. Concreto slab: sin rotar.
+  if (node.userData?.isLampara) {
+    gizmoMgr.attachToMesh(null);
+    setTip('🔦 Lámpara fija en esquina exterior · No se puede mover');
+  } else if (node.userData?.type === 'concreto_slab_20') {
+    gizmoMgr.attachToMesh(null);
+    setTip('🪨 Concreto 20×20 · Estático — solo se puede eliminar desde la lista de objetos');
+  } else {
+    gizmoMgr.attachToNode(node);
+    setTip('✦ Arrastra flechas para mover · <b>Q/E</b> rotar · <b>R/F</b> inclinar eje X · <b>T/G</b> inclinar eje Z · <b>X</b> enderezar');
+  }
   document.getElementById('btnDel').style.display='inline-block';
   document.getElementById('xinfo').style.display='block';
   updateObjListUI();
-  setTip('✦ Arrastra flechas para mover · <b>Q/E</b> rotar · <b>R/F</b> inclinar eje X · <b>T/G</b> inclinar eje Z · <b>X</b> enderezar');
 }
 
 // detecta qué objeto tocó el usuario con el puntero
@@ -498,6 +618,11 @@ function setupPicking() {
 // elimina el objeto seleccionado de la escena y de la lista
 function deleteSelected() {
   if(!selectedMesh)return;
+  // El concreto 20x20 NO se puede eliminar con el botón ✕
+  if (selectedMesh.userData?.type === 'concreto_slab_20') {
+    showLockedMessage('🪨 El concreto no se puede eliminar directamente. Usa el botón "🗑 Eliminar concreto" en la lista de objetos si deseas rehacerlo.');
+    return;
+  }
   const id=selectedMesh.userData?.id;
   if (highlightLayer) {
     try { selectedMesh.getChildMeshes().forEach(m=>{ try{highlightLayer.removeMesh(m);}catch(e){} }); } catch(e){}
@@ -537,15 +662,40 @@ function updateObjListUI() {
   items.innerHTML = objList.map((o, i) => {
     const num = labelTotal[o.label] > 1 ? ` (${labelIndex[i]})` : '';
     const isSel = selectedMesh?.userData?.id === o.id;
-    return `<div class="obj-item ${isSel ? 'sel' : ''}" title="Clic para seleccionar · Doble clic para clonar" onclick="selectFromList(${o.id})" ondblclick="cloneObj(${o.id})">
-      <span>${o.emoji}</span><span>${o.label}${num}</span><span class="obj-clone-hint" onclick="event.stopPropagation();cloneObj(${o.id})">⧉</span>
+    const isSlab = o.type === 'concreto_slab_20';
+    const isLamp = o.type === 'lampara';
+    const isWallWithOpening = (o.type === 'wall_block' || o.type === 'wall_madera') &&
+      (o.node?.userData?.wallMode === 'puerta' || o.node?.userData?.wallMode === 'ventana');
+    // Concreto: botón especial para eliminar (re-habilita modal). Lámpara: sin clonar. Pared con puerta/ventana: sin clonar. Resto: botón clonar.
+    const actionBtn = isSlab
+      ? `<span class="obj-clone-hint" style="color:rgba(255,100,100,.8)" title="Eliminar concreto" onclick="event.stopPropagation();deleteConcreto(${o.id})">🗑</span>`
+      : (isLamp || isWallWithOpening)
+        ? ''
+        : `<span class="obj-clone-hint" onclick="event.stopPropagation();cloneObj(${o.id})">⧉</span>`;
+    return `<div class="obj-item ${isSel ? 'sel' : ''}" title="Clic para seleccionar" onclick="selectFromList(${o.id})">
+      <span>${o.emoji}</span><span>${o.label}${num}</span>${actionBtn}
     </div>`;
   }).join('');
 
-  if (buildPhase >= 3) checkAndUpdateProgramarBtn();
+  if (buildPhase >= 4) checkAndUpdateProgramarBtn();
+
+  // Actualizar contador de paredes en topbar
+  const wallBadge = document.getElementById('wall-counter-badge');
+  if (wallBadge) {
+    const wc = countWalls();
+    if (buildPhase >= 4) {
+      wallBadge.style.display = 'none';
+    } else if (buildPhase >= 2) {
+      wallBadge.style.display = '';
+      wallBadge.textContent = String.fromCodePoint(0x1F9F1) + ' ' + wc + '/4 paredes';
+      wallBadge.style.color = wc >= 4 ? 'rgba(80,220,120,.9)' : 'rgba(150,200,255,.7)';
+    } else {
+      wallBadge.style.display = 'none';
+    }
+  }
 }
 
-function selectFromList(id){
+function selectFromList(id) {
   const e=objList.find(o=>o.id===id);
   if(e){
     selectObject(e.node);
@@ -562,13 +712,38 @@ function selectFromList(id){
 function cloneObj(id) {
   const src = objList.find(o => o.id === id);
   if (!src) return;
+  // El concreto 20×20 no se puede duplicar
+  if (src.type === 'concreto_slab_20') {
+    showLockedMessage('🪨 El concreto 20×20 no se puede duplicar. Si quieres uno nuevo, elimina el actual primero.');
+    return;
+  }
+  // Paredes con puerta o hueco de puerta NO se pueden duplicar
+  if ((src.type === 'wall_block' || src.type === 'wall_madera') && src.node.userData?.wallMode === 'puerta') {
+    showLockedMessage('🚪 Las paredes con puerta o hueco de puerta no se pueden duplicar.');
+    return;
+  }
+  // Paredes con ventana o hueco de ventana NO se pueden duplicar
+  if ((src.type === 'wall_block' || src.type === 'wall_madera') && src.node.userData?.wallMode === 'ventana') {
+    showLockedMessage('🪟 Las paredes con ventana o hueco de ventana no se pueden duplicar.');
+    return;
+  }
+  // Vitropiso: validar que no exceda los 400 m²
+  if (src.type === 'floor_vitropiso') {
+    const srcArea = src.area || 0;
+    const coveredArea = getVitropisoArea();
+    if (coveredArea + srcArea > 400) {
+      showLockedMessage(`⚠ No se puede duplicar. Ya tienes ${coveredArea} m² cubiertos y este vitropiso añadiría ${srcArea} m² más, excediendo los 400 m².`);
+      return;
+    }
+  }
 
   const newId = objIdCounter++;
   const root = new TransformNode('obj_' + newId + '_' + src.type, scene);
-  root.position.x = src.node.position.x + 1.2;
+  // Clonar en la misma posición del original, con un pequeño offset para que sea visible
+  root.position.x = src.node.position.x + 1.0;
   root.position.y = src.node.position.y;
-  root.position.z = src.node.position.z + 1.2;
-  root.rotation.y = src.node.rotation.y;
+  root.position.z = src.node.position.z + 1.0;
+  root.rotation.copyFrom(src.node.rotation);
 
   const baseType = src.type;
 
@@ -585,11 +760,22 @@ function cloneObj(id) {
     const startX = -(cols * bW / 2) + bW / 2;
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
+        // Buscar el mesh original en esa posición para copiar su color
+        const srcMesh = srcChildren.find(m =>
+          Math.round(m.position.x * 100) === xVals[col] &&
+          Math.round(m.position.y * 100) === yVals[row]
+        );
         const mesh = MeshBuilder.CreateBox(
           'wall_' + matType + '_' + newId + '_' + row + '_' + col,
           { width: bW - 0.04, height: bH - (matType==='block'?0.04:0.02), depth: bD }, scene
         );
-        mesh.material = matType === 'block' ? MAT.block : MAT.madera;
+        // Copiar material (color) del mesh original si fue pintado
+        if (srcMesh && srcMesh.material) {
+          const clonedMat = srcMesh.material.clone(srcMesh.material.name + '_clone_' + newId + '_' + row + '_' + col);
+          mesh.material = clonedMat;
+        } else {
+          mesh.material = matType === 'block' ? MAT.block : MAT.madera;
+        }
         mesh.position.set(startX + col * bW, bH / 2 + row * bH, 0);
         mesh.receiveShadows = true;
         if (shadowGen) shadowGen.addShadowCaster(mesh, false);
@@ -615,33 +801,84 @@ function cloneObj(id) {
     }
   } else if (baseType.startsWith('floor_')) {
     const floorType = baseType.replace('floor_', '');
-    const mat = floorType === 'vitropiso' ? MAT.vitropiso : floorType === 'madera' ? MAT.madera : MAT.block;
-    const h = floorType === 'block' ? 0.12 : floorType === 'madera' ? 0.08 : 0.04;
+    // Para vitropiso clonado, conservar el material original (con su color)
     src.node.getChildMeshes().forEach(srcMesh => {
+      const h = floorType === 'block' ? 0.12 : floorType === 'madera' ? 0.08 : 0.06;
       const mesh = MeshBuilder.CreateBox(
         'floor_clone_' + newId + '_' + Math.random().toString(36).slice(2),
         { width: 0.97, height: h, depth: 0.97 }, scene
       );
       mesh.position.copyFrom(srcMesh.position);
-      mesh.material = mat;
+      mesh.material = srcMesh.material || (floorType === 'vitropiso' ? MAT.vitropiso : MAT.block);
       mesh.receiveShadows = true;
       if (shadowGen) shadowGen.addShadowCaster(mesh, false);
       mesh.parent = root;
     });
   } else if (BUILDERS[baseType]) {
     BUILDERS[baseType](root);
-    root.getChildMeshes().forEach(m => { if (shadowGen) shadowGen.addShadowCaster(m, false); });
+    const srcChildrenSimple = src.node.getChildMeshes();
+    root.getChildMeshes().forEach((m, i) => {
+      if (shadowGen) shadowGen.addShadowCaster(m, false);
+      const srcMesh = srcChildrenSimple[i];
+      if (srcMesh && srcMesh.material) {
+        const srcMatName = srcMesh.material.name || '';
+        if (srcMatName.includes('_colored_') || srcMatName.includes('_clone_')) {
+          m.material = srcMesh.material.clone(srcMatName + '_clone_' + newId);
+        }
+      }
+    });
   }
 
   clampToZone(root);
   root.userData = { id: newId, type: src.type, label: src.label, emoji: src.emoji };
-  objList.push({ id: newId, type: src.type, label: src.label, emoji: src.emoji, node: root });
+  const cloneEntry = { id: newId, type: src.type, label: src.label, emoji: src.emoji, node: root };
+  // Conservar metadatos de vitropiso para validación de cobertura
+  if (src.type === 'floor_vitropiso') {
+    cloneEntry.area = src.area || 0;
+    cloneEntry.w = src.w || 0;
+    cloneEntry.d = src.d || 0;
+  }
+  objList.push(cloneEntry);
   updateObjListUI();
   selectObject(root);
   if (COLORABLE_TYPES.includes(src.type) || COLORABLE_TYPES.includes(src.type.replace('wall_',''))) {
     openColorPicker(root);
   }
   setTip(`<b>${src.emoji} ${src.label}</b> clonado · Muévelo con las flechas o teclas`);
+}
+
+// Elimina el concreto 20x20 y re-habilita el botón Crear Concreto
+function deleteConcreto(id) {
+  const entry = objList.find(o => o.id === id);
+  if (!entry) return;
+  const node = entry.node;
+  if (selectedMesh && selectedMesh.userData?.id === id) {
+    if (highlightLayer) {
+      try { node.getChildMeshes().forEach(m => { try { highlightLayer.removeMesh(m); } catch(e){} }); } catch(e){}
+    }
+    gizmoMgr.attachToMesh(null);
+    document.getElementById('btnDel').style.display='none';
+    document.getElementById('xinfo').style.display='none';
+    selectedMesh = null;
+  }
+  node.getChildMeshes().forEach(m => {
+    if (shadowGen) try { shadowGen.removeShadowCaster(m); } catch(e){}
+    m.dispose();
+  });
+  node.dispose();
+  objList = objList.filter(o => o.id !== id);
+  // Re-habilitar el botón Crear Concreto
+  const btnStorm = document.getElementById('btnStorm');
+  if (btnStorm) { btnStorm.disabled = false; btnStorm.style.opacity = ''; btnStorm.title = ''; }
+  // Bloquear Construir y Programar de nuevo
+  concretoUnlocked = false;
+  buildPhase = 1; // matematicas ya validadas
+  const btnWall = document.getElementById('btnWall');
+  if (btnWall) { btnWall.disabled = true; btnWall.style.opacity = '0.45'; btnWall.title = 'Crea el concreto primero'; }
+  const btnProg = document.getElementById('btnProgramar');
+  if (btnProg) { btnProg.disabled = true; btnProg.style.opacity = '0.45'; btnProg.title = 'Completa los pasos anteriores'; }
+  updateObjListUI();
+  setTip('🪨 Concreto eliminado. Vuelve a crearlo con el botón 🪨 Crear Concreto.');
 }
 
 function toggleCatalog(){
@@ -656,44 +893,65 @@ function setTip(html){
 
 // alterna entre modo día y noche cambiando luces y colores de escena
 function toggleNight() {
-  isNight=!isNight;
-  document.getElementById('btnNight').textContent=isNight?'☀ Día':'🌙 Noche';
-  document.getElementById('btnNight').classList.toggle('active',isNight);
+  isNight=!isNight;
+  const btn = document.getElementById('btnNight');
+  if (btn) {
+    btn.textContent = isNight ? '🌙 Noche' : '☀️ Día'; 
+    btn.classList.toggle('active', isNight);
+  }
   applyLighting();
-  if(isNight) execRulesByTrigger('es_de_noche');
+  // Ejecutar reglas del programa
+  if(isNight) {
+    execRulesByTriggerNew('es_noche');
+  } else {
+    execRulesByTriggerNew('es_dia');
+  }
 }
 function applyLighting() {
   if(isNight||isStorm){
     sunLight.intensity=isStorm?0.02:0.04; hemiLight.intensity=isStorm?0.03:0.06;
     scene.clearColor=new Color4(0.01,0.01,0.06,1);
     scene.fogColor=new Color3(0.01,0.02,0.08);
+    document.body.classList.add('night-mode');
+    document.body.classList.remove('day-mode');
   } else {
     sunLight.intensity=2.8; hemiLight.intensity=0.65;
     scene.clearColor=new Color4(0.48,0.62,0.82,1);
     scene.fogColor=new Color3(0.45,0.58,0.78);
+    document.body.classList.remove('night-mode');
+    document.body.classList.add('day-mode');
   }
 }
 
-// toda la lógica del modal de mezcla de concreto paso a paso
+// toda la lógica del modal de mezcla de concreto con inputs numéricos
 function openConcretoModal() {
-  Object.keys(CONCRETO_DONE).forEach(k => CONCRETO_DONE[k] = false);
-  concretoStep = 'cemento';
+  if (!matematicasValidadas) {
+    showLockedMessage('⚠ Debes completar primero el módulo de Matemáticas. Haz clic en 📐 Calcular Área para desbloquear esta función.');
+    return;
+  }
+  // Verificar si ya existe la losa 20×20
+  const slabExists = objList.some(o => o.type === 'concreto_slab_20');
+  if (slabExists) {
+    showLockedMessage('🪨 ¡Ya tienes el concreto creado! Si quieres poner uno nuevo, elimínalo primero para poder volver a crearlo.');
+    return;
+  }
+  // limpiar inputs
+  ['cemento','arena','grava','agua'].forEach(m => {
+    const inp = document.getElementById('inp-'+m);
+    if (inp) inp.value = '';
+  });
   document.getElementById('concreto-body').style.display = '';
   document.getElementById('concreto-resultado').style.display = 'none';
-  CONCRETO_ORDER.forEach(mat => {
-    document.getElementById('sl-'+mat).value = 1;
-    document.getElementById('val-'+mat).textContent = '1';
-    const row = document.getElementById('cmat-'+mat);
-    row.classList.remove('cmat-locked');
-    document.getElementById('sl-'+mat).disabled = false;
-    document.getElementById('btn-'+mat).disabled = false;
-  });
-  document.getElementById('btn-mezclar').disabled = true;
-  ['cemento','arena','grava','agua'].forEach(m => {
-    document.getElementById('csim-fill-'+m).style.height = '0%';
-  });
-  document.getElementById('csim-status').textContent = 'Agrega los materiales en orden →';
+  const errEl = document.getElementById('cmat-error');
+  if (errEl) errEl.style.display = 'none';
+  concretoActualizarBarra();
   document.getElementById('concreto-overlay').classList.add('open');
+
+  // escuchar cambios en los inputs para actualizar la barra en tiempo real
+  ['cemento','arena','grava','agua'].forEach(m => {
+    const inp = document.getElementById('inp-'+m);
+    if (inp) inp.oninput = concretoActualizarBarra;
+  });
 }
 
 function closeConcretoModal(e) {
@@ -701,66 +959,85 @@ function closeConcretoModal(e) {
   document.getElementById('concreto-overlay').classList.remove('open');
 }
 
-function concretoSliderUpdate(mat) {
-  document.getElementById('val-'+mat).textContent = document.getElementById('sl-'+mat).value;
-}
+// Valores correctos basados en 6000 m³ total con proporciones 1:2:3 + 10% agua
+const CONCRETO_CORRECTO = { cemento: 1000, arena: 2000, grava: 3000, agua: 600 };
+const CONCRETO_TOTAL = 6600; // 1000+2000+3000+600
 
-function concretoAgregar(mat) {
-  if (CONCRETO_DONE[mat]) return;
-  CONCRETO_DONE[mat] = true;
-  const val = parseInt(document.getElementById('sl-'+mat).value);
-  const heights = { cemento: val*4, arena: val*6, grava: val*7, agua: val*5 };
-  document.getElementById('csim-fill-'+mat).style.height = Math.min(heights[mat], 22) + '%';
-  const matNames = { cemento:'Cemento ✅', arena:'Arena ✅', grava:'Grava ✅', agua:'Agua ✅' };
-  const done = CONCRETO_ORDER.filter(m => CONCRETO_DONE[m]).map(m => matNames[m]);
-  document.getElementById('csim-status').textContent = done.join(' · ');
-  document.getElementById('btn-'+mat).disabled = true;
-  document.getElementById('sl-'+mat).disabled = true;
-  const allDone = CONCRETO_ORDER.every(m => CONCRETO_DONE[m]);
-  if (allDone) {
-    document.getElementById('btn-mezclar').disabled = false;
-    document.getElementById('csim-status').textContent = '✅ ¡Todo listo! Presiona Mezclar';
-  }
+function concretoActualizarBarra() {
+  const vals = {};
+  ['cemento','arena','grava','agua'].forEach(m => {
+    vals[m] = parseFloat(document.getElementById('inp-'+m)?.value) || 0;
+  });
+  const total = vals.cemento + vals.arena + vals.grava + vals.agua;
+  const totalEl = document.getElementById('cmat-total-val');
+  if (totalEl) totalEl.textContent = total.toLocaleString();
+
+  ['cemento','arena','grava','agua'].forEach(m => {
+    const seg = document.getElementById('cmat-bar-'+m);
+    if (seg) seg.style.width = Math.min((vals[m] / CONCRETO_TOTAL) * 100, 100) + '%';
+  });
 }
 
 function concretoMezclar() {
+  const vals = {};
   ['cemento','arena','grava','agua'].forEach(m => {
-    document.getElementById('csim-fill-'+m).style.height = '0%';
+    vals[m] = parseFloat(document.getElementById('inp-'+m)?.value);
   });
-  setTimeout(() => { document.getElementById('csim-status').textContent = '🔀 Mezclando…'; }, 100);
-  setTimeout(() => {
-    document.getElementById('concreto-body').style.display = 'none';
-    document.getElementById('concreto-resultado').style.display = '';
-    concretoMedidaUpdate();
-  }, 800);
+
+  const errores = [];
+  if (isNaN(vals.cemento) || vals.cemento !== CONCRETO_CORRECTO.cemento) {
+    errores.push(`❌ Cemento: debes ingresar <b>${CONCRETO_CORRECTO.cemento} m³</b> (1/6 de 6,000 m³)`);
+  }
+  if (isNaN(vals.arena) || vals.arena !== CONCRETO_CORRECTO.arena) {
+    errores.push(`❌ Arena: debes ingresar <b>${CONCRETO_CORRECTO.arena} m³</b> (2/6 de 6,000 m³)`);
+  }
+  if (isNaN(vals.grava) || vals.grava !== CONCRETO_CORRECTO.grava) {
+    errores.push(`❌ Grava: debes ingresar <b>${CONCRETO_CORRECTO.grava} m³</b> (3/6 de 6,000 m³)`);
+  }
+  if (isNaN(vals.agua) || vals.agua !== CONCRETO_CORRECTO.agua) {
+    errores.push(`❌ Agua: debes ingresar <b>${CONCRETO_CORRECTO.agua} m³</b> (10% de 6,000 m³)`);
+  }
+
+  const errEl = document.getElementById('cmat-error');
+  if (errores.length > 0) {
+    errEl.style.display = 'block';
+    errEl.innerHTML = errores.join('<br>');
+    return;
+  }
+
+  errEl.style.display = 'none';
+  // validación exitosa → crear concreto 20×20 automáticamente
+  concretoFinalizar();
 }
 
 function concretoMedidaUpdate() {
-  const l = parseInt(document.getElementById('con-largo').value);
-  const a = parseInt(document.getElementById('con-ancho').value);
-  document.getElementById('val-con-largo').textContent = l;
-  document.getElementById('val-con-ancho').textContent = a;
-  document.getElementById('concreto-medida-info').textContent = `Área: ${l * a} m²`;
+  // ya no se usa - el concreto es automático 20×20
 }
 
-function concretoFinalizar(withMedidas) {
-  if (withMedidas) {
-    const l = parseInt(document.getElementById('con-largo').value);
-    const a = parseInt(document.getElementById('con-ancho').value);
-    const id = objIdCounter++;
-    const root = new TransformNode('obj_'+id+'_concreto_slab', scene);
-    root.position.set(0, 0, 0);
-    const slab = MeshBuilder.CreateBox('con_slab_'+id, {width:a, height:0.2, depth:l}, scene);
-    slab.material = MAT.concreto; slab.receiveShadows = true;
-    slab.position.set(0, 0.1, 0);
-    if (shadowGen) shadowGen.addShadowCaster(slab, false);
-    slab.parent = root;
-    clampToZone(root);
-    root.userData = {id, type:'concreto', label:'Concreto', emoji:'🪨'};
-    objList.push({id, type:'concreto', label:'Concreto', emoji:'🪨', node:root});
-    updateObjListUI(); selectObject(root);
+function concretoFinalizar() {
+  // Crear losa 20×20 automáticamente
+  const id = objIdCounter++;
+  const root = new TransformNode('obj_'+id+'_concreto_slab', scene);
+  root.position.set(0, 0, 0);
+  const slab = MeshBuilder.CreateBox('con_slab_'+id, {width:20, height:0.2, depth:20}, scene);
+  slab.material = MAT.concreto;
+  slab.receiveShadows = true;
+  slab.position.set(0, 0.1, 0);
+  if (shadowGen) shadowGen.addShadowCaster(slab, false);
+  slab.parent = root;
+  clampToZone(root);
+  root.userData = {id, type:'concreto_slab_20', label:'Concreto 20×20', emoji:'🪨', isMainSlab: true};
+  objList.push({id, type:'concreto_slab_20', label:'Concreto 20×20', emoji:'🪨', node:root});
+  updateObjListUI();
+  selectObject(root);
+  // Deshabilitar el botón Crear Concreto hasta que se elimine la losa
+  const btnStormCreate = document.getElementById('btnStorm');
+  if (btnStormCreate) {
+    btnStormCreate.disabled = true;
+    btnStormCreate.style.opacity = '0.45';
+    btnStormCreate.title = '🪨 Ya tienes el concreto creado. Elimínalo primero para poder crearlo de nuevo.';
   }
-  unlockPhase1();
+  unlockPhase2();
   closeConcretoModal();
 }
 
@@ -783,24 +1060,36 @@ function restoreWindPhysics() {}
 
 // valida que la casa tenga los elementos mínimos antes de habilitar programar
 function validateHouse() {
-  const hasCemento = objList.some(o => o.type === 'concreto' || o.type === 'concreto_slab');
-  if (!hasCemento) return { ok: false, msg: '⚠ La casa necesita cemento (concreto).' };
+  // Requiere concreto (losa principal o slab)
+  const hasCemento = objList.some(o =>
+    o.type === 'concreto' || o.type === 'concreto_slab' || o.type === 'concreto_slab_20'
+  );
+  if (!hasCemento) return { ok: false, msg: '⚠ La casa necesita el concreto base.' };
+
+  // Requiere al menos una pared
   const hasParedes = objList.some(o => o.type === 'wall_block' || o.type === 'wall_madera');
-  if (!hasParedes) return { ok: false, msg: '⚠ La casa necesita paredes.' };
+  if (!hasParedes) return { ok: false, msg: '⚠ La casa necesita al menos una pared.' };
+
+  // Requiere al menos un color aplicado — detecta cualquier material clonado/personalizado en paredes
   const hasColor = objList.some(o => {
+    if (o.type !== 'wall_block' && o.type !== 'wall_madera') return false;
     const node = o.node;
-    return node && node.getChildMeshes().some(m => (m.material?.name || '').includes('_colored_'));
+    if (!node) return false;
+    const defaultName = o.type === 'wall_block' ? 'block' : 'madera';
+    return node.getChildMeshes().some(m => {
+      const matName = m.material?.name || '';
+      // El material fue clonado (colored, clone) o tiene nombre distinto al default
+      return matName.includes('_colored_') || matName.includes('_clone_') ||
+        (matName !== defaultName && matName !== '' && !matName.startsWith('wall'));
+    });
   });
-  if (!hasColor) return { ok: false, msg: '⚠ La casa necesita al menos un color o estilo aplicado.' };
-  const walls = objList.filter(o => o.type === 'wall_block' || o.type === 'wall_madera');
-  const hasRoof = walls.some(o => Math.abs(o.node.rotation.x) > 0.1) ||
-    objList.some(o => (o.type.startsWith('floor_') || o.type === 'concreto') && o.node.position.y > 1.5);
-  if (!hasRoof) return { ok: false, msg: '⚠ La casa necesita un techo. Inclina una pared con R/F para formar el techo.' };
+  if (!hasColor) return { ok: false, msg: '⚠ La casa necesita al menos un color aplicado. Selecciona una pared y usa el selector de color.' };
+
   return { ok: true };
 }
 
 function checkAndUpdateProgramarBtn() {
-  if (buildPhase < 3) return;
+  if (buildPhase < 4) return;
   const result = validateHouse();
   const btn = document.getElementById('btnProgramar');
   if (!btn) return;
@@ -808,7 +1097,269 @@ function checkAndUpdateProgramarBtn() {
   btn.title = result.ok ? '' : result.msg;
 }
 
-// lógica del sistema de programación por bloques de arrastrar y soltar
+// ─── NUEVO SISTEMA DE PROGRAMACIÓN POR BLOQUES ─────────────────────────────
+
+// Estado del programa
+let progBlocksUsed = new Set(); // IDs de bloques ya usados
+let progSequence = []; // secuencia de bloques arrastrados al workspace
+
+const BLOCK_META = {
+  if:          { type:'structure', label:'🔀 Si (If)',        color:'#f59e0b', desc:'if' },
+  else:        { type:'structure', label:'↩️ Sino (Else)',    color:'#f59e0b', desc:'else' },
+  es_dia:      { type:'condition', label:'☀️ Es de día',     color:'#3b82f6', desc:'esDia()' },
+  es_noche:    { type:'condition', label:'🌙 Es de noche',   color:'#3b82f6', desc:'esNoche()' },
+  enciende_foco:{ type:'action',   label:'💡 Enciende foco', color:'#22c55e', desc:'encendeFoco()' },
+  apaga_foco:  { type:'action',    label:'🔆 Apaga foco',    color:'#22c55e', desc:'apagaFoco()' },
+};
+
+function openProgramar() {
+  if (buildPhase < 4) {
+    const walls = countWalls();
+    const remaining = 4 - walls;
+    showLockedMessage('🔒 Necesitas construir al menos 4 paredes para desbloquear la programación. Te faltan ' + remaining + ' pared(es).');
+    return;
+  }
+  document.getElementById('prog-overlay').classList.add('open');
+  setupProgDragListeners();
+  renderProgWorkspace();
+  renderPseudocode();
+}
+function closeProgramar(e) {
+  if(e&&e.target!==document.getElementById('prog-overlay'))return;
+  document.getElementById('prog-overlay').classList.remove('open');
+}
+
+function setupProgDragListeners() {
+  document.querySelectorAll('.prog-block').forEach(el=>{
+    el.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('prog-block-id', el.id.replace('pb-',''));
+    });
+  });
+}
+
+function dropBlockNew(e) {
+  e.preventDefault();
+  const workspace = document.getElementById('prog-workspace');
+  workspace.classList.remove('drag-over');
+  const blockId = e.dataTransfer.getData('prog-block-id');
+  if (!blockId || !BLOCK_META[blockId]) return;
+  if (progBlocksUsed.has(blockId)) {
+    showLockedMessage('⚠ Este bloque ya fue usado. Cada bloque solo puede usarse una vez.');
+    return;
+  }
+  progBlocksUsed.add(blockId);
+  progSequence.push(blockId);
+  // Marcar bloque como usado visualmente
+  const srcEl = document.getElementById('pb-'+blockId);
+  if (srcEl) {
+    srcEl.classList.add('used');
+    srcEl.setAttribute('draggable', 'false');
+  }
+  renderProgWorkspace();
+  renderPseudocode();
+}
+
+function renderProgWorkspace() {
+  const ws = document.getElementById('prog-workspace');
+  if (progSequence.length === 0) {
+    ws.innerHTML = '<div id="prog-workspace-hint">Arrastra bloques aquí para construir tu programa</div>';
+    return;
+  }
+  ws.innerHTML = progSequence.map((bid, i) => {
+    const meta = BLOCK_META[bid];
+    return `<div class="prog-ws-block ${meta.type}" style="--bcolor:${meta.color}">
+      <span>${meta.label}</span>
+      <button class="prog-ws-del" onclick="removeProgBlock(${i})" title="Quitar">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function removeProgBlock(index) {
+  const bid = progSequence[index];
+  progSequence.splice(index, 1);
+  progBlocksUsed.delete(bid);
+  const srcEl = document.getElementById('pb-'+bid);
+  if (srcEl) {
+    srcEl.classList.remove('used');
+    srcEl.setAttribute('draggable', 'true');
+  }
+  renderProgWorkspace();
+  renderPseudocode();
+}
+
+function clearProgram() {
+  progSequence = [];
+  progBlocksUsed.clear();
+  document.querySelectorAll('.prog-block').forEach(el => {
+    el.classList.remove('used');
+    el.setAttribute('draggable', 'true');
+  });
+  renderProgWorkspace();
+  renderPseudocode();
+  document.getElementById('prog-output-new').innerHTML = '';
+}
+
+// Genera el pseudocódigo a partir de la secuencia de bloques
+function renderPseudocode() {
+  const el = document.getElementById('prog-pseudocode');
+  if (!el) return;
+  if (progSequence.length === 0) {
+    el.innerHTML = '<span class="pseudo-hint">El código aparecerá aquí cuando agregues bloques...</span>';
+    return;
+  }
+  let indent = 0;
+  let lines = [];
+  progSequence.forEach(bid => {
+    const meta = BLOCK_META[bid];
+    const pad = '&nbsp;&nbsp;'.repeat(indent);
+    if (bid === 'if') {
+      lines.push(`<span class="pseudo-kw">${pad}si</span> (<span class="pseudo-ph">condición</span>) {`);
+      indent++;
+    } else if (bid === 'else') {
+      if (indent > 0) indent--;
+      lines.push(`<span class="pseudo-kw">${pad}} sino</span> {`);
+      indent++;
+    } else if (meta.type === 'condition') {
+      // Reemplaza el placeholder de condición más reciente si hay un if abierto
+      const lastIf = lines.findLastIndex(l => l.includes('pseudo-ph'));
+      if (lastIf !== -1) {
+        lines[lastIf] = lines[lastIf].replace(
+          /<span class="pseudo-ph">.*?<\/span>/,
+          `<span class="pseudo-cond">${meta.desc}</span>`
+        );
+      } else {
+        lines.push(`${pad}<span class="pseudo-cond">${meta.desc}</span>`);
+      }
+    } else if (meta.type === 'action') {
+      lines.push(`${pad}<span class="pseudo-act">${meta.desc}</span>;`);
+    }
+  });
+  // cerrar bloques abiertos
+  while (indent > 0) { indent--; lines.push('&nbsp;&nbsp;'.repeat(indent) + '}'); }
+  el.innerHTML = lines.map(l => `<div class="pseudo-line">${l}</div>`).join('');
+}
+
+// Interpreta la secuencia y ejecuta acciones según estado actual
+function runProgramNew() {
+  const outEl = document.getElementById('prog-output-new');
+  if (progSequence.length === 0) {
+    outEl.innerHTML = '<div class="prog-out-warn">⚠ Agrega bloques al programa antes de ejecutar.</div>';
+    return;
+  }
+  // Parsear la secuencia: buscar pares if/condicion/accion y else/accion
+  let i = 0, msgs = [], executed = false;
+  while (i < progSequence.length) {
+    const b = progSequence[i];
+    if (b === 'if') {
+      // buscar condición
+      const cond = progSequence[i+1];
+      if (cond === 'es_dia' || cond === 'es_noche') {
+        const condTrue = (cond === 'es_dia' && !isNight) || (cond === 'es_noche' && isNight);
+        const action = progSequence[i+2];
+        if (condTrue && action && BLOCK_META[action]?.type === 'action') {
+          execActionNew(action);
+          msgs.push(`<div class="prog-out-ok">✅ <b>${BLOCK_META[b].label}</b> ${BLOCK_META[cond].label} → <b>${BLOCK_META[action].label}</b> ejecutado</div>`);
+          executed = true;
+          i += 3;
+          // check else
+          if (progSequence[i] === 'else') {
+            const elseAction = progSequence[i+1];
+            if (elseAction && BLOCK_META[elseAction]?.type === 'action') {
+              msgs.push(`<div class="prog-out-skip">⏭ Sino → ${BLOCK_META[elseAction].label} (no ejecutado)</div>`);
+              i += 2;
+            } else { i++; }
+          }
+        } else if (!condTrue) {
+          msgs.push(`<div class="prog-out-skip">⏭ <b>${BLOCK_META[b].label}</b> ${BLOCK_META[cond].label} → condición falsa</div>`);
+          i += 3;
+          // execute else
+          if (progSequence[i] === 'else') {
+            const elseAction = progSequence[i+1];
+            if (elseAction && BLOCK_META[elseAction]?.type === 'action') {
+              execActionNew(elseAction);
+              msgs.push(`<div class="prog-out-ok">✅ Sino → <b>${BLOCK_META[elseAction].label}</b> ejecutado</div>`);
+              executed = true;
+              i += 2;
+            } else { i++; }
+          }
+        } else { i++; }
+      } else { i++; }
+    } else { i++; }
+  }
+  if (msgs.length === 0) {
+    outEl.innerHTML = '<div class="prog-out-warn">⚠ El programa no tiene estructura válida. Usa: Si → Condición → Acción</div>';
+  } else {
+    outEl.innerHTML = msgs.join('') + (executed ? '<div class="prog-out-ok" style="margin-top:6px">🎉 ¡Programa ejecutado!</div>' : '');
+  }
+}
+
+// Ejecutar acciones del nuevo sistema
+function execActionNew(action) {
+  if (action === 'enciende_foco') {
+    // Encender focos y lámparas
+    objList.filter(o=>o.type==='foco'||o.type==='lampara').forEach(o=>{
+      o.node.getChildMeshes().forEach(m=>{
+        if(m.material&&m.material.emissiveColor) m.material.emissiveColor=new Color3(1.0,0.95,0.6);
+      });
+      // Encender pointlights
+      o.node.getChildTransformNodes?.()?.forEach(child=>{});
+      // Buscar PointLight hija
+      scene.lights.forEach(light=>{
+        if(light.parent===o.node) { light.intensity=isNight?2.5:0.9; }
+      });
+    });
+    focoState = 'on';
+  }
+  if (action === 'apaga_foco') {
+    objList.filter(o=>o.type==='foco'||o.type==='lampara').forEach(o=>{
+      o.node.getChildMeshes().forEach(m=>{
+        if(m.material&&m.material.emissiveColor) m.material.emissiveColor=new Color3(0,0,0);
+      });
+      scene.lights.forEach(light=>{
+        if(light.parent===o.node) { light.intensity=0; }
+      });
+    });
+    focoState = 'off';
+  }
+}
+
+// Estado actual del foco para que el botón de día/noche lo respete
+let focoState = 'off';
+
+// Ejecutar reglas automáticamente cuando cambia el estado día/noche
+function execRulesByTriggerNew(trigger) {
+  let i = 0;
+  while (i < progSequence.length) {
+    const b = progSequence[i];
+    if (b === 'if') {
+      const cond = progSequence[i+1];
+      const condTrue = (cond === 'es_dia' && trigger === 'es_dia') ||
+                       (cond === 'es_noche' && trigger === 'es_noche');
+      const condFalse = (cond === 'es_dia' && trigger === 'es_noche') ||
+                        (cond === 'es_noche' && trigger === 'es_dia');
+      const action = progSequence[i+2];
+      if (condTrue && action && BLOCK_META[action]?.type === 'action') {
+        execActionNew(action);
+        i += 3;
+        if (progSequence[i] === 'else') {
+          const elseAction = progSequence[i+1];
+          if (elseAction && BLOCK_META[elseAction]?.type === 'action') i += 2; else i++;
+        }
+      } else if (condFalse) {
+        i += 3;
+        if (progSequence[i] === 'else') {
+          const elseAction = progSequence[i+1];
+          if (elseAction && BLOCK_META[elseAction]?.type === 'action') {
+            execActionNew(elseAction);
+            i += 2;
+          } else i++;
+        }
+      } else { i++; }
+    } else { i++; }
+  }
+}
+
+// ─── SISTEMA ANTIGUO (compatibilidad) ────────────────────────────────────────
 const TRIGGER_LABELS = {
   puerta_abre:'🚪 Puerta se abre', puerta_cierra:'🚪 Puerta se cierra', es_de_noche:'🌙 Es de noche'
 };
@@ -816,122 +1367,24 @@ const ACTION_LABELS = {
   encender_luz:'💡 Encender luz', apagar_luz:'🔆 Apagar luz', activar_alarma:'🚨 Activar alarma'
 };
 
-function openProgramar() {
-  document.getElementById('prog-overlay').classList.add('open');
-  renderProgRules();
-}
-function closeProgramar(e) {
-  if(e&&e.target!==document.getElementById('prog-overlay'))return;
-  document.getElementById('prog-overlay').classList.remove('open');
-}
-
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.prog-block').forEach(el=>{
-    el.addEventListener('dragstart',e=>{
-      e.dataTransfer.setData('prog-type',el.dataset.type);
-      e.dataTransfer.setData('prog-val',el.dataset.val);
-    });
-  });
-  const dropArea=document.getElementById('prog-drop-area');
-  dropArea.addEventListener('dragover',e=>{e.preventDefault();dropArea.classList.add('drag-over');});
-  dropArea.addEventListener('dragleave',()=>dropArea.classList.remove('drag-over'));
-});
-
 function dropBlock(e) {
   e.preventDefault();
-  document.getElementById('prog-drop-area').classList.remove('drag-over');
-  const type=e.dataTransfer.getData('prog-type');
-  const val =e.dataTransfer.getData('prog-val');
-  if(!type||!val)return;
-  if(type==='trigger') {
-    pendingTrigger=val;
-    renderDropArea();
-    document.getElementById('prog-output').textContent='⏳ Ahora arrastra un bloque de acción para completar la regla.';
-  } else if(type==='action') {
-    if(!pendingTrigger){ document.getElementById('prog-output').textContent='⚠ Primero arrastra un bloque de condición (Si).'; return; }
-    progRules.push({trigger:pendingTrigger, action:val});
-    pendingTrigger=null;
-    renderDropArea();
-    renderProgRules();
-    document.getElementById('prog-output').textContent=`✅ Regla creada: ${TRIGGER_LABELS[progRules.at(-1).trigger]} → ${ACTION_LABELS[progRules.at(-1).action]}`;
-  }
 }
 
-function renderDropArea() {
-  const area=document.getElementById('prog-drop-area');
-  area.innerHTML='';
-  if(pendingTrigger) {
-    const el=document.createElement('div');
-    el.className='prog-pending-block trigger';
-    el.textContent=TRIGGER_LABELS[pendingTrigger];
-    area.appendChild(el);
-    const hint=document.createElement('div');
-    hint.className='prog-pending-hint';
-    hint.textContent='+ Arrastra un bloque de acción aquí';
-    area.appendChild(hint);
-  } else {
-    const hint=document.createElement('div');
-    hint.id='prog-drop-hint';
-    hint.textContent='Arrastra bloques aquí para crear reglas';
-    area.appendChild(hint);
-  }
-}
-
-function renderProgRules() {
-  const list=document.getElementById('prog-rules-list');
-  list.innerHTML=progRules.map((r,i)=>`
-    <div class="prog-rule">
-      <span class="rule-trigger">${TRIGGER_LABELS[r.trigger]}</span>
-      <span class="rule-arrow">→</span>
-      <span class="rule-action">${ACTION_LABELS[r.action]}</span>
-      <span class="rule-del" onclick="deleteRule(${i})">✕</span>
-    </div>`).join('');
-}
+function runProgram() {}
 
 function deleteRule(i) {
-  progRules.splice(i,1);
   renderProgRules();
-  document.getElementById('prog-output').textContent='🗑 Regla eliminada.';
 }
 
-function runProgram() {
-  if(progRules.length===0){document.getElementById('prog-output').textContent='⚠ No hay reglas. Crea reglas arrastrando bloques.';return;}
-  const VALID_COMBOS = [
-    {trigger:'puerta_abre',  action:'encender_luz'},
-    {trigger:'puerta_abre',  action:'activar_alarma'},
-    {trigger:'puerta_cierra',action:'apagar_luz'},
-    {trigger:'puerta_cierra',action:'activar_alarma'},
-    {trigger:'es_de_noche',  action:'encender_luz'},
-  ];
-  const results=[];
-  progRules.forEach(r=>{
-    const isValidCombo = VALID_COMBOS.some(c => c.trigger===r.trigger && c.action===r.action);
-    if (!isValidCombo) {
-      results.push(`⚠ La regla "${TRIGGER_LABELS[r.trigger]} → ${ACTION_LABELS[r.action]}" no es una combinación válida.`);
-    } else {
-      execAction(r.action);
-      results.push(`✅ ${TRIGGER_LABELS[r.trigger]} → ${ACTION_LABELS[r.action]}`);
-    }
-  });
-  document.getElementById('prog-output').innerHTML = results.map(r=>`<div>${r}</div>`).join('');
+function renderProgRules() {}
+
+function execRulesByTrigger(trigger) {
+  execRulesByTriggerNew(trigger === 'es_de_noche' ? 'es_noche' : trigger);
 }
 
 function execAction(action) {
-  if(action==='encender_luz') {
-    objList.filter(o=>o.type==='foco').forEach(o=>{
-      o.node.getChildMeshes().forEach(m=>{
-        if(m.material&&m.material.emissiveColor) m.material.emissiveColor=new Color3(1.0,0.95,0.6);
-      });
-    });
-  }
-  if(action==='apagar_luz') {
-    objList.filter(o=>o.type==='foco').forEach(o=>{
-      o.node.getChildMeshes().forEach(m=>{
-        if(m.material&&m.material.emissiveColor) m.material.emissiveColor=new Color3(0,0,0);
-      });
-    });
-  }
-  if(action==='activar_alarma') playAlarm();
+  execActionNew(action);
 }
 
 function playAlarm() {
@@ -953,22 +1406,6 @@ function playAlarm() {
   } catch(e) {}
 }
 
-function execRulesByTrigger(trigger) {
-  const VALID_COMBOS = [
-    {trigger:'puerta_abre',  action:'encender_luz'},
-    {trigger:'puerta_abre',  action:'activar_alarma'},
-    {trigger:'puerta_cierra',action:'apagar_luz'},
-    {trigger:'puerta_cierra',action:'activar_alarma'},
-    {trigger:'es_de_noche',  action:'encender_luz'},
-  ];
-  progRules.forEach(r=>{
-    if(r.trigger===trigger) {
-      const valid = VALID_COMBOS.some(c=>c.trigger===r.trigger&&c.action===r.action);
-      if(valid) execAction(r.action);
-    }
-  });
-}
-
 // cambia entre la pestaña de pared y piso en el modal del constructor
 function switchWallTab(tab) {
   ['pared','piso'].forEach(t => {
@@ -976,11 +1413,21 @@ function switchWallTab(tab) {
     document.getElementById('tab-content-'+t).style.display = t === tab ? '' : 'none';
   });
   if (tab === 'pared') wbUpdate();
-  else wpUpdate();
+  else { wpSelectedW = 20; wpSelectedD = 20; wpUpdate(); }
 }
 
-// constructor de pisos, genera una cuadrícula de piezas según las dimensiones
+// constructor de pisos con tamaños fijos y validación de cobertura 20×20
 let wpMatSelected = 'vitropiso';
+let wpVitropisoColor = '#5ba8ff';
+let wpSelectedW = 20;
+let wpSelectedD = 20;
+
+// Registro de m² de vitropiso ya colocados (suma de todos los floor_vitropiso)
+function getVitropisoArea() {
+  return objList
+    .filter(o => o.type === 'floor_vitropiso')
+    .reduce((sum, o) => sum + (o.area || 0), 0);
+}
 
 function wpSelectMat(el) {
   document.querySelectorAll('#wp-mat-options .wb-opt').forEach(o => o.classList.remove('selected'));
@@ -989,29 +1436,163 @@ function wpSelectMat(el) {
   wpUpdate();
 }
 
+function wpSelectSize(el) {
+  document.querySelectorAll('.wp-size-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  wpSelectedW = parseInt(el.dataset.w);
+  wpSelectedD = parseInt(el.dataset.d);
+  wpUpdate();
+}
+
+function wpTogglePalette() {
+  const popup = document.getElementById('wp-palette-popup');
+  if (popup) popup.style.display = popup.style.display === 'none' ? '' : 'none';
+}
+
+function wpSelectColor(el) {
+  document.querySelectorAll('.wp-color-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  wpVitropisoColor = el.dataset.color;
+  const name = el.dataset.name || el.title || '';
+  // Actualizar preview del botón principal
+  const circle = document.getElementById('wp-color-selected-circle');
+  if (circle) circle.style.background = wpVitropisoColor;
+  const nameEl = document.getElementById('wp-color-selected-name');
+  if (nameEl) nameEl.textContent = name;
+  const custom = document.getElementById('wp-color-custom');
+  if (custom) custom.value = wpVitropisoColor;
+  const preview = document.getElementById('wp-color-preview');
+  if (preview) preview.style.background = wpVitropisoColor;
+}
+
+function wpSelectCustomColor(hex) {
+  wpVitropisoColor = hex;
+  document.querySelectorAll('.wp-color-btn').forEach(b => b.classList.remove('selected'));
+  const circle = document.getElementById('wp-color-selected-circle');
+  if (circle) circle.style.background = hex;
+  const nameEl = document.getElementById('wp-color-selected-name');
+  if (nameEl) nameEl.textContent = 'Personalizado';
+  const preview = document.getElementById('wp-color-preview');
+  if (preview) preview.style.background = hex;
+}
+
 function wpUpdate() {
-  const w = parseInt(document.getElementById('wp-width').value);
-  const d = parseInt(document.getElementById('wp-depth').value);
-  document.getElementById('wp-width-val').textContent = w;
-  document.getElementById('wp-depth-val').textContent = d;
-  document.getElementById('wp-total').textContent = (w * d) + ' piezas';
-  document.getElementById('wp-dims').textContent = `${w.toFixed(0)} m × ${d.toFixed(0)} m`;
+  const w = wpSelectedW;
+  const d = wpSelectedD;
+  const newArea = w * d;
+  const coveredArea = getVitropisoArea();
+  const total = 400;
+  const remaining = total - coveredArea;
+
+  // Actualizar info de dimensión
+  const dimEl = document.getElementById('wp-build-dim');
+  if (dimEl) dimEl.textContent = `${w} × ${d} m`;
+  const areaTagEl = document.getElementById('wp-build-area-tag');
+  if (areaTagEl) areaTagEl.textContent = `${newArea} m²`;
+
+  // Actualizar barra de cobertura
+  const coveredEl = document.getElementById('wp-covered');
+  if (coveredEl) coveredEl.textContent = coveredArea;
+
+  const fillEl = document.getElementById('wp-coverage-fill');
+  if (fillEl) fillEl.style.width = Math.min((coveredArea / total) * 100, 100) + '%';
+
+  // Preview de lo que se agregaría
+  const previewEl = document.getElementById('wp-coverage-preview-fill');
+  const msgEl = document.getElementById('wp-coverage-msg');
+  const btn = document.getElementById('wp-build-btn');
+
+  if (coveredArea >= total) {
+    if (previewEl) { previewEl.style.left = '100%'; previewEl.style.width = '0%'; }
+    if (msgEl) { msgEl.textContent = '✅ ¡Piso completo! 400 / 400 m²'; msgEl.className = 'ok'; }
+    if (btn) btn.disabled = true;
+  } else if (coveredArea + newArea > total) {
+    const maxAllowed = total - coveredArea;
+    if (previewEl) {
+      previewEl.style.left = Math.min((coveredArea / total) * 100, 100) + '%';
+      previewEl.style.width = Math.min((newArea / total) * 100, 100) + '%';
+      previewEl.style.background = 'rgba(255,80,80,.3)';
+    }
+    if (msgEl) { msgEl.textContent = `⚠ Se excede el área. Solo quedan ${maxAllowed} m² libres.`; msgEl.className = 'over'; }
+    if (btn) btn.disabled = true;
+  } else {
+    if (previewEl) {
+      previewEl.style.left = Math.min((coveredArea / total) * 100, 100) + '%';
+      previewEl.style.width = Math.min((newArea / total) * 100, 100) + '%';
+      previewEl.style.background = 'rgba(255,255,255,.18)';
+    }
+    const after = coveredArea + newArea;
+    if (msgEl) {
+      msgEl.textContent = after === total
+        ? `✅ ¡Perfecto! Completarás los 400 m²`
+        : `Quedarán ${total - after} m² por cubrir`;
+      msgEl.className = after === total ? 'ok' : '';
+    }
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Devuelve el bounding box 2D (xMin,xMax,zMin,zMax) de un vitropiso colocado
+function getFloorBounds(o) {
+  const pos = o.node.position;
+  const w = o.w || 0;
+  const d = o.d || 0;
+  return {
+    xMin: pos.x - w / 2,
+    xMax: pos.x + w / 2,
+    zMin: pos.z - d / 2,
+    zMax: pos.z + d / 2,
+  };
+}
+
+// Verifica si dos bounding boxes 2D se solapan
+function boundsOverlap(a, b) {
+  return a.xMin < b.xMax && a.xMax > b.xMin && a.zMin < b.zMax && a.zMax > b.zMin;
 }
 
 function buildFloor() {
-  const w = parseInt(document.getElementById('wp-width').value);
-  const d = parseInt(document.getElementById('wp-depth').value);
-  const type = wpMatSelected;
+  const w = wpSelectedW;
+  const d = wpSelectedD;
+  const newArea = w * d;
+  const coveredArea = getVitropisoArea();
+
+  if (coveredArea + newArea > 400) {
+    showLockedMessage(`⚠ No cabe. Solo quedan ${400 - coveredArea} m² libres de los 400 m² totales.`);
+    return;
+  }
+
+  // Verificar sobreposición visual con vitropisos ya colocados
+  // El nuevo se colocaría en posición (0,0) centrado
+  const newBounds = { xMin: -w/2, xMax: w/2, zMin: -d/2, zMax: d/2 };
+  const existingFloors = objList.filter(o => o.type === 'floor_vitropiso');
+  for (const existing of existingFloors) {
+    const eb = getFloorBounds(existing);
+    if (boundsOverlap(newBounds, eb)) {
+      showLockedMessage('⚠ Se empalmaría con un vitropiso ya colocado. Mueve el anterior antes de colocar otro.');
+      return;
+    }
+  }
+
+  const type = 'vitropiso';
   const id = objIdCounter++;
-  const root = new TransformNode('obj_'+id+'_floor_'+type, scene);
+  const root = new TransformNode('obj_'+id+'_floor_vitropiso', scene);
   root.position.set(0, 0, 0);
 
-  const mat = type === 'vitropiso' ? MAT.vitropiso : type === 'madera' ? MAT.madera : MAT.block;
-  const h = type === 'block' ? 0.12 : type === 'madera' ? 0.08 : 0.06;
-  const yOffset = type === 'vitropiso' ? 0.21 : 0;
+  const hex = wpVitropisoColor;
+  const r = parseInt(hex.slice(1,3),16)/255;
+  const g = parseInt(hex.slice(3,5),16)/255;
+  const b = parseInt(hex.slice(5,7),16)/255;
+  const floorMat = new PBRMaterial('vitropiso_custom_'+id, scene);
+  floorMat.albedoColor = new Color3(r, g, b);
+  floorMat.alpha = 0.82; floorMat.metallic = 0.15; floorMat.roughness = 0.02;
+  floorMat.backFaceCulling = false;
+  floorMat.emissiveColor = new Color3(r*0.08, g*0.08, b*0.08);
 
+  const h = 0.06;
+  const yOffset = 0.21;
   const startX = -(w / 2) + 0.5;
   const startZ = -(d / 2) + 0.5;
+
   for (let col = 0; col < w; col++) {
     for (let row = 0; row < d; row++) {
       const mesh = MeshBuilder.CreateBox(
@@ -1019,23 +1600,29 @@ function buildFloor() {
         { width: 0.97, height: h, depth: 0.97 }, scene
       );
       mesh.position.set(startX + col, (h / 2) + yOffset, startZ + row);
-      mesh.material = mat;
+      mesh.material = floorMat;
       mesh.receiveShadows = true;
       if (shadowGen) shadowGen.addShadowCaster(mesh, false);
       mesh.parent = root;
     }
   }
 
-  const emoji = type === 'vitropiso' ? '🔷' : type === 'madera' ? '🪵' : '🧱';
-  const label = `Piso ${type==='vitropiso'?'Vitropiso':type==='madera'?'Madera':'Block'} ${w}×${d}`;
-  root.userData = {id, type:'floor_'+type, label, emoji};
-  objList.push({id, type:'floor_'+type, label, emoji, node:root});
+  const label = `Vitropiso ${w}×${d}`;
+  root.userData = { id, type: 'floor_vitropiso', label, emoji: '🔷' };
+  objList.push({ id, type: 'floor_vitropiso', label, emoji: '🔷', node: root, area: newArea, w, d });
   clampToZone(root);
   updateObjListUI();
   selectObject(root);
+  wpUpdate();
+
+  const totalCovered = getVitropisoArea();
+  if (totalCovered >= 400) {
+    setTip('✅ ¡Vitropiso completo! Toda la losa está cubierta. Ya puedes construir las paredes.');
+    unlockPhase2();
+  } else {
+    setTip(`🔷 Vitropiso ${w}×${d} colocado · Faltan ${400 - totalCovered} m² por cubrir`);
+  }
   closeWallBuilder();
-  if (buildPhase === 1) unlockPhase2();
-  setTip(`<b>${emoji} ${label}</b> creado · Arrastra flechas para mover · Q/E para rotar`);
 }
 
 // abre, cierra y aplica colores a los objetos que lo permiten
@@ -1073,7 +1660,7 @@ function applyColorPicker() {
       }
     }
   });
-  if (buildPhase >= 3) checkAndUpdateProgramarBtn();
+  if (buildPhase >= 4) checkAndUpdateProgramarBtn();
 }
 function confirmColorPicker() {
   applyColorPicker();
@@ -1085,11 +1672,27 @@ function confirmColorPicker() {
 let wbMat = 'block';
 
 function openWallBuilder() {
+  if (!concretoUnlocked) {
+    showLockedMessage('Esta función aún no está disponible. Completa los pasos anteriores para desbloquear.');
+    return;
+  }
   document.getElementById('wall-overlay').classList.add('open');
   document.getElementById('tab-pared').style.display = '';
   document.getElementById('tab-piso').style.display = '';
-  if (buildPhase === 1) switchWallTab('piso');
-  else switchWallTab('pared');
+  switchWallTab('pared');
+  // Resetear modo y actualizar contadores al abrir
+  wbWallMode = 'simple';
+  wbVentanasCount = 1;
+  document.querySelectorAll('.wb-mode-card').forEach(c => c.classList.remove('selected'));
+  const sc = document.getElementById('wb-mode-simple');
+  if (sc) sc.classList.add('selected');
+  const vr = document.getElementById('wb-vent-count-row');
+  if (vr) vr.style.display = 'none';
+  const btn = document.getElementById('wb-build-btn');
+  if (btn) btn.textContent = '⬆ Construir Pared';
+  // Actualizar estado de tarjetas según disponibilidad
+  updateModeCardStates();
+  wbUpdate();
 }
 function closeWallBuilder(e) {
   if (e && e.target !== document.getElementById('wall-overlay')) return;
@@ -1110,26 +1713,196 @@ function wbUpdate() {
   const bH = wbMat === 'block' ? 0.7 : 0.2;
   const totalW = w * bW;
   const totalH = h * bH;
-  document.getElementById('wb-total').textContent = w * h + ' piezas';
+
+  // Calcular piezas reales (descontando huecos)
+  let huecos = 0;
+  if (wbWallMode === 'puerta') {
+    // hueco central: 1 col × 4 filas (desde abajo)
+    huecos = Math.min(4, h);
+  } else if (wbWallMode === 'ventana') {
+    // cada ventana ocupa 1 col × 2 filas (las 2 filas superiores)
+    const ventRows = Math.min(2, h);
+    huecos = wbVentanasCount * ventRows;
+  }
+  const piezas = Math.max(0, w * h - huecos);
+  document.getElementById('wb-total').textContent = piezas + ' piezas';
   document.getElementById('wb-dims').textContent  = `${totalW.toFixed(1)} m × ${totalH.toFixed(1)} m`;
-  document.getElementById('wb-build-btn').disabled = false;
+
+  // Regenerar preview SVG
+  renderWallPreview(w, h, wbMat, wbWallMode, wbVentanasCount);
+
+  // Validar ancho mínimo para pared con puerta (necesita ≥ 3 cols)
+  const btn = document.getElementById('wb-build-btn');
+  if (wbWallMode === 'puerta' && w < 3) {
+    btn.disabled = true;
+    document.getElementById('wb-preview-warn').textContent = '⚠ Necesitas al menos 3 columnas para una pared con puerta.';
+  } else if (wbWallMode === 'ventana' && w < (wbVentanasCount === 2 ? 5 : 3)) {
+    btn.disabled = true;
+    document.getElementById('wb-preview-warn').textContent = '⚠ Necesitas más columnas para ' + wbVentanasCount + ' ventana(s).';
+  } else {
+    btn.disabled = false;
+    document.getElementById('wb-preview-warn').textContent = '';
+  }
+}
+
+function renderWallPreview(w, h, mat, mode, ventCount) {
+  const svg = document.getElementById('wb-wall-svg');
+  if (!svg) return;
+  const cellW = Math.min(22, Math.floor(300 / w));
+  const cellH = Math.min(16, Math.floor(140 / h));
+  const svgW = w * cellW;
+  const svgH = h * cellH;
+  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+  svg.setAttribute('width', svgW);
+  svg.setAttribute('height', svgH);
+
+  const blockColor = mat === 'block' ? '#9ca3af' : '#92400e';
+  const blockStroke = mat === 'block' ? '#6b7280' : '#78350f';
+
+  // Calcular qué celdas son hueco
+  const huecos = new Set();
+  if (mode === 'puerta') {
+    const midCol = Math.floor(w / 2);
+    const doorRows = Math.min(4, h);
+    for (let r = 0; r < doorRows; r++) huecos.add(`${midCol},${r}`);
+  } else if (mode === 'ventana') {
+    const positions = ventCount === 1
+      ? [Math.floor(w / 2)]
+      : [Math.floor(w / 4), Math.floor(3 * w / 4)];
+    // Ventanas en zona alta pero con 1 bloque de dintel arriba y 1 fila libre abajo
+    const winTopRow = Math.max(1, h - 2); // deja fila (h-1) como dintel
+    const winBotRow = Math.max(1, h - 3);
+    positions.forEach(col => {
+      for (let r = winBotRow; r <= winTopRow; r++) huecos.add(`${col},${r}`);
+    });
+  }
+
+  let cells = '';
+  for (let row = 0; row < h; row++) {
+    const drawRow = h - 1 - row; // dibuja de arriba a abajo visualmente
+    for (let col = 0; col < w; col++) {
+      const isHueco = huecos.has(`${col},${row}`);
+      const x = col * cellW;
+      const y = drawRow * cellH;
+      if (isHueco) {
+        // Hueco: color especial según tipo
+        const hColor = mode === 'puerta' ? '#fbbf24' : '#67e8f9';
+        const hStroke = mode === 'puerta' ? '#f59e0b' : '#06b6d4';
+        cells += `<rect x="${x+1}" y="${y+1}" width="${cellW-2}" height="${cellH-2}" fill="${hColor}" fill-opacity="0.35" stroke="${hStroke}" stroke-width="1" rx="1"/>`;
+        // Icono pequeño en el centro del hueco
+        if (mode === 'puerta' && row === 0 && col === Math.floor(w/2)) {
+          cells += `<text x="${x+cellW/2}" y="${y+cellH/2+3}" font-size="${Math.min(10,cellH-2)}" text-anchor="middle" fill="#fbbf24">🚪</text>`;
+        } else if (mode === 'ventana' && row === Math.max(1, h - 2)) {
+          cells += `<text x="${x+cellW/2}" y="${y+cellH/2+3}" font-size="${Math.min(9,cellH-2)}" text-anchor="middle" fill="#67e8f9">🪟</text>`;
+        }
+      } else {
+        cells += `<rect x="${x+1}" y="${y+1}" width="${cellW-2}" height="${cellH-2}" fill="${blockColor}" stroke="${blockStroke}" stroke-width="0.8" rx="1"/>`;
+      }
+    }
+  }
+  svg.innerHTML = cells;
+}
+
+function wbSelectMode(mode) {
+  // Verificar límites antes de seleccionar
+  if (mode === 'puerta' && puertas_colocadas >= MAX_PUERTAS) {
+    showLockedMessage('🚪 Ya usaste las ' + MAX_PUERTAS + ' puertas permitidas. No puedes agregar más.');
+    return;
+  }
+  if (mode === 'ventana' && ventanas_colocadas >= MAX_VENTANAS) {
+    showLockedMessage('🪟 Ya usaste las ' + MAX_VENTANAS + ' ventanas permitidas. No puedes agregar más.');
+    return;
+  }
+  wbWallMode = mode;
+  // Actualizar tarjetas
+  document.querySelectorAll('.wb-mode-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('wb-mode-' + mode);
+  if (card) card.classList.add('selected');
+
+  // Mostrar/ocultar opciones de ventanas
+  const ventOpts = document.getElementById('wb-vent-count-row');
+  if (ventOpts) ventOpts.style.display = mode === 'ventana' ? 'flex' : 'none';
+
+  // Ajustar altura mínima: puerta necesita >= 4 filas
+  const hSlider = document.getElementById('wb-height');
+  if (hSlider) {
+    if (mode === 'puerta') { hSlider.min = 4; if (parseInt(hSlider.value) < 4) hSlider.value = 4; }
+    else if (mode === 'ventana') { hSlider.min = 4; if (parseInt(hSlider.value) < 4) hSlider.value = 4; }
+    else { hSlider.min = 2; }
+  }
+
+  // Actualizar etiqueta del botón
+  const btn = document.getElementById('wb-build-btn');
+  if (btn) {
+    btn.textContent = mode === 'simple' ? '⬆ Construir Pared'
+      : mode === 'puerta' ? '⬆ Construir Pared con Puerta'
+      : '⬆ Construir Pared con Ventana(s)';
+  }
+  wbUpdate();
+}
+
+function wbSetVentCount(n) {
+  wbVentanasCount = n;
+  document.querySelectorAll('.wb-vent-btn').forEach(b => b.classList.remove('selected'));
+  const btn = document.getElementById('wb-vent-btn-' + n);
+  if (btn) btn.classList.add('selected');
+  wbUpdate();
 }
 
 function buildWall() {
   const w = parseInt(document.getElementById('wb-width').value);
   const h = parseInt(document.getElementById('wb-height').value);
   const type = wbMat;
+  const mode = wbWallMode;
   const bW = 1.0;
-  const bH = type === 'block' ? 0.7  : 0.2;
-  const bD = type === 'block' ? 0.5  : 0.2;
+  const bH = type === 'block' ? 0.7 : 0.2;
+  const bD = type === 'block' ? 0.5 : 0.2;
+
+  // Validaciones de modo
+  if (mode === 'puerta') {
+    if (puertas_colocadas >= MAX_PUERTAS) {
+      showLockedMessage('🚪 Ya alcanzaste el límite de ' + MAX_PUERTAS + ' puertas.'); return;
+    }
+    if (w < 3) { showLockedMessage('⚠ La pared con puerta necesita al menos 3 columnas de ancho.'); return; }
+    if (h < 4) { showLockedMessage('⚠ La pared con puerta necesita al menos 4 filas de alto.'); return; }
+  }
+  if (mode === 'ventana') {
+    if (ventanas_colocadas >= MAX_VENTANAS) {
+      showLockedMessage('🪟 Ya alcanzaste el límite de ' + MAX_VENTANAS + ' ventanas.'); return;
+    }
+    const minW = wbVentanasCount === 2 ? 5 : 3;
+    if (w < minW) { showLockedMessage('⚠ Necesitas al menos ' + minW + ' columnas para ' + wbVentanasCount + ' ventana(s).'); return; }
+  }
+
   const id   = objIdCounter++;
   const root = new TransformNode('obj_'+id+'_wall_'+type, scene);
   root.position.set(0, 0, 0);
   const totalW = w * bW;
   const startX = -(totalW / 2) + bW / 2;
 
+  // Calcular qué celdas son huecos
+  const huecos = new Set();
+  if (mode === 'puerta') {
+    const midCol = Math.floor(w / 2);
+    const doorRows = Math.min(4, h);
+    for (let r = 0; r < doorRows; r++) huecos.add(`${midCol},${r}`);
+  } else if (mode === 'ventana') {
+    const positions = wbVentanasCount === 1
+      ? [Math.floor(w / 2)]
+      : [Math.floor(w / 4), Math.floor(3 * w / 4)];
+    // Ventanas en la zona alta pero dejando SIEMPRE 1 fila de bloque arriba y 1 abajo
+    // hueco: filas (h-3) y (h-2), de modo que (h-1) queda como dintel encima
+    const winTopRow = Math.max(1, h - 2); // fila superior del hueco (deja 1 bloque arriba)
+    const winBotRow = Math.max(1, h - 3); // fila inferior del hueco
+    positions.forEach(col => {
+      for (let r = winBotRow; r <= winTopRow; r++) huecos.add(`${col},${r}`);
+    });
+  }
+
+  // Construir bloques saltando huecos
   for (let row = 0; row < h; row++) {
     for (let col = 0; col < w; col++) {
+      if (huecos.has(`${col},${row}`)) continue; // hueco → no poner bloque
       const px = startX + col * bW;
       const py = (bH / 2) + row * bH;
       let mesh;
@@ -1147,30 +1920,243 @@ function buildWall() {
     }
   }
 
-  const label = `Pared ${type === 'block' ? 'Block' : 'Madera'} ${w}×${h}`;
+  // Colocar puertas/ventanas en los huecos automáticamente
+  if (mode === 'puerta') {
+    const midCol = Math.floor(w / 2);
+    const doorId = objIdCounter++;
+    const doorRoot = new TransformNode('obj_'+doorId+'_puerta', scene);
+    const px = startX + midCol * bW;
+    doorRoot.position.set(px, 0, 0);
+    doorRoot.parent = root;
+    BUILDERS['puerta'](doorRoot);
+    doorRoot.getChildMeshes().forEach(m => {
+      m.receiveShadows = true;
+      if (shadowGen) shadowGen.addShadowCaster(m, false);
+    });
+    // Registrar la puerta en objList también
+    doorRoot.userData = { id: doorId, type: 'puerta', label: 'Puerta', emoji: '🚪', embeddedInWall: id };
+    objList.push({ id: doorId, type: 'puerta', label: 'Puerta', emoji: '🚪', node: doorRoot });
+    puertas_colocadas++;
+  } else if (mode === 'ventana') {
+    const positions = wbVentanasCount === 1
+      ? [Math.floor(w / 2)]
+      : [Math.floor(w / 4), Math.floor(3 * w / 4)];
+    positions.forEach((col, vi) => {
+      const winId = objIdCounter++;
+      const winRoot = new TransformNode('obj_'+winId+'_ventana', scene);
+      const px = startX + col * bW;
+      // Centrar la ventana en el hueco: filas (h-3) a (h-2)
+      // El hueco ocupa desde la base de fila (h-3) hasta el tope de fila (h-2)
+      // base del hueco = (h-3)*bH, tope = (h-3)*bH + 2*bH
+      // centro del hueco = (h-3)*bH + bH = (h-2)*bH
+      // El builder de ventana tiene su geometría centrada en y=0.7 (el marco win_fr está en y=0.7)
+      // Necesitamos que el centro geométrico de la ventana quede en el centro del hueco
+      // Centro del hueco en world Y = (h-3)*bH + bH = (h-2)*bH
+      const winBotRow = Math.max(1, h - 3);
+      const holeCenterY = winBotRow * bH + bH; // centro entre las 2 filas del hueco
+      // win_fr está centrado en y=0.7 relativo al root, así que el root debe ir en holeCenterY - 0.7
+      const py = holeCenterY - 0.7;
+      winRoot.position.set(px, py, 0);
+      winRoot.parent = root;
+      BUILDERS['ventana'](winRoot);
+      winRoot.getChildMeshes().forEach(m => {
+        m.receiveShadows = true;
+        if (shadowGen) shadowGen.addShadowCaster(m, false);
+      });
+      winRoot.userData = { id: winId, type: 'ventana', label: 'Ventana', emoji: '🪟', embeddedInWall: id };
+      objList.push({ id: winId, type: 'ventana', label: 'Ventana', emoji: '🪟', node: winRoot });
+    });
+    ventanas_colocadas += wbVentanasCount;
+  }
+
+  updateOpeningCounters();
+
+  const modeTag = mode === 'puerta' ? ' + 🚪 Puerta' : mode === 'ventana' ? ` + 🪟 ${wbVentanasCount} Ventana(s)` : '';
+  const label = `Pared ${type === 'block' ? 'Block' : 'Madera'} ${w}×${h}${modeTag}`;
   const emoji = type === 'block' ? '🧱' : '🪵';
-  root.userData = { id, type: 'wall_'+type, label, emoji };
+  root.userData = { id, type: 'wall_'+type, label, emoji, wallMode: mode };
   objList.push({ id, type: 'wall_'+type, label, emoji, node: root });
+
+  // Medidas educativas
+  const doorH = (Math.min(4,h) * bH).toFixed(2);
+  const winH  = (Math.min(2,h-1) * bH).toFixed(2);
+  const dimMsg = mode === 'puerta'
+    ? `📐 <b>Puerta:</b> 1.00 m ancho × ${doorH} m alto · <b>La pared:</b> ${(w*bW).toFixed(1)} m × ${(h*bH).toFixed(1)} m`
+    : mode === 'ventana'
+      ? `📐 <b>Ventana(s):</b> 1.00 m ancho × ${winH} m alto · <b>La pared:</b> ${(w*bW).toFixed(1)} m × ${(h*bH).toFixed(1)} m`
+      : `📐 <b>Pared:</b> ${(w*bW).toFixed(1)} m ancho × ${(h*bH).toFixed(1)} m alto · ${w*h} bloques`;
 
   clampToZone(root);
   updateObjListUI();
   selectObject(root);
   closeWallBuilder();
-  if (buildPhase === 2) unlockAll();
-  setTip(`<b>${emoji} ${label}</b> creada · Arrastra las flechas de colores para moverla · Flechas del teclado giran la cámara`);
+  // Desbloquear Programar cuando haya al menos 4 paredes
+  if (buildPhase < 4 && countWalls() >= 4) unlockAll();
+
+  showSuccessMessage('✅ ¡Pared construida!<br>' + dimMsg);
+  setTip(`<b>${emoji} ${label}</b> lista · Q/E rotar · R/F inclinar · Arrastra flechas para mover`);
 }
 
-// exponemos las funciones al scope global para que el HTML pueda llamarlas
+// muestra un mensaje de función bloqueada como toast
+function showLockedMessage(msg) {
+  let toast = document.getElementById('locked-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'locked-toast';
+    toast.style.cssText = `
+      position:fixed; top:70px; left:50%; transform:translateX(-50%);
+      background:rgba(5,12,35,.97); border:1px solid rgba(255,160,60,.5);
+      border-radius:12px; padding:14px 22px; color:rgba(255,200,100,.95);
+      font-size:13px; letter-spacing:.04em; z-index:200;
+      box-shadow:0 8px 40px rgba(0,0,0,.6); text-align:center;
+      max-width:480px; line-height:1.6; transition:opacity .3s;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  toast.style.display = 'block';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => { toast.style.display = 'none'; }, 300);
+  }, 3500);
+}
+
+// modal de matemáticas
+function openMatematicasModal() {
+  document.getElementById('matematicas-overlay').classList.add('open');
+}
+function closeMatematicasModal(e) {
+  if (e && e.target !== document.getElementById('matematicas-overlay')) return;
+  document.getElementById('matematicas-overlay').classList.remove('open');
+}
+
+// Valores correctos: zona 20x20, perímetro=80m (20+20+20+20), área=400m², volumen=6000m³ (altura 15m)
+const MAT_CORRECT = { perimetro: 80, area: 400, volumen: 6000 };
+const MAT_UNITS = { perimetro: 'm', area: 'm2', volumen: 'm3' };
+
+function validarMatematicas() {
+  const perVal  = parseFloat(document.getElementById('mat-perimetro').value);
+  const areaVal = parseFloat(document.getElementById('mat-area').value);
+  const volVal  = parseFloat(document.getElementById('mat-volumen').value);
+  const perUnit  = document.getElementById('mat-perimetro-unit').value;
+  const areaUnit = document.getElementById('mat-area-unit').value;
+  const volUnit  = document.getElementById('mat-volumen-unit').value;
+
+  const errores = [];
+  if (isNaN(perVal) || perVal !== MAT_CORRECT.perimetro || perUnit !== MAT_UNITS.perimetro) {
+    errores.push(' El Perímetro no es correcto. Recuerda: suma todos los lados del recuadro verde');
+  }
+  if (isNaN(areaVal) || areaVal !== MAT_CORRECT.area || areaUnit !== MAT_UNITS.area) {
+    errores.push(' El Área no es correcta. Recuerda: Área = largo × ancho.');
+  }
+  if (isNaN(volVal) || volVal !== MAT_CORRECT.volumen || volUnit !== MAT_UNITS.volumen) {
+    errores.push(' El Volumen no es correcto. Recuerda: Volumen = Área × altura (15 m).');
+  }
+
+  const errEl = document.getElementById('mat-error');
+  if (errores.length > 0) {
+    errEl.style.display = 'block';
+    errEl.innerHTML = errores.join('<br>');
+    return;
+  }
+
+  errEl.style.display = 'none';
+  matematicasValidadas = true;
+  document.getElementById('matematicas-overlay').classList.remove('open');
+
+  // Deshabilitar el botón para que no lo vuelva a abrir
+  const btnMat = document.getElementById('btnMatematicas');
+  if (btnMat) {
+    btnMat.style.opacity = '0.5';
+    btnMat.title = ' Ya completaste este módulo';
+  }
+
+  // Desbloquear Crear Concreto
+  unlockPhase1();
+
+  showSuccessMessage(
+    ' ¡Felicidades! Calculaste correctamente el Perímetro, Área y Volumen.<br>' +
+    ' <b>¡Ya completaste este objetivo!</b> Ahora crea el concreto con  Crear Concreto :)'
+  );
+  setTip(' ¡Matemáticas completadas! Ahora haz clic en  Crear Concreto.');
+}
+
+function showSuccessMessage(msg) {
+  let el = document.getElementById('success-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'success-toast';
+    el.style.cssText = `
+      position:fixed; top:70px; left:50%; transform:translateX(-50%);
+      background:rgba(5,30,15,.97); border:1.5px solid rgba(50,220,100,.5);
+      border-radius:14px; padding:16px 26px; color:rgba(100,255,160,.95);
+      font-size:13px; letter-spacing:.04em; z-index:200;
+      box-shadow:0 8px 40px rgba(0,0,0,.6),0 0 20px rgba(30,200,80,.15);
+      text-align:center; max-width:520px; line-height:1.7; transition:opacity .4s;
+    `;
+    document.body.appendChild(el);
+  }
+  el.innerHTML = msg;
+  el.style.opacity = '1';
+  el.style.display = 'block';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => { el.style.display = 'none'; }, 400);
+  }, 4500);
+}
+
+function updateOpeningCounters() {
+  const badge = document.getElementById('opening-counters');
+  if (badge) {
+    badge.innerHTML =
+      `<span class="${puertas_colocadas>=MAX_PUERTAS?'oc-done':''}">🚪 ${puertas_colocadas}/${MAX_PUERTAS}</span>` +
+      `<span class="${ventanas_colocadas>=MAX_VENTANAS?'oc-done':''}">🪟 ${ventanas_colocadas}/${MAX_VENTANAS}</span>`;
+  }
+  updateModeCardStates();
+}
+
+function updateModeCardStates() {
+  const cp = document.getElementById('wb-counter-puerta');
+  const cv = document.getElementById('wb-counter-ventana');
+  const cardP = document.getElementById('wb-mode-puerta');
+  const cardV = document.getElementById('wb-mode-ventana');
+  if (cp) cp.textContent = puertas_colocadas + '/' + MAX_PUERTAS + ' usadas';
+  if (cv) cv.textContent = ventanas_colocadas + '/' + MAX_VENTANAS + ' usadas';
+  if (cardP) cardP.classList.toggle('disabled', puertas_colocadas >= MAX_PUERTAS);
+  if (cardV) cardV.classList.toggle('disabled', ventanas_colocadas >= MAX_VENTANAS);
+  // Si el modo actual quedó lleno, volver a simple
+  if (wbWallMode === 'puerta' && puertas_colocadas >= MAX_PUERTAS) wbSelectMode('simple');
+  if (wbWallMode === 'ventana' && ventanas_colocadas >= MAX_VENTANAS) wbSelectMode('simple');
+}
+
+// ─── BLOQUEO MÓDULO MATEMÁTICAS SI YA FUE COMPLETADO ────────────────────────
+
+function openMatematicasModalGuarded() {
+  if (matematicasValidadas) {
+    showSuccessMessage(' ¡Ya completaste este objetivo! Las matemáticas están validadas. Continúa construyendo tu casa 😊');
+    return;
+  }
+  openMatematicasModal();
+}
+
+// expone las funciones al scope global para que el HTML pueda llamarlas
+window.deleteConcreto = deleteConcreto;
 Object.assign(window, {
   deleteSelected, toggleNight, openConcretoModal, closeConcretoModal,
+  openMatematicasModal, openMatematicasModalGuarded, closeMatematicasModal, validarMatematicas,
   openWallBuilder, closeWallBuilder, openProgramar, closeProgramar,
   toggleCatalog, addObjIfAllowed, selectFromList, cloneObj,
   wbSelectMat, wbUpdate, buildWall,
-  wpSelectMat, wpUpdate, buildFloor,
+  wpSelectMat, wpSelectSize, wpSelectColor, wpSelectCustomColor, wpTogglePalette, wpUpdate, buildFloor,
   switchWallTab,
-  concretoSliderUpdate, concretoAgregar, concretoMezclar, concretoMedidaUpdate, concretoFinalizar,
-  dropBlock, runProgram, deleteRule,
+  concretoActualizarBarra, concretoMezclar, concretoMedidaUpdate, concretoFinalizar,
+  dropBlock, dropBlockNew, runProgram, runProgramNew, clearProgram, removeProgBlock, deleteRule,
   openColorPicker, closeColorPicker, setSwatchColor, applyColorPicker, confirmColorPicker,
+  wbSelectMode, wbSetVentCount, renderWallPreview, updateModeCardStates,
+  updateOpeningCounters, placeLamparaAt,
 });
 
 // función principal que arranca la escena, cámara, luces y todo lo demás
@@ -1259,7 +2245,7 @@ const init = () => {
     }
   });
 
-  setInterval(()=>{ if(buildPhase>=3) checkAndUpdateProgramarBtn(); }, 500);
+  setInterval(()=>{ if(buildPhase>=4) checkAndUpdateProgramarBtn(); }, 500);
 };
 
 init();
