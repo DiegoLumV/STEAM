@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Constructor de Casa · STEAM</title>
-  <link rel="stylesheet" href="./casa.css">
+  <link rel="stylesheet" href="./Css/casa.css">
 </head>
+
 <body>
 
   <div id="loading">
     <h2>Constructor de Casa · STEAM</h2>
-    <div id="lbar"><div id="lfill"></div></div>
+    <div id="lbar">
+      <div id="lfill"></div>
+    </div>
     <div id="lmsg">Cargando Babylon.js…</div>
   </div>
 
@@ -29,9 +33,12 @@
     <button class="btn danger" id="btnDel" onclick="deleteSelected()" style="display:none">✕ Eliminar</button>
     <div class="sep"></div>
     <button class="btn" onclick="openMatematicasModalGuarded()" id="btnMatematicas">📐 Calcular Área</button>
-    <button class="btn" onclick="openConcretoModal()" id="btnStorm" disabled style="opacity:0.45" title="Completa primero Calcular Área">🪨 Crear Concreto</button>
-    <button class="btn" onclick="openWallBuilder()" id="btnWall" disabled style="opacity:0.45" title="Crea el concreto primero">🧱 Construir</button>
-    <button class="btn" onclick="openProgramar()" id="btnProgramar" disabled style="opacity:0.45" title="Construye al menos 4 paredes primero">🔧 Programar</button>
+    <button class="btn" onclick="openConcretoModal()" id="btnStorm" disabled style="opacity:0.45"
+      title="Completa primero Calcular Área">🪨 Crear Concreto</button>
+    <button class="btn" onclick="openWallBuilder()" id="btnWall" disabled style="opacity:0.45"
+      title="Crea el concreto primero">🧱 Construir</button>
+    <button class="btn" onclick="openProgramar()" id="btnProgramar" disabled style="opacity:0.45"
+      title="Construye al menos 4 paredes primero">🔧 Programar</button>
     <span id="wall-counter-badge" style="font-size:10px;color:rgba(150,200,255,.7);white-space:nowrap"></span>
     <div class="sep"></div>
     <button class="btn" id="btnNight" onclick="toggleNight()">🌙 Noche</button>
@@ -42,14 +49,20 @@
       <span>+ Materiales</span><span id="cat-arrow">▼</span>
     </div>
     <div id="cat-list">
-      <div class="cat-item" id="cat-block"     onclick="addObjIfAllowed('block')">    <span class="ico">🧱</span>Block    </div>
-      <div class="cat-item" id="cat-madera"    onclick="addObjIfAllowed('madera')">   <span class="ico">🪵</span>Madera   </div>
-      <div class="cat-item" id="cat-foco"      onclick="addObjIfAllowed('foco')">     <span class="ico">💡</span>Foco     </div>
-      <div class="cat-item" id="cat-puerta" onclick="addObjIfAllowed('puerta')">   <span class="ico">🚪</span>Puerta   </div>
-      <div class="cat-item" id="cat-ventana" onclick="addObjIfAllowed('ventana')">  <span class="ico">🪟</span>Ventana  </div>
-      <div class="cat-item" id="cat-vitropiso" onclick="addObjIfAllowed('vitropiso')"><span class="ico">🔷</span>Vitropiso</div>
-      <div class="cat-item" id="cat-lampara" onclick="addObjIfAllowed('lampara')"><span class="ico">🔦</span>Lámpara</div>
-      <div class="cat-item" id="cat-concreto" onclick="addObjIfAllowed('concreto')" style="display:none"><span class="ico">🪨</span>Concreto</div>
+      <div class="cat-item" id="cat-block" onclick="addObjIfAllowed('block')"> <span class="ico">🧱</span>Block </div>
+      <div class="cat-item" id="cat-madera" onclick="addObjIfAllowed('madera')"> <span class="ico">🪵</span>Madera
+      </div>
+      <div class="cat-item" id="cat-foco" onclick="addObjIfAllowed('foco')"> <span class="ico">💡</span>Foco </div>
+      <div class="cat-item" id="cat-puerta" onclick="addObjIfAllowed('puerta')"> <span class="ico">🚪</span>Puerta
+      </div>
+      <div class="cat-item" id="cat-ventana" onclick="addObjIfAllowed('ventana')"> <span class="ico">🪟</span>Ventana
+      </div>
+      <div class="cat-item" id="cat-vitropiso" onclick="addObjIfAllowed('vitropiso')"><span
+          class="ico">🔷</span>Vitropiso</div>
+      <div class="cat-item" id="cat-lampara" onclick="addObjIfAllowed('lampara')"><span class="ico">🔦</span>Lámpara
+      </div>
+      <div class="cat-item" id="cat-concreto" onclick="addObjIfAllowed('concreto')" style="display:none"><span
+          class="ico">🪨</span>Concreto</div>
     </div>
   </div>
 
@@ -69,7 +82,9 @@
   <div id="lightning-flash"></div>
   <div id="storm-wind-bar" style="display:none">
     <span id="storm-wind-label">💨 Viento</span>
-    <div id="storm-wind-track"><div id="storm-wind-fill"></div></div>
+    <div id="storm-wind-track">
+      <div id="storm-wind-fill"></div>
+    </div>
     <span id="storm-resist-msg"></span>
   </div>
 
@@ -83,7 +98,8 @@
         <!-- INSTRUCCIONES izquierda -->
         <div id="concreto-instrucciones">
           <div class="ci-title">📋 Instrucciones</div>
-          <div class="ci-note" style="margin-bottom:14px; border-color:rgba(80,200,255,.3); background:rgba(20,80,120,.2);">
+          <div class="ci-note"
+            style="margin-bottom:14px; border-color:rgba(80,200,255,.3); background:rgba(20,80,120,.2);">
             📐 <b>Volumen total necesario:</b><br>
             <span style="color:rgba(100,220,255,.9); font-size:20px; font-weight:700;">6,000 m³</span><br>
             <span style="font-size:10px; opacity:.7;">Calculado por ti en el módulo anterior</span>
@@ -98,7 +114,8 @@
             🪨 Grava &nbsp;&nbsp;→ <b>3</b> partes<br>
             💧 Agua &nbsp;&nbsp;&nbsp;→ <b>10%</b> del total
           </div>
-          <div class="ci-note" style="margin-top:10px; font-size:10.5px; border-color:rgba(255,200,80,.25); background:rgba(80,60,10,.2); color:rgba(240,210,120,.85);">
+          <div class="ci-note"
+            style="margin-top:10px; font-size:10.5px; border-color:rgba(255,200,80,.25); background:rgba(80,60,10,.2); color:rgba(240,210,120,.85);">
             ✏️ Calcula cada cantidad y escríbela en los campos de la derecha.
           </div>
         </div>
@@ -108,7 +125,7 @@
           <div class="ci-title"> Ingresa las cantidades de cada material (m³)</div>
 
           <div class="cmat-row" id="cmat-cemento">
-           <img src="img/cemento.png" alt="Icono de cemento" class="cmat-ico">
+            <img src="img/cemento.png" alt="Icono de cemento" class="cmat-ico">
             <div class="cmat-info">
               <span class="cmat-name">Cemento</span>
               <span class="cmat-hint">1 parte del total</span>
@@ -152,9 +169,9 @@
             <div id="cmat-total-label">Total ingresado: <span id="cmat-total-val">0</span> / 6,600 m³</div>
             <div id="cmat-bar-track">
               <div id="cmat-bar-cemento" class="cmat-bar-seg cmat-bar-cem"></div>
-              <div id="cmat-bar-arena"   class="cmat-bar-seg cmat-bar-are"></div>
-              <div id="cmat-bar-grava"   class="cmat-bar-seg cmat-bar-gra"></div>
-              <div id="cmat-bar-agua"    class="cmat-bar-seg cmat-bar-agu"></div>
+              <div id="cmat-bar-arena" class="cmat-bar-seg cmat-bar-are"></div>
+              <div id="cmat-bar-grava" class="cmat-bar-seg cmat-bar-gra"></div>
+              <div id="cmat-bar-agua" class="cmat-bar-seg cmat-bar-agu"></div>
             </div>
             <div id="cmat-bar-legend">
               <span><span class="cleg cleg-cem"></span>Cemento</span>
@@ -165,7 +182,8 @@
           </div>
 
           <div id="cmat-error" class="mat-error" style="display:none"></div>
-          <button class="btn wb-build-btn" id="btn-mezclar" onclick="concretoMezclar()">🔀 Validar y Mezclar Concreto</button>
+          <button class="btn wb-build-btn" id="btn-mezclar" onclick="concretoMezclar()">🔀 Validar y Mezclar
+            Concreto</button>
         </div>
       </div>
 
@@ -250,7 +268,8 @@
           <div class="wb-section">
             <div class="wb-label">Vista previa de la pared</div>
             <div id="wb-svg-wrap">
-              <svg id="wb-wall-svg" viewBox="0 0 110 80" width="110" height="80" style="display:block;margin:0 auto"></svg>
+              <svg id="wb-wall-svg" viewBox="0 0 110 80" width="110" height="80"
+                style="display:block;margin:0 auto"></svg>
             </div>
           </div>
 
@@ -259,7 +278,8 @@
             <div class="wb-prev-row"><span>Bloques:</span><span id="wb-total">–</span></div>
             <div class="wb-prev-row"><span>Dimensión:</span><span id="wb-dims">–</span></div>
           </div>
-          <div id="wb-preview-warn" style="color:rgba(255,160,80,.85);font-size:11px;min-height:16px;margin-bottom:6px;text-align:center"></div>
+          <div id="wb-preview-warn"
+            style="color:rgba(255,160,80,.85);font-size:11px;min-height:16px;margin-bottom:6px;text-align:center"></div>
           <button class="btn wb-build-btn" id="wb-build-btn" onclick="buildWall()">⬆ Construir Pared</button>
         </div>
 
@@ -341,23 +361,44 @@
               <div id="wp-palette-popup-inner">
                 <div class="wp-palette-title">Elige un color</div>
                 <div id="wp-color-palette">
-                  <button class="wp-color-btn selected" data-color="#5ba8ff" data-name="Azul" style="--c:#5ba8ff" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Azul</span></button>
-                  <button class="wp-color-btn" data-color="#ff6b6b" data-name="Rojo" style="--c:#ff6b6b" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Rojo</span></button>
-                  <button class="wp-color-btn" data-color="#51e898" data-name="Verde" style="--c:#51e898" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Verde</span></button>
-                  <button class="wp-color-btn" data-color="#ffd460" data-name="Dorado" style="--c:#ffd460" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Dorado</span></button>
-                  <button class="wp-color-btn" data-color="#c084fc" data-name="Violeta" style="--c:#c084fc" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Violeta</span></button>
-                  <button class="wp-color-btn" data-color="#fb923c" data-name="Naranja" style="--c:#fb923c" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Naranja</span></button>
-                  <button class="wp-color-btn" data-color="#22d3ee" data-name="Cian" style="--c:#22d3ee" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Cian</span></button>
-                  <button class="wp-color-btn" data-color="#f472b6" data-name="Rosa" style="--c:#f472b6" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Rosa</span></button>
-                  <button class="wp-color-btn" data-color="#e2e8f0" data-name="Perla" style="--c:#e2e8f0" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Perla</span></button>
-                  <button class="wp-color-btn" data-color="#94a3b8" data-name="Gris" style="--c:#94a3b8" onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span class="wp-color-name">Gris</span></button>
+                  <button class="wp-color-btn selected" data-color="#5ba8ff" data-name="Azul" style="--c:#5ba8ff"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Azul</span></button>
+                  <button class="wp-color-btn" data-color="#ff6b6b" data-name="Rojo" style="--c:#ff6b6b"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Rojo</span></button>
+                  <button class="wp-color-btn" data-color="#51e898" data-name="Verde" style="--c:#51e898"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Verde</span></button>
+                  <button class="wp-color-btn" data-color="#ffd460" data-name="Dorado" style="--c:#ffd460"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Dorado</span></button>
+                  <button class="wp-color-btn" data-color="#c084fc" data-name="Violeta" style="--c:#c084fc"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Violeta</span></button>
+                  <button class="wp-color-btn" data-color="#fb923c" data-name="Naranja" style="--c:#fb923c"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Naranja</span></button>
+                  <button class="wp-color-btn" data-color="#22d3ee" data-name="Cian" style="--c:#22d3ee"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Cian</span></button>
+                  <button class="wp-color-btn" data-color="#f472b6" data-name="Rosa" style="--c:#f472b6"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Rosa</span></button>
+                  <button class="wp-color-btn" data-color="#e2e8f0" data-name="Perla" style="--c:#e2e8f0"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Perla</span></button>
+                  <button class="wp-color-btn" data-color="#94a3b8" data-name="Gris" style="--c:#94a3b8"
+                    onclick="wpSelectColor(this)"><span class="wp-color-circle"></span><span
+                      class="wp-color-name">Gris</span></button>
                 </div>
                 <div id="wp-custom-color-row">
                   <span class="wp-custom-label">🖌 Personalizado</span>
                   <input type="color" id="wp-color-custom" value="#5ba8ff" oninput="wpSelectCustomColor(this.value)">
                   <div id="wp-color-preview" style="background:#5ba8ff"></div>
                 </div>
-                <button class="btn" style="width:100%;margin-top:8px;border-radius:10px;padding:9px" onclick="wpTogglePalette()">✓ Listo</button>
+                <button class="btn" style="width:100%;margin-top:8px;border-radius:10px;padding:9px"
+                  onclick="wpTogglePalette()">✓ Listo</button>
               </div>
             </div>
           </div>
@@ -386,28 +427,33 @@
         <!-- Panel izquierdo: bloques disponibles -->
         <div id="prog-blocks-panel">
           <div class="prog-section-title">Bloques disponibles</div>
-          <div class="prog-section-hint">Arrastra cada bloque al programa.<br>Cada bloque se usa <b>una sola vez</b>.</div>
+          <div class="prog-section-hint">Arrastra cada bloque al programa.<br>Cada bloque se usa <b>una sola vez</b>.
+          </div>
 
           <div class="prog-block-group-title">🔵 Condiciones (SI)</div>
-          <div class="prog-block condition" draggable="true" id="pb-es_dia" data-type="condition" data-val="es_dia">☀️ Es de día</div>
-          <div class="prog-block condition" draggable="true" id="pb-es_noche" data-type="condition" data-val="es_noche">🌙 Es de noche</div>
+          <div class="prog-block condition" draggable="true" id="pb-es_dia" data-type="condition" data-val="es_dia">☀️
+            Es de día</div>
+          <div class="prog-block condition" draggable="true" id="pb-es_noche" data-type="condition" data-val="es_noche">
+            🌙 Es de noche</div>
 
           <div class="prog-block-group-title">🟡 Estructura</div>
-          <div class="prog-block structure" draggable="true" id="pb-if" data-type="structure" data-val="if">🔀 Si (If)</div>
-          <div class="prog-block structure" draggable="true" id="pb-else" data-type="structure" data-val="else">↩️ Sino (Else)</div>
+          <div class="prog-block structure" draggable="true" id="pb-if" data-type="structure" data-val="if">🔀 Si (If)
+          </div>
+          <div class="prog-block structure" draggable="true" id="pb-else" data-type="structure" data-val="else">↩️ Sino
+            (Else)</div>
 
           <div class="prog-block-group-title">🟢 Acciones</div>
-          <div class="prog-block action" draggable="true" id="pb-enciende_foco" data-type="action" data-val="enciende_foco">💡 Enciende el foco</div>
-          <div class="prog-block action" draggable="true" id="pb-apaga_foco" data-type="action" data-val="apaga_foco">🔆 Apaga el foco</div>
+          <div class="prog-block action" draggable="true" id="pb-enciende_foco" data-type="action"
+            data-val="enciende_foco">💡 Enciende el foco</div>
+          <div class="prog-block action" draggable="true" id="pb-apaga_foco" data-type="action" data-val="apaga_foco">🔆
+            Apaga el foco</div>
         </div>
 
         <!-- Panel central: área de programa -->
         <div id="prog-canvas-panel">
           <div class="prog-section-title">Mi programa</div>
-          <div id="prog-workspace"
-            ondragover="event.preventDefault(); event.currentTarget.classList.add('drag-over')"
-            ondragleave="event.currentTarget.classList.remove('drag-over')"
-            ondrop="dropBlockNew(event)">
+          <div id="prog-workspace" ondragover="event.preventDefault(); event.currentTarget.classList.add('drag-over')"
+            ondragleave="event.currentTarget.classList.remove('drag-over')" ondrop="dropBlockNew(event)">
             <div id="prog-workspace-hint">Arrastra bloques aquí para construir tu programa</div>
           </div>
           <div style="display:flex;gap:8px;margin-top:10px">
@@ -446,7 +492,7 @@
     </div>
   </div>
 
-   <!-- Modal de Matemáticas -->
+  <!-- Modal de Matemáticas -->
   <div id="matematicas-overlay" onclick="closeMatematicasModal(event)">
     <div id="matematicas-modal">
       <div id="matematicas-header">
@@ -461,9 +507,12 @@
             Cada cuadro individual del plano representa <b>1 metro</b> en la vida real.
           </div>
           <div class="ci-subtitle">Tu tarea</div>
-          <div class="ci-rule"><span class="ci-num">1</span><span>Calcula el <b>Perímetro</b> del recuadro verde del plano</span></div>
-          <div class="ci-rule"><span class="ci-num">2</span><span>Calcula el <b>Área</b> del recuadro verde del plano</span></div>
-          <div class="ci-rule"><span class="ci-num">3</span><span>Calcula el <b>Volumen</b> del prisma rectangular (la casa tendrá <b>15 m</b> de altura)</span></div>
+          <div class="ci-rule"><span class="ci-num">1</span><span>Calcula el <b>Perímetro</b> del recuadro verde del
+              plano</span></div>
+          <div class="ci-rule"><span class="ci-num">2</span><span>Calcula el <b>Área</b> del recuadro verde del
+              plano</span></div>
+          <div class="ci-rule"><span class="ci-num">3</span><span>Calcula el <b>Volumen</b> del prisma rectangular (la
+              casa tendrá <b>15 m</b> de altura)</span></div>
           <div class="ci-note" style="margin-top:10px">
             📌 <b>Fórmulas:</b><br>
             Perímetro = suma de todos los lados<br>
@@ -511,7 +560,8 @@
             </div>
           </div>
           <div id="mat-error" class="mat-error" style="display:none"></div>
-          <button class="btn wb-build-btn" id="btn-validar-mat" onclick="validarMatematicas()">✅ Validar respuestas</button>
+          <button class="btn wb-build-btn" id="btn-validar-mat" onclick="validarMatematicas()">✅ Validar
+            respuestas</button>
         </div>
       </div>
     </div>
@@ -523,7 +573,8 @@
   <canvas id="c"></canvas>
 
   <!--Script-->
-  <script type="module" src="./casa.js"></script>
+  <script type="module" src="./scripts/casa.js"></script>
 
 </body>
+
 </html>

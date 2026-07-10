@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="./Css/styles.css">
   <link rel="icon" href="img/icon.png">
   <title>CasaSTEAM – Aprende a Construir</title>
 </head>
@@ -14,8 +14,8 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="logo-block">
-      <div class="logo-icon"><img src="img/icon.png" alt="CasaSTEAM"></div>
-      <div class="logo-text">Casa<br>STEAM</div>
+      <div class="logo-icon"><a href="index.html"><img src="img/icon.png" alt="CasaSTEAM"></a></div>
+      <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
     </div>
 
     <div class="nav-label">Módulos</div>
@@ -44,6 +44,20 @@
         <span class="dot"></span>Examen Final
       </button>
     </a>
+    <!-- Opción solo visible para administradores (oculta por defecto) -->
+    <a href="PanelAdministrativo.html" style="all: unset;" id="link-admin">
+      <button class="nav-btn inactive-admin" id="btn-admin" style="display:none;">
+        <span class="dot"></span>Administrador
+      </button>
+    </a>
+
+    <div style="flex:1;"></div>
+
+    <div class="nav-label">Sesión</div>
+    <div id="sidebar-user-learn" style="padding:8px 12px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;"></div>
+    <button id="btn-logout-learn" class="nav-btn" style="color:var(--math-accent);margin-top:4px;">
+      <span class="dot" style="background:var(--math-accent);"></span>Cerrar sesión
+    </button>
   </aside>
 
   <!-- MAIN -->
@@ -53,11 +67,12 @@
       <div class="user-chip">
         <div class="avatar">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="5.5" r="2.8" stroke="#4caf7d" stroke-width="1.4"/>
-            <path d="M2.5 13.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="#4caf7d" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="8" cy="5.5" r="2.8" stroke="#4caf7d" stroke-width="1.4" />
+            <path d="M2.5 13.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="#4caf7d" stroke-width="1.4"
+              stroke-linecap="round" />
           </svg>
         </div>
-        <span class="user-name">Estudiante</span>
+        <span class="user-name"></span>
       </div>
     </header>
 
@@ -73,53 +88,76 @@
       <p class="module-subtitle">Identificación de necesidades · Análisis del terreno y entorno </p>
       <div class="path-container">
         <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
-          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(245,200,66,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(245,200,66,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(245,200,66,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(245,200,66,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(245,200,66,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <polygon points="219,222 225,234 231,222" fill="rgba(245,200,66,0.35)"/>
-          <polygon points="349,82 355,94 361,82" fill="rgba(245,200,66,0.25)"/>
-          <polygon points="479,222 485,234 491,222" fill="rgba(245,200,66,0.25)"/>
-          <polygon points="609,82 615,94 621,82" fill="rgba(245,200,66,0.25)"/>
-          <polygon points="739,222 745,234 751,222" fill="rgba(245,200,66,0.25)"/>
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(245,200,66,0.3)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(245,200,66,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(245,200,66,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(245,200,66,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(245,200,66,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <polygon points="219,222 225,234 231,222" fill="rgba(245,200,66,0.35)" />
+          <polygon points="349,82 355,94 361,82" fill="rgba(245,200,66,0.25)" />
+          <polygon points="479,222 485,234 491,222" fill="rgba(245,200,66,0.25)" />
+          <polygon points="609,82 615,94 621,82" fill="rgba(245,200,66,0.25)" />
+          <polygon points="739,222 745,234 751,222" fill="rgba(245,200,66,0.25)" />
         </svg>
         <div class="lesson-nodes" id="nodes-intro">
           <div class="node-col top">
             <div class="lesson-cube next-up clickable" data-module="intro" data-lesson="1">
               <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Identificación de Necesidades y Recursos</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 1</div>
+              <div class="sub-title">Identificación de Necesidades y Recursos</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="intro" data-lesson="2">
               <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">El Terreno y su Entorno</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 2</div>
+              <div class="sub-title">El Terreno y su Entorno</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="intro" data-lesson="3">
               <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title"> Tipos de Suelo</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 3</div>
+              <div class="sub-title"> Tipos de Suelo</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="intro" data-lesson="4">
               <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Topografía : Planos e inclinaciones</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 4</div>
+              <div class="sub-title">Topografía : Planos e inclinaciones</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="intro" data-lesson="5">
               <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Tipos de Clima y Diseño</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 5</div>
+              <div class="sub-title">Tipos de Clima y Diseño</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="intro" data-lesson="6">
               <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Diseño Arquitectónico</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 6</div>
+              <div class="sub-title">Diseño Arquitectónico</div>
+            </div>
           </div>
         </div>
       </div>
@@ -139,53 +177,76 @@
       <p class="module-subtitle">Cálculo de medidas · Áreas y proporciones · Planos numéricos</p>
       <div class="path-container">
         <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
-          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(224,123,106,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(224,123,106,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(224,123,106,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(224,123,106,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(224,123,106,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <polygon points="219,222 225,234 231,222" fill="rgba(224,123,106,0.3)"/>
-          <polygon points="349,82 355,94 361,82" fill="rgba(224,123,106,0.22)"/>
-          <polygon points="479,222 485,234 491,222" fill="rgba(224,123,106,0.22)"/>
-          <polygon points="609,82 615,94 621,82" fill="rgba(224,123,106,0.22)"/>
-          <polygon points="739,222 745,234 751,222" fill="rgba(224,123,106,0.22)"/>
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(224,123,106,0.3)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(224,123,106,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(224,123,106,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(224,123,106,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(224,123,106,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <polygon points="219,222 225,234 231,222" fill="rgba(224,123,106,0.3)" />
+          <polygon points="349,82 355,94 361,82" fill="rgba(224,123,106,0.22)" />
+          <polygon points="479,222 485,234 491,222" fill="rgba(224,123,106,0.22)" />
+          <polygon points="609,82 615,94 621,82" fill="rgba(224,123,106,0.22)" />
+          <polygon points="739,222 745,234 751,222" fill="rgba(224,123,106,0.22)" />
         </svg>
         <div class="lesson-nodes" id="nodes-math">
           <div class="node-col top">
             <div class="lesson-cube next-up clickable" data-module="math" data-lesson="1">
               <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Regla 60-30-10</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 1</div>
+              <div class="sub-title">Regla 60-30-10</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="math" data-lesson="2">
               <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Proporciones y Áreas</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 2</div>
+              <div class="sub-title">Proporciones y Áreas</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="math" data-lesson="3">
               <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Topografía Numérica</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 3</div>
+              <div class="sub-title">Topografía Numérica</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="math" data-lesson="4">
               <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Cargas y Resistencia</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 4</div>
+              <div class="sub-title">Cargas y Resistencia</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="math" data-lesson="5">
               <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Dimensiones de Muros</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 5</div>
+              <div class="sub-title">Dimensiones de Muros</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="math" data-lesson="6">
               <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Evaluación</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 6</div>
+              <div class="sub-title">Evaluación</div>
+            </div>
           </div>
         </div>
       </div>
@@ -205,53 +266,76 @@
       <p class="module-subtitle">Física de materiales · Impermeabilización</p>
       <div class="path-container">
         <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
-          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(76,175,125,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(76,175,125,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(76,175,125,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(76,175,125,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(76,175,125,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <polygon points="219,222 225,234 231,222" fill="rgba(76,175,125,0.35)"/>
-          <polygon points="349,82 355,94 361,82" fill="rgba(76,175,125,0.25)"/>
-          <polygon points="479,222 485,234 491,222" fill="rgba(76,175,125,0.25)"/>
-          <polygon points="609,82 615,94 621,82" fill="rgba(76,175,125,0.25)"/>
-          <polygon points="739,222 745,234 751,222" fill="rgba(76,175,125,0.25)"/>
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(76,175,125,0.3)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(76,175,125,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(76,175,125,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(76,175,125,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(76,175,125,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <polygon points="219,222 225,234 231,222" fill="rgba(76,175,125,0.35)" />
+          <polygon points="349,82 355,94 361,82" fill="rgba(76,175,125,0.25)" />
+          <polygon points="479,222 485,234 491,222" fill="rgba(76,175,125,0.25)" />
+          <polygon points="609,82 615,94 621,82" fill="rgba(76,175,125,0.25)" />
+          <polygon points="739,222 745,234 751,222" fill="rgba(76,175,125,0.25)" />
         </svg>
         <div class="lesson-nodes" id="nodes-science">
           <div class="node-col top">
             <div class="lesson-cube next-up clickable" data-module="science" data-lesson="1">
               <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Propiedades del concreto</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 1</div>
+              <div class="sub-title">Propiedades del concreto</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="science" data-lesson="2">
               <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Agregados: Arena y Grava</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 2</div>
+              <div class="sub-title">Agregados: Arena y Grava</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="science" data-lesson="3">
               <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Fraguado y Curado</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 3</div>
+              <div class="sub-title">Fraguado y Curado</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="science" data-lesson="4">
               <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Colado y Vibrado</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 4</div>
+              <div class="sub-title">Colado y Vibrado</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="science" data-lesson="5">
               <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Control de Calidad y Fallas comunes</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 5</div>
+              <div class="sub-title">Control de Calidad y Fallas comunes</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="science" data-lesson="6">
               <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Evaluación</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 6</div>
+              <div class="sub-title">Evaluación</div>
+            </div>
           </div>
         </div>
       </div>
@@ -271,53 +355,76 @@
       <p class="module-subtitle">Cimentación · Estructura · Proceso constructivo completo</p>
       <div class="path-container">
         <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
-          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(138,138,154,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(138,138,154,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(138,138,154,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(138,138,154,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(138,138,154,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <polygon points="219,222 225,234 231,222" fill="rgba(138,138,154,0.3)"/>
-          <polygon points="349,82 355,94 361,82" fill="rgba(138,138,154,0.22)"/>
-          <polygon points="479,222 485,234 491,222" fill="rgba(138,138,154,0.22)"/>
-          <polygon points="609,82 615,94 621,82" fill="rgba(138,138,154,0.22)"/>
-          <polygon points="739,222 745,234 751,222" fill="rgba(138,138,154,0.22)"/>
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(138,138,154,0.3)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(138,138,154,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(138,138,154,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(138,138,154,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(138,138,154,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <polygon points="219,222 225,234 231,222" fill="rgba(138,138,154,0.3)" />
+          <polygon points="349,82 355,94 361,82" fill="rgba(138,138,154,0.22)" />
+          <polygon points="479,222 485,234 491,222" fill="rgba(138,138,154,0.22)" />
+          <polygon points="609,82 615,94 621,82" fill="rgba(138,138,154,0.22)" />
+          <polygon points="739,222 745,234 751,222" fill="rgba(138,138,154,0.22)" />
         </svg>
         <div class="lesson-nodes" id="nodes-engineering">
           <div class="node-col top">
             <div class="lesson-cube next-up clickable" data-module="engineering" data-lesson="1">
               <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Cimentación: El Anclaje al Suelo</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 1</div>
+              <div class="sub-title">Cimentación: El Anclaje al Suelo</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="engineering" data-lesson="2">
               <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Contracimientos y Firmes</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 2</div>
+              <div class="sub-title">Contracimientos y Firmes</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="engineering" data-lesson="3">
               <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Castillos: Los Huesos Verticales</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 3</div>
+              <div class="sub-title">Castillos: Los Huesos Verticales</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="engineering" data-lesson="4">
               <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Mampostería y Vanos</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 4</div>
+              <div class="sub-title">Mampostería y Vanos</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="engineering" data-lesson="5">
               <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Dalas de Remate</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 5</div>
+              <div class="sub-title">Dalas de Remate</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="engineering" data-lesson="6">
               <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">La Losa: El Techo Protector</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 6</div>
+              <div class="sub-title">La Losa: El Techo Protector</div>
+            </div>
           </div>
         </div>
       </div>
@@ -338,53 +445,76 @@
       <p class="module-subtitle">Circuitos eléctricos · Domótica · Focos y sensores inteligentes</p>
       <div class="path-container">
         <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
-          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(91,141,238,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(91,141,238,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(91,141,238,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(91,141,238,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(91,141,238,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <polygon points="219,222 225,234 231,222" fill="rgba(91,141,238,0.3)"/>
-          <polygon points="349,82 355,94 361,82" fill="rgba(91,141,238,0.22)"/>
-          <polygon points="479,222 485,234 491,222" fill="rgba(91,141,238,0.22)"/>
-          <polygon points="609,82 615,94 621,82" fill="rgba(91,141,238,0.22)"/>
-          <polygon points="739,222 745,234 751,222" fill="rgba(91,141,238,0.22)"/>
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(91,141,238,0.3)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(91,141,238,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(91,141,238,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(91,141,238,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(91,141,238,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <polygon points="219,222 225,234 231,222" fill="rgba(91,141,238,0.3)" />
+          <polygon points="349,82 355,94 361,82" fill="rgba(91,141,238,0.22)" />
+          <polygon points="479,222 485,234 491,222" fill="rgba(91,141,238,0.22)" />
+          <polygon points="609,82 615,94 621,82" fill="rgba(91,141,238,0.22)" />
+          <polygon points="739,222 745,234 751,222" fill="rgba(91,141,238,0.22)" />
         </svg>
         <div class="lesson-nodes" id="nodes-tech">
           <div class="node-col top">
             <div class="lesson-cube next-up clickable" data-module="tech" data-lesson="1">
               <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Fundamentos de la Domótica</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 1</div>
+              <div class="sub-title">Fundamentos de la Domótica</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="tech" data-lesson="2">
               <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Iluminación Inteligente y Ahorro</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 2</div>
+              <div class="sub-title">Iluminación Inteligente y Ahorro</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="tech" data-lesson="3">
               <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Climatización y Gestión Térmica</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 3</div>
+              <div class="sub-title">Climatización y Gestión Térmica</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="tech" data-lesson="4">
               <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Seguridad y Acceso Biométrico</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 4</div>
+              <div class="sub-title">Seguridad y Acceso Biométrico</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="tech" data-lesson="5">
               <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Gestión Energética Remota</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 5</div>
+              <div class="sub-title">Gestión Energética Remota</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="tech" data-lesson="6">
               <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Integración y Escenarios (Scenes)</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 6</div>
+              <div class="sub-title">Integración y Escenarios (Scenes)</div>
+            </div>
           </div>
         </div>
       </div>
@@ -405,53 +535,76 @@
       <p class="module-subtitle">Diseño de interiores · Paleta cromática · Acabados y decoración</p>
       <div class="path-container">
         <svg class="path-svg" viewBox="0 0 780 340" preserveAspectRatio="none">
-          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(155,111,200,0.3)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(155,111,200,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(155,111,200,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(155,111,200,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(155,111,200,0.22)" stroke-width="2.5" stroke-dasharray="6 4"/>
-          <polygon points="219,222 225,234 231,222" fill="rgba(155,111,200,0.3)"/>
-          <polygon points="349,82 355,94 361,82" fill="rgba(155,111,200,0.22)"/>
-          <polygon points="479,222 485,234 491,222" fill="rgba(155,111,200,0.22)"/>
-          <polygon points="609,82 615,94 621,82" fill="rgba(155,111,200,0.22)"/>
-          <polygon points="739,222 745,234 751,222" fill="rgba(155,111,200,0.22)"/>
+          <path d="M 95 90 C 95 170, 225 170, 225 230" stroke="rgba(155,111,200,0.3)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 225 230 C 225 150, 355 150, 355 90" stroke="rgba(155,111,200,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 355 90 C 355 170, 485 170, 485 230" stroke="rgba(155,111,200,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 485 230 C 485 150, 615 150, 615 90" stroke="rgba(155,111,200,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <path d="M 615 90 C 615 170, 745 170, 745 230" stroke="rgba(155,111,200,0.22)" stroke-width="2.5"
+            stroke-dasharray="6 4" />
+          <polygon points="219,222 225,234 231,222" fill="rgba(155,111,200,0.3)" />
+          <polygon points="349,82 355,94 361,82" fill="rgba(155,111,200,0.22)" />
+          <polygon points="479,222 485,234 491,222" fill="rgba(155,111,200,0.22)" />
+          <polygon points="609,82 615,94 621,82" fill="rgba(155,111,200,0.22)" />
+          <polygon points="739,222 745,234 751,222" fill="rgba(155,111,200,0.22)" />
         </svg>
         <div class="lesson-nodes" id="nodes-arts">
           <div class="node-col top">
             <div class="lesson-cube next-up clickable" data-module="arts" data-lesson="1">
               <span class="lesson-num">1</span><span class="lesson-label">Inicio</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 1</div><div class="sub-title">Diseño Cronomático</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 1</div>
+              <div class="sub-title">Diseño Cronomático</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="arts" data-lesson="2">
               <span class="lock-icon">🔒</span><span class="lesson-num">2</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 2</div><div class="sub-title">Psicología y Temperatura del Color</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 2</div>
+              <div class="sub-title">Psicología y Temperatura del Color</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="arts" data-lesson="3">
               <span class="lock-icon">🔒</span><span class="lesson-num">3</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 3</div><div class="sub-title">Recubrimiento de Muros</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 3</div>
+              <div class="sub-title">Recubrimiento de Muros</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="arts" data-lesson="4">
               <span class="lock-icon">🔒</span><span class="lesson-num">4</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 4</div><div class="sub-title">Pisos: Nivelación y Adherencia</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 4</div>
+              <div class="sub-title">Pisos: Nivelación y Adherencia</div>
+            </div>
           </div>
           <div class="node-col top">
             <div class="lesson-cube locked" data-module="arts" data-lesson="5">
               <span class="lock-icon">🔒</span><span class="lesson-num">5</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 5</div><div class="sub-title">Impermeabilización Avanzada</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 5</div>
+              <div class="sub-title">Impermeabilización Avanzada</div>
+            </div>
           </div>
           <div class="node-col bottom">
             <div class="lesson-cube locked" data-module="arts" data-lesson="6">
               <span class="lock-icon">🔒</span><span class="lesson-num">6</span><span class="lesson-label">Final</span>
             </div>
-            <div class="node-subtitle"><div class="sub-line">Lección 6</div><div class="sub-title">Relaciones en el Círculo Cromático</div></div>
+            <div class="node-subtitle">
+              <div class="sub-line">Lección 6</div>
+              <div class="sub-title">Relaciones en el Círculo Cromático</div>
+            </div>
           </div>
         </div>
       </div>
@@ -474,6 +627,48 @@
   </div>
 
   <script>
+    // ---- USER INFO + PERMISOS ---------------------------------------------------------------
+    (function loadUserInfo() {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const payload = JSON.parse(atob(token.split('.')[1]));
+
+        // Topbar chip
+        const rolLabel = payload.rol_nombre
+          ? payload.rol_nombre.charAt(0).toUpperCase() + payload.rol_nombre.slice(1)
+          : 'Usuario';
+        const nameUser = payload.nombre_completo || 'Usuario';
+        const nameSpan = document.querySelector('.user-name');
+        if (nameSpan) nameSpan.textContent = `${nameUser} · ${rolLabel}`;
+
+        // Sidebar info
+        const sidebarUser = document.getElementById('sidebar-user-learn');
+        if (sidebarUser) {
+          sidebarUser.innerHTML = `<strong style="color:var(--text-dark);display:block">${nameUser}</strong>${rolLabel}`;
+        }
+
+        // Mostrar botón admin solo si es admin
+        if (payload.rol_nombre === 'admin') {
+          const btnAdmin = document.getElementById('btn-admin');
+          if (btnAdmin) btnAdmin.style.display = 'flex';
+        }
+
+        // Cerrar sesión
+        const logoutBtn = document.getElementById('btn-logout-learn');
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+          });
+        }
+      } catch (e) {
+        console.warn('No se pudo leer la información del usuario.', e);
+      }
+    })();
+
     // ---- STATE ------------------------------------------------------------------------------------------------------------------------------------
     const completed = { intro: [], math: [], science: [], engineering: [], tech: [], arts: [] };
     let currentModule = null;
@@ -1301,99 +1496,99 @@
         moduleLabel: 'Módulo 06 · Acabados y Decoración',
         accent: '#9b6fc8',
         soft: 'rgba(155,111,200,0.1)',
-        textColor: '#5a2d88', 
+        textColor: '#5a2d88',
         1: {
-        title: 'Diseño Cromático: La Regla 60-30-10',
-        subtitle: 'Matemáticas aplicadas a la armonía visual.',
-        steps: [
-          {
-            num: '01', title: 'Proporción Visual',
-            body: `<p>Para que un espacio se sienta diseñado por un profesional, aplicamos esta fórmula:</p>
+          title: 'Diseño Cromático: La Regla 60-30-10',
+          subtitle: 'Matemáticas aplicadas a la armonía visual.',
+          steps: [
+            {
+              num: '01', title: 'Proporción Visual',
+              body: `<p>Para que un espacio se sienta diseñado por un profesional, aplicamos esta fórmula:</p>
             <ul>
               <li><strong>60% Color Dominante:</strong> Tono neutro para las paredes principales.</li>
               <li><strong>30% Color Secundario:</strong> Aplicado en molduras, una pared de acento o muebles grandes.</li>
               <li><strong>10% Color de Acento:</strong> Un contraste fuerte en puertas, cojines o marcos.</li>
             </ul>
             `
-          }
-        ]
-      },
-      2: {
-        title: 'Psicología y Temperatura del Color',
-        subtitle: 'Cómo los colores afectan la sensación térmica y el ánimo.',
-        steps: [
-          {
-            num: '01', title: 'Cálidos vs Fríos',
-            body: `<div class="key-concept">
+            }
+          ]
+        },
+        2: {
+          title: 'Psicología y Temperatura del Color',
+          subtitle: 'Cómo los colores afectan la sensación térmica y el ánimo.',
+          steps: [
+            {
+              num: '01', title: 'Cálidos vs Fríos',
+              body: `<div class="key-concept">
               <div class="concept-card"><div class="label" style="color:#9b6fc8">Cálidos (Rojos/Amarillos)</div><p>Hacen que los espacios grandes se sientan acogedores. Ideales para climas fríos.</p></div>
               <div class="concept-card"><div class="label" style="color:#9b6fc8">Fríos (Azules/Verdes)</div><p>Aportan serenidad y frescura. Ideales para dormitorios y zonas calurosas.</p></div>
             </div>`
-          },
-          {
-            num: '02', title: 'Reflectancia Térmica',
-            body: `<p><strong>Ciencia de materiales:</strong> Los colores claros reflejan la radiación solar, manteniendo la casa hasta 5°C más fresca que una pintada de colores oscuros, los cuales absorben la energía térmica.</p>`
-          }
-        ]
-      },
+            },
+            {
+              num: '02', title: 'Reflectancia Térmica',
+              body: `<p><strong>Ciencia de materiales:</strong> Los colores claros reflejan la radiación solar, manteniendo la casa hasta 5°C más fresca que una pintada de colores oscuros, los cuales absorben la energía térmica.</p>`
+            }
+          ]
+        },
 
-      3: {
-        title: 'Recubrimiento de Muros',
-        subtitle: 'Protección y estética: Del repellado al afine.',
-        steps: [
-          {
-            num: '01', title: 'Etapas del Aplanado',
-            body: `<p>No se aplica la pintura directo al block. Se requiere un proceso de capas:</p>
+        3: {
+          title: 'Recubrimiento de Muros',
+          subtitle: 'Protección y estética: Del repellado al afine.',
+          steps: [
+            {
+              num: '01', title: 'Etapas del Aplanado',
+              body: `<p>No se aplica la pintura directo al block. Se requiere un proceso de capas:</p>
             <ol>
               <li><strong>Repellado (Zarpeo):</strong> Capa rústica para nivelar el muro.</li>
               <li><strong>Afine:</strong> Mezcla fina que se alisa con esponja para dejar la superficie lista para pintar.</li>
               <li><strong>Yeso:</strong> Para interiores, brinda un acabado blanco y terso de alta calidad.</li>
             </ol>`
-          }
-        ]
-      },
+            }
+          ]
+        },
 
-      4: {
-        title: 'Pisos: Nivelación y Adherencia',
-        subtitle: 'El arte de colocar cerámica y porcelanato.',
-        steps: [
-          {
-            num: '01', title: 'Instalación Técnica',
-            body: `<p>Un piso mal pegado se "suena hueco" o se levanta. El secreto está en el <strong>Doble Rayado</strong>:</p>
+        4: {
+          title: 'Pisos: Nivelación y Adherencia',
+          subtitle: 'El arte de colocar cerámica y porcelanato.',
+          steps: [
+            {
+              num: '01', title: 'Instalación Técnica',
+              body: `<p>Un piso mal pegado se "suena hueco" o se levanta. El secreto está en el <strong>Doble Rayado</strong>:</p>
             <ol>
               <li>Aplicar adhesivo con llana dentada en el firme.</li>
               <li>Hacer un rayado horizontal en una sola dirección.</li>
               <li>Colocar la pieza y golpearla levemente con un mazo de goma para eliminar aire.</li>
             </ol>`
-          }
-        ]
-      },
+            }
+          ]
+        },
 
-      5: {
-        title: 'Impermeabilización Avanzada',
-        subtitle: 'Sistemas químicos para una losa sin goteras.',
-        steps: [
-          {
-            num: '01', title: 'Protección Final',
-            body: `<p>Después de la construcción, la losa necesita una barrera contra la lluvia. Existen opciones líquidas (acrílicas) o mantos prefabricados.</p>
+        5: {
+          title: 'Impermeabilización Avanzada',
+          subtitle: 'Sistemas químicos para una losa sin goteras.',
+          steps: [
+            {
+              num: '01', title: 'Protección Final',
+              body: `<p>Después de la construcción, la losa necesita una barrera contra la lluvia. Existen opciones líquidas (acrílicas) o mantos prefabricados.</p>
             <div class="tip-box" style="background:rgba(155,111,200,0.08);border-left-color:#9b6fc8;">
               <strong>Estrategia Térmica:</strong> Usar ladrillo de barro sobre el impermeabilizante no solo protege la capa química del sol, sino que añade una masa térmica que mantiene la casa fresca en verano.
             </div>`
-          }
-        ]
-      },
+            }
+          ]
+        },
 
-      6: {
-        title: 'Relaciones en el Círculo Cromático',
-        subtitle: 'Combinaciones maestras para interiores.',
-        steps: [
-          {
-            num: '01', title: 'Esquemas de Diseño',
-            body: `<div class="key-concept">
+        6: {
+          title: 'Relaciones en el Círculo Cromático',
+          subtitle: 'Combinaciones maestras para interiores.',
+          steps: [
+            {
+              num: '01', title: 'Esquemas de Diseño',
+              body: `<div class="key-concept">
               <div class="concept-card"><div class="label" style="color:#9b6fc8">Monocromático</div><p>Un solo color en diferentes tonos. Elegante y sencillo.</p></div>
               <div class="concept-card"><div class="label" style="color:#9b6fc8">Análogo</div><p>Colores vecinos (ej. Verde y Azul). Armonía natural.</p></div>
               <div class="concept-card"><div class="label" style="color:#9b6fc8">Complementario</div><p>Opuestos (ej. Naranja y Azul). Impacto moderno y vibrante.</p></div>
             </div>`
-          }
+            }
           ]
         }
       }
@@ -1545,7 +1740,7 @@
     }
 
     // ---- EVENT LISTENERS --------------------------------------------------------------------------------------------------------─
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
       const cube = e.target.closest('[data-module][data-lesson]');
       if (cube) {
         const moduleKey = cube.dataset.module;
@@ -1560,14 +1755,14 @@
     });
 
     document.getElementById('closeModalBtn').addEventListener('click', closeLesson);
-    document.getElementById('lessonModal').addEventListener('click', function(e) {
+    document.getElementById('lessonModal').addEventListener('click', function (e) {
       if (e.target === this) closeLesson();
     });
 
     // ---- SIDEBAR NAV --------------------------------------------------------------------------------------------------------------------
     const moduleKeys = ['intro', 'math', 'science', 'engineering', 'tech', 'arts'];
-    const activeMap = { intro:'active-intro', math:'active-math', science:'active-science', engineering:'active-eng', tech:'active-tech', arts:'active-arts' };
-    const inactiveMap = { intro:'inactive-intro', math:'inactive-math', science:'inactive-science', engineering:'inactive-eng', tech:'inactive-tech', arts:'inactive-arts' };
+    const activeMap = { intro: 'active-intro', math: 'active-math', science: 'active-science', engineering: 'active-eng', tech: 'active-tech', arts: 'active-arts' };
+    const inactiveMap = { intro: 'inactive-intro', math: 'inactive-math', science: 'inactive-science', engineering: 'inactive-eng', tech: 'inactive-tech', arts: 'inactive-arts' };
 
     const navBtns = document.querySelectorAll('.nav-btn:not(#btn-examen)');
     const mainEl = document.getElementById('mainScroll');
@@ -1608,4 +1803,5 @@
 
   </script>
 </body>
+
 </html>

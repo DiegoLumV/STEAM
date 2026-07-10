@@ -1,25 +1,30 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  // Punto de entrada en src/
   root: 'src',
-  // La carpeta de salida al hacer build queda en dist/ (fuera de src)
-  build: {
-    outDir: '../dist',
-    emptyOutDir: true,
-  },
   server: {
     port: 3000,
     open: true,
+    // Proxy de las llamadas /api al backend Express
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
-  // Babylon tiene módulos muy grandes — aumentamos el límite de advertencia
   build: {
     outDir: '../dist',
     emptyOutDir: true,
     chunkSizeWarningLimit: 4000,
     rollupOptions: {
+      input: {
+        main:    'src/index.html',
+        learn:   'src/learn.html',
+        sandbox: 'src/sandbox.html',
+      },
       output: {
-        // Separar babylon en su propio chunk para caché más eficiente
         manualChunks: {
           babylon: ['@babylonjs/core', '@babylonjs/loaders'],
         },
