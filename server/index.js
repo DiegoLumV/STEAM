@@ -8,6 +8,8 @@ dotenv.config();
 import pool from './db.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
+import telemetriaRoutes from './routes/telemetria.js';
+import evaluacionRoutes from './routes/evaluacion.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,6 +24,8 @@ app.use(express.json());
 /* ── Rutas API ── */
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', telemetriaRoutes);
+app.use('/api', evaluacionRoutes);
 
 /* ── Health check ── */
 app.get('/api/health', async (req, res) => {

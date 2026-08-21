@@ -1,4 +1,5 @@
 // importamos todo lo que vamos a usar de Babylon.js v9
+import { iniciarSesion, cerrarSesion, registrar, setCameraRef } from './telemetria.js';
 import {
   Engine,
   Scene,
@@ -457,6 +458,10 @@ function addObj(type) {
   updateObjListUI(); selectObject(root);
   setTip(`<b>${EMOJIS[type]} ${LABELS[type]}</b> añadido · Arrastra las flechas de colores para moverlo · Q/E para rotar`);
   if (COLORABLE_TYPES.includes(type)) openColorPicker(root);
+  try { registrar('objeto_colocado', { 
+    pos_x: root.position.x, pos_y: root.position.y, pos_z: root.position.z,
+    contexto: { tipo: type, id: id }
+  }); } catch(e) {}
 }
 
 // Coloca la lámpara en una esquina exterior del grid (fuera de la zona verde 20x20)
@@ -518,6 +523,10 @@ window.placeLamparaAt = function(x, z) {
   updateObjListUI();
   selectObject(root);
   setTip('🔦 Lámpara colocada en la esquina · Se encenderá según tu programa');
+  try { registrar('objeto_colocado', { 
+    pos_x: root.position.x, pos_y: root.position.y, pos_z: root.position.z,
+    contexto: { tipo: 'lampara', id: id }
+  }); } catch(e) {}
 };
 
 // configura el gizmo de posición y los controles de teclado para cámara y objetos
@@ -624,6 +633,7 @@ function deleteSelected() {
     return;
   }
   const id=selectedMesh.userData?.id;
+  const deletedType = selectedMesh.userData?.type;
   if (highlightLayer) {
     try { selectedMesh.getChildMeshes().forEach(m=>{ try{highlightLayer.removeMesh(m);}catch(e){} }); } catch(e){}
   }
@@ -638,6 +648,7 @@ function deleteSelected() {
   updateObjListUI();
   document.getElementById('btnDel').style.display='none';
   document.getElementById('xinfo').style.display='none';
+  try { registrar('objeto_eliminado', { contexto: { tipo: deletedType, id: id } }); } catch(e) {}
   setTip('Objeto eliminado');
 }
 
@@ -906,6 +917,7 @@ function toggleNight() {
   } else {
     execRulesByTriggerNew('es_dia');
   }
+  try { registrar('cambio_noche', { contexto: { es_noche: isNight } }); } catch(e) {}
 }
 function applyLighting() {
   if(isNight||isStorm){
@@ -925,6 +937,7 @@ function applyLighting() {
 
 // toda la lógica del modal de mezcla de concreto con inputs numéricos
 function openConcretoModal() {
+  try { registrar('modal_abierto', { contexto: { modal: 'concreto' } }); } catch(e) {}
   if (!matematicasValidadas) {
     showLockedMessage('⚠ Debes completar primero el módulo de Matemáticas. Haz clic en 📐 Calcular Área para desbloquear esta función.');
     return;
@@ -955,7 +968,8 @@ function openConcretoModal() {
 }
 
 function closeConcretoModal(e) {
-  if (e && e.target !== document.getElementById('concreto-overlay')) return;
+  if (e && e.target !== e.currentTarget && e.target.tagName !== 'BUTTON') return;
+  try { registrar('modal_cerrado', { contexto: { modal: 'concreto' } }); } catch(e) {}
   document.getElementById('concreto-overlay').classList.remove('open');
 }
 
@@ -1000,12 +1014,24 @@ function concretoMezclar() {
 
   const errEl = document.getElementById('cmat-error');
   if (errores.length > 0) {
+    try { registrar('concreto_intento', {
+      contexto: {
+        cemento: vals.cemento, arena: vals.arena, grava: vals.grava, agua: vals.agua,
+        correcto: false
+      }
+    }); } catch(e) {}
     errEl.style.display = 'block';
     errEl.innerHTML = errores.join('<br>');
     return;
   }
 
   errEl.style.display = 'none';
+  try { registrar('concreto_intento', {
+    contexto: {
+      cemento: vals.cemento, arena: vals.arena, grava: vals.grava, agua: vals.agua,
+      correcto: true
+    }
+  }); } catch(e) {}
   // validación exitosa → crear concreto 20×20 automáticamente
   concretoFinalizar();
 }
@@ -1291,6 +1317,9 @@ function runProgramNew() {
   } else {
     outEl.innerHTML = msgs.join('') + (executed ? '<div class="prog-out-ok" style="margin-top:6px">🎉 ¡Programa ejecutado!</div>' : '');
   }
+  try { registrar('programa_ejecutado', {
+    contexto: { bloques: progSequence, resultado: msgs.length === 0 ? 'invalido' : (executed ? 'ejecutado' : 'no_ejecutado') }
+  }); } catch(e) {}
 }
 
 // Ejecutar acciones del nuevo sistema
@@ -1623,6 +1652,9 @@ function buildFloor() {
     setTip(`🔷 Vitropiso ${w}×${d} colocado · Faltan ${400 - totalCovered} m² por cubrir`);
   }
   closeWallBuilder();
+  try { registrar('piso_construido', {
+    contexto: { ancho: w, profundidad: d, color: hex }
+  }); } catch(e) {}
 }
 
 // abre, cierra y aplica colores a los objetos que lo permiten
@@ -1995,6 +2027,14 @@ function buildWall() {
 
   showSuccessMessage('✅ ¡Pared construida!<br>' + dimMsg);
   setTip(`<b>${emoji} ${label}</b> lista · Q/E rotar · R/F inclinar · Arrastra flechas para mover`);
+  try { registrar('pared_construida', {
+    pos_x: root.position.x, pos_y: root.position.y, pos_z: root.position.z,
+    contexto: {
+      modo: mode,
+      material: type,
+      ancho: w, alto: h
+    }
+  }); } catch(e) {}
 }
 
 // muestra un mensaje de función bloqueada como toast
@@ -2020,15 +2060,18 @@ function showLockedMessage(msg) {
   toast._timer = setTimeout(() => {
     toast.style.opacity = '0';
     setTimeout(() => { toast.style.display = 'none'; }, 300);
+    setTimeout(() => { toast.style.display = 'none'; }, 3500);
   }, 3500);
 }
 
 // modal de matemáticas
 function openMatematicasModal() {
+  try { registrar('modal_abierto', { contexto: { modal: 'matematicas' } }); } catch(e) {}
   document.getElementById('matematicas-overlay').classList.add('open');
 }
 function closeMatematicasModal(e) {
-  if (e && e.target !== document.getElementById('matematicas-overlay')) return;
+  if (e && e.target !== e.currentTarget && e.target.tagName !== 'BUTTON') return;
+  try { registrar('modal_cerrado', { contexto: { modal: 'matematicas' } }); } catch(e) {}
   document.getElementById('matematicas-overlay').classList.remove('open');
 }
 
@@ -2057,12 +2100,26 @@ function validarMatematicas() {
 
   const errEl = document.getElementById('mat-error');
   if (errores.length > 0) {
+    try { registrar('matematicas_intento', {
+      contexto: { 
+        perimetro: perVal, area: areaVal, volumen: volVal,
+        correcto: false,
+        unidad_perimetro: perUnit, unidad_area: areaUnit, unidad_volumen: volUnit
+      }
+    }); } catch(e) {}
     errEl.style.display = 'block';
     errEl.innerHTML = errores.join('<br>');
     return;
   }
 
   errEl.style.display = 'none';
+  try { registrar('matematicas_intento', {
+    contexto: { 
+      perimetro: perVal, area: areaVal, volumen: volVal,
+      correcto: true,
+      unidad_perimetro: perUnit, unidad_area: areaUnit, unidad_volumen: volUnit
+    }
+  }); } catch(e) {}
   matematicasValidadas = true;
   document.getElementById('matematicas-overlay').classList.remove('open');
 
@@ -2169,6 +2226,8 @@ const init = () => {
 
   P(8,'Cámara…');
   camera = new ArcRotateCamera('cam',-Math.PI/2,0.95,30,new Vector3(0,0,0),scene);
+  setCameraRef(camera);
+  iniciarSesion();
   camera.lowerRadiusLimit=5; camera.upperRadiusLimit=60;
   camera.upperBetaLimit=Math.PI/2.05; camera.lowerBetaLimit=0.18;
   camera.wheelDeltaPercentage=0.008;

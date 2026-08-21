@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Constructor de Casa · STEAM</title>
   <link rel="stylesheet" href="./Css/casa.css">
+  <script>
+    if (!localStorage.getItem('token')) {
+      window.location.href = 'index.html';
+    }
+  </script>
 </head>
 
 <body>

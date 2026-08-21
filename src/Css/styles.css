@@ -12,52 +12,53 @@
           CSS VARIABLES – DARK THEME
    ---------------------------------------- */
 :root {
-  --bg:            #0e0f11;
-  --bg-alt:        #13151a;
-  --sidebar-bg:    #111318;
-  --surface:       #1a1c22;
-  --surface-2:     #20232b;
-  --border:        rgba(255,255,255,0.07);
-  --border-mid:    rgba(255,255,255,0.11);
-  --text-dark:     #f0f0f0;
-  --text-muted:    #7a7f8e;
-  --text-light:    #44485a;
+  /* LIGHT THEME GLOBALS */
+  --bg:            #f5f7f9;
+  --bg-alt:        #eef1f5;
+  --sidebar-bg:    #ffffff;
+  --surface:       #ffffff;
+  --surface-2:     #f8f9fc;
+  --border:        rgba(0, 0, 0, 0.08);
+  --border-mid:    rgba(0, 0, 0, 0.15);
+  --text-dark:     #111418;
+  --text-muted:    #5c6270;
+  --text-light:    #8b93a3;
 
   /* Módulo 0 – Introducción (amarillo cálido) */
-  --intro-accent:  #f5c842;
-  --intro-soft:    rgba(245,200,66,0.12);
-  --intro-bg:      rgba(245,200,66,0.04);
-  --intro-glow:    rgba(245,200,66,0.18);
+  --intro-accent:  #e5a900;
+  --intro-soft:    rgba(229,169,0,0.15);
+  --intro-bg:      rgba(229,169,0,0.05);
+  --intro-glow:    rgba(229,169,0,0.25);
 
   /* Módulo 1 – Matemáticas (naranja coral) */
-  --math-accent:   #e07b6a;
-  --math-soft:     rgba(224,123,106,0.12);
-  --math-bg:       rgba(224,123,106,0.04);
-  --math-glow:     rgba(224,123,106,0.18);
+  --math-accent:   #d45945;
+  --math-soft:     rgba(212,89,69,0.15);
+  --math-bg:       rgba(212,89,69,0.05);
+  --math-glow:     rgba(212,89,69,0.25);
 
   /* Módulo 2 – Ciencia (verde esmeralda) */
-  --science-accent:#4caf7d;
-  --science-soft:  rgba(76,175,125,0.12);
-  --science-bg:    rgba(76,175,125,0.04);
-  --science-glow:  rgba(76,175,125,0.18);
+  --science-accent:#2e915f;
+  --science-soft:  rgba(46,145,95,0.15);
+  --science-bg:    rgba(46,145,95,0.05);
+  --science-glow:  rgba(46,145,95,0.25);
 
   /* Módulo 3 – Ingeniería (gris azul) */
-  --eng-accent:    #8a8a9a;
-  --eng-soft:      rgba(138,138,154,0.12);
-  --eng-bg:        rgba(138,138,154,0.04);
-  --eng-glow:      rgba(138,138,154,0.18);
+  --eng-accent:    #63637a;
+  --eng-soft:      rgba(99,99,122,0.15);
+  --eng-bg:        rgba(99,99,122,0.05);
+  --eng-glow:      rgba(99,99,122,0.25);
 
   /* Módulo 4 – Tecnología (azul eléctrico) */
-  --tech-accent:   #5b8dee;
-  --tech-soft:     rgba(91,141,238,0.12);
-  --tech-bg:       rgba(91,141,238,0.04);
-  --tech-glow:     rgba(91,141,238,0.18);
+  --tech-accent:   #3a70db;
+  --tech-soft:     rgba(58,112,219,0.15);
+  --tech-bg:       rgba(58,112,219,0.05);
+  --tech-glow:     rgba(58,112,219,0.25);
 
   /* Módulo 5 – Arte (violeta) */
-  --arts-accent:   #9b6fc8;
-  --arts-soft:     rgba(155,111,200,0.12);
-  --arts-bg:       rgba(155,111,200,0.04);
-  --arts-glow:     rgba(155,111,200,0.18);
+  --arts-accent:   #814eb8;
+  --arts-soft:     rgba(129,78,184,0.15);
+  --arts-bg:       rgba(129,78,184,0.05);
+  --arts-glow:     rgba(129,78,184,0.25);
 }
 
 html { scroll-behavior: smooth; }
@@ -87,7 +88,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(14,15,17,0.85);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
   padding: 0 32px;
@@ -621,229 +622,334 @@ body {
 .path-container {
   position: relative;
   width: 100%;
-}
-
-.path-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .lesson-nodes {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 20px 0 20px;
-  min-height: 340px;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 0;
+  gap: 30px;
   position: relative;
   z-index: 1;
+  width: 100%;
 }
 
 .node-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  flex: 1;
+  position: relative;
+  z-index: 2;
+  width: 140px;
 }
 
-.node-col.top    { padding-top: 20px; }
-.node-col.bottom { padding-top: 150px; }
+/* Offset positioning for serpentine */
+.node-col.center { transform: translateX(0); }
+.node-col.left { transform: translateX(-50px); }
+.node-col.right { transform: translateX(50px); }
+
+/* Vertical connecting line */
+.node-col::before {
+  content: "";
+  position: absolute;
+  top: 35px;
+  left: 50%;
+  width: 14px;
+  margin-left: -7px;
+  background-color: var(--border-mid);
+  z-index: -1;
+  border-radius: 7px;
+}
+
+.node-col:last-child::before {
+  display: none;
+}
+
+/* 1(center) to 2(left) */
+.node-col:nth-child(1)::before { height: 115px; transform: rotate(-25deg); transform-origin: top center; }
+/* 2(left) to 3(center) */
+.node-col:nth-child(2)::before { height: 115px; transform: rotate(25deg); transform-origin: top center; }
+/* 3(center) to 4(right) */
+.node-col:nth-child(3)::before { height: 115px; transform: rotate(25deg); transform-origin: top center; }
+/* 4(right) to 5(center) */
+.node-col:nth-child(4)::before { height: 115px; transform: rotate(-25deg); transform-origin: top center; }
+/* 5(center) to 6(left) */
+.node-col:nth-child(5)::before { height: 115px; transform: rotate(-25deg); transform-origin: top center; }
 
 .lesson-cube {
-  width: 74px;
-  height: 74px;
-  border-radius: 18px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
-  border: 2px solid;
-  transition: all 0.25s ease;
+  border: 4px solid;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   cursor: default;
+  background: #ffffff;
+  box-shadow: 0 5px 0px rgba(0,0,0,0.15);
+}
+
+.lesson-cube:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0px rgba(0,0,0,0.15);
 }
 
 .lesson-num {
   font-family: 'Syne', sans-serif;
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 800;
   line-height: 1;
 }
 
 .lesson-label {
   font-size: 8px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .lock-icon {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 13px;
+  top: -5px;
+  right: -5px;
+  font-size: 18px;
+  background: var(--surface);
+  border-radius: 50%;
+  padding: 2px;
 }
 
 .check-icon {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 13px;
+  top: -5px;
+  right: -5px;
+  font-size: 16px;
   font-weight: 700;
+  background: #fff;
+  border-radius: 50%;
+  padding: 2px;
 }
 
 .node-subtitle {
   text-align: center;
-  max-width: 110px;
+  max-width: 140px;
+  margin-top: 12px;
 }
 
 .sub-line {
   font-family: 'DM Mono', monospace;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--text-light);
   letter-spacing: 0.08em;
   margin-bottom: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .sub-title {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-muted);
   line-height: 1.4;
 }
 
 /* -- ESTADO BLOQUEADO -- */
 .lesson-cube.locked {
-  background: var(--surface);
-  border-color: var(--border-mid);
-  opacity: 0.5;
+  background: #e5e5e5;
+  border-color: #d4d4d4;
+  box-shadow: 0 4px 0px #c4c4c4;
 }
-.lesson-cube.locked .lesson-num { color: var(--text-light); }
+.lesson-cube.locked .lesson-num { color: #a3a3a3; }
 
 /* -- MODULOS -- */
 
 /* INTRODUCCION */
+.intro .node-col::before { background-color: var(--intro-accent); opacity: 0.3; }
+.intro .node-col:has(.completed)::before, .intro .node-col:has(.next-up)::before { opacity: 1; }
 
 .intro .lesson-cube.next-up {
-  background: var(--intro-soft);
+  width: 84px;
+  height: 84px;
+  border-width: 5px;
+  background: #ffffff;
   border-color: var(--intro-accent);
-  box-shadow: 0 0 20px var(--intro-glow);
+  box-shadow: 0 6px 0px var(--intro-accent), 0 0 25px var(--intro-glow);
   cursor: pointer;
 }
 .intro .lesson-cube.next-up .lesson-num,
 .intro .lesson-cube.next-up .lesson-label { color: var(--intro-accent); }
+
 .intro .lesson-cube.completed {
-  background: var(--intro-soft);
+  background: var(--intro-accent);
   border-color: var(--intro-accent);
+  box-shadow: 0 5px 0px rgba(0,0,0,0.15);
   cursor: pointer;
 }
-.intro .lesson-cube.completed .lesson-num { color: var(--intro-accent); }
+.intro .lesson-cube.completed .lesson-num,
+.intro .lesson-cube.completed .lesson-label { color: #ffffff; }
 .intro .lesson-cube.completed .check-icon { color: var(--intro-accent); }
 
 /* MATEMATICAS */
+.math .node-col::before { background-color: var(--math-accent); opacity: 0.3; }
+.math .node-col:has(.completed)::before, .math .node-col:has(.next-up)::before { opacity: 1; }
+
 .math .lesson-cube.next-up {
-  background: var(--math-soft);
+  width: 84px;
+  height: 84px;
+  border-width: 5px;
+  background: #ffffff;
   border-color: var(--math-accent);
-  box-shadow: 0 0 20px var(--math-glow);
+  box-shadow: 0 6px 0px var(--math-accent), 0 0 25px var(--math-glow);
   cursor: pointer;
 }
 .math .lesson-cube.next-up .lesson-num,
 .math .lesson-cube.next-up .lesson-label { color: var(--math-accent); }
+
 .math .lesson-cube.completed {
-  background: var(--math-soft); border-color: var(--math-accent); cursor: pointer;
+  background: var(--math-accent);
+  border-color: var(--math-accent);
+  box-shadow: 0 5px 0px rgba(0,0,0,0.15);
+  cursor: pointer;
 }
-.math .lesson-cube.completed .lesson-num  { color: var(--math-accent); }
-.math .lesson-cube.completed .check-icon  { color: var(--math-accent); }
+.math .lesson-cube.completed .lesson-num,
+.math .lesson-cube.completed .lesson-label { color: #ffffff; }
+.math .lesson-cube.completed .check-icon { color: var(--math-accent); }
 
 /* CIENCIA */
+.science .node-col::before { background-color: var(--science-accent); opacity: 0.3; }
+.science .node-col:has(.completed)::before, .science .node-col:has(.next-up)::before { opacity: 1; }
+
 .science .lesson-cube.next-up {
-  background: var(--science-soft);
+  width: 84px;
+  height: 84px;
+  border-width: 5px;
+  background: #ffffff;
   border-color: var(--science-accent);
-  box-shadow: 0 0 20px var(--science-glow);
+  box-shadow: 0 6px 0px var(--science-accent), 0 0 25px var(--science-glow);
   cursor: pointer;
 }
 .science .lesson-cube.next-up .lesson-num,
 .science .lesson-cube.next-up .lesson-label { color: var(--science-accent); }
+
 .science .lesson-cube.completed {
-  background: var(--science-soft); border-color: var(--science-accent); cursor: pointer;
+  background: var(--science-accent);
+  border-color: var(--science-accent);
+  box-shadow: 0 5px 0px rgba(0,0,0,0.15);
+  cursor: pointer;
 }
-.science .lesson-cube.completed .lesson-num { color: var(--science-accent); }
+.science .lesson-cube.completed .lesson-num,
+.science .lesson-cube.completed .lesson-label { color: #ffffff; }
 .science .lesson-cube.completed .check-icon { color: var(--science-accent); }
 
 /* INGENIERIA */
+.engineering .node-col::before { background-color: var(--eng-accent); opacity: 0.3; }
+.engineering .node-col:has(.completed)::before, .engineering .node-col:has(.next-up)::before { opacity: 1; }
+
 .engineering .lesson-cube.next-up {
-  background: var(--eng-soft);
+  width: 84px;
+  height: 84px;
+  border-width: 5px;
+  background: #ffffff;
   border-color: var(--eng-accent);
-  box-shadow: 0 0 20px var(--eng-glow);
+  box-shadow: 0 6px 0px var(--eng-accent), 0 0 25px var(--eng-glow);
   cursor: pointer;
 }
 .engineering .lesson-cube.next-up .lesson-num,
 .engineering .lesson-cube.next-up .lesson-label { color: var(--eng-accent); }
+
 .engineering .lesson-cube.completed {
-  background: var(--eng-soft); border-color: var(--eng-accent); cursor: pointer;
+  background: var(--eng-accent);
+  border-color: var(--eng-accent);
+  box-shadow: 0 5px 0px rgba(0,0,0,0.15);
+  cursor: pointer;
 }
-.engineering .lesson-cube.completed .lesson-num { color: var(--eng-accent); }
+.engineering .lesson-cube.completed .lesson-num,
+.engineering .lesson-cube.completed .lesson-label { color: #ffffff; }
 .engineering .lesson-cube.completed .check-icon { color: var(--eng-accent); }
 
 /* TECNOLOGIA */
+.tech .node-col::before { background-color: var(--tech-accent); opacity: 0.3; }
+.tech .node-col:has(.completed)::before, .tech .node-col:has(.next-up)::before { opacity: 1; }
+
 .tech .lesson-cube.next-up {
-  background: var(--tech-soft);
+  width: 84px;
+  height: 84px;
+  border-width: 5px;
+  background: #ffffff;
   border-color: var(--tech-accent);
-  box-shadow: 0 0 20px var(--tech-glow);
+  box-shadow: 0 6px 0px var(--tech-accent), 0 0 25px var(--tech-glow);
   cursor: pointer;
 }
 .tech .lesson-cube.next-up .lesson-num,
 .tech .lesson-cube.next-up .lesson-label { color: var(--tech-accent); }
+
 .tech .lesson-cube.completed {
-  background: var(--tech-soft); border-color: var(--tech-accent); cursor: pointer;
+  background: var(--tech-accent);
+  border-color: var(--tech-accent);
+  box-shadow: 0 5px 0px rgba(0,0,0,0.15);
+  cursor: pointer;
 }
-.tech .lesson-cube.completed .lesson-num { color: var(--tech-accent); }
+.tech .lesson-cube.completed .lesson-num,
+.tech .lesson-cube.completed .lesson-label { color: #ffffff; }
 .tech .lesson-cube.completed .check-icon { color: var(--tech-accent); }
 
 /* ARTES */
+.arts .node-col::before { background-color: var(--arts-accent); opacity: 0.3; }
+.arts .node-col:has(.completed)::before, .arts .node-col:has(.next-up)::before { opacity: 1; }
+
 .arts .lesson-cube.next-up {
-  background: var(--arts-soft);
+  width: 84px;
+  height: 84px;
+  border-width: 5px;
+  background: #ffffff;
   border-color: var(--arts-accent);
-  box-shadow: 0 0 20px var(--arts-glow);
+  box-shadow: 0 6px 0px var(--arts-accent), 0 0 25px var(--arts-glow);
   cursor: pointer;
 }
 .arts .lesson-cube.next-up .lesson-num,
 .arts .lesson-cube.next-up .lesson-label { color: var(--arts-accent); }
+
 .arts .lesson-cube.completed {
-  background: var(--arts-soft); border-color: var(--arts-accent); cursor: pointer;
+  background: var(--arts-accent);
+  border-color: var(--arts-accent);
+  box-shadow: 0 5px 0px rgba(0,0,0,0.15);
+  cursor: pointer;
 }
-.arts .lesson-cube.completed .lesson-num { color: var(--arts-accent); }
+.arts .lesson-cube.completed .lesson-num,
+.arts .lesson-cube.completed .lesson-label { color: #ffffff; }
 .arts .lesson-cube.completed .check-icon { color: var(--arts-accent); }
 
 /* -- ANIMACIONES -- */
 @keyframes pulse-intro {
-  0%,100% { box-shadow: 0 0 12px var(--intro-glow); }
-  50%      { box-shadow: 0 0 28px var(--intro-glow), 0 0 6px var(--intro-accent); }
+  0%,100% { box-shadow: 0 6px 0px var(--intro-accent), 0 0 12px var(--intro-glow); transform: scale(1); }
+  50%      { box-shadow: 0 6px 0px var(--intro-accent), 0 0 28px var(--intro-glow), 0 0 6px var(--intro-accent); transform: scale(1.05); }
 }
 @keyframes pulse-math {
-  0%,100% { box-shadow: 0 0 12px var(--math-glow); }
-  50%      { box-shadow: 0 0 28px var(--math-glow), 0 0 6px var(--math-accent); }
+  0%,100% { box-shadow: 0 6px 0px var(--math-accent), 0 0 12px var(--math-glow); transform: scale(1); }
+  50%      { box-shadow: 0 6px 0px var(--math-accent), 0 0 28px var(--math-glow), 0 0 6px var(--math-accent); transform: scale(1.05); }
 }
 @keyframes pulse-science {
-  0%,100% { box-shadow: 0 0 12px var(--science-glow); }
-  50%      { box-shadow: 0 0 28px var(--science-glow), 0 0 6px var(--science-accent); }
+  0%,100% { box-shadow: 0 6px 0px var(--science-accent), 0 0 12px var(--science-glow); transform: scale(1); }
+  50%      { box-shadow: 0 6px 0px var(--science-accent), 0 0 28px var(--science-glow), 0 0 6px var(--science-accent); transform: scale(1.05); }
 }
 @keyframes pulse-eng {
-  0%,100% { box-shadow: 0 0 12px var(--eng-glow); }
-  50%      { box-shadow: 0 0 28px var(--eng-glow), 0 0 6px var(--eng-accent); }
+  0%,100% { box-shadow: 0 6px 0px var(--eng-accent), 0 0 12px var(--eng-glow); transform: scale(1); }
+  50%      { box-shadow: 0 6px 0px var(--eng-accent), 0 0 28px var(--eng-glow), 0 0 6px var(--eng-accent); transform: scale(1.05); }
 }
 @keyframes pulse-tech {
-  0%,100% { box-shadow: 0 0 12px var(--tech-glow); }
-  50%      { box-shadow: 0 0 28px var(--tech-glow), 0 0 6px var(--tech-accent); }
+  0%,100% { box-shadow: 0 6px 0px var(--tech-accent), 0 0 12px var(--tech-glow); transform: scale(1); }
+  50%      { box-shadow: 0 6px 0px var(--tech-accent), 0 0 28px var(--tech-glow), 0 0 6px var(--tech-accent); transform: scale(1.05); }
 }
 @keyframes pulse-arts {
-  0%,100% { box-shadow: 0 0 12px var(--arts-glow); }
-  50%      { box-shadow: 0 0 28px var(--arts-glow), 0 0 6px var(--arts-accent); }
+  0%,100% { box-shadow: 0 6px 0px var(--arts-accent), 0 0 12px var(--arts-glow); transform: scale(1); }
+  50%      { box-shadow: 0 6px 0px var(--arts-accent), 0 0 28px var(--arts-glow), 0 0 6px var(--arts-accent); transform: scale(1.05); }
 }
 
 .intro.lesson-cube.next-up, .intro .lesson-cube.next-up { animation: pulse-intro 2.2s ease-in-out infinite; }
@@ -1153,13 +1259,13 @@ body {
   max-width: 420px;
   margin: 16px;
   padding: 40px 36px 32px;
-  background: rgba(22, 24, 30, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 24px;
   box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 24px 80px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(76, 175, 125, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
   transform: translateY(20px) scale(0.97);
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -1183,7 +1289,7 @@ body {
 }
 .auth-close:hover {
   color: var(--text-dark);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .auth-header {
@@ -1234,8 +1340,8 @@ body {
 .auth-field input {
   width: 100%;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
   border-radius: 12px;
   color: var(--text-dark);
   font-size: 0.95rem;
@@ -1249,7 +1355,7 @@ body {
 .auth-field input:focus {
   border-color: var(--science-accent);
   box-shadow: 0 0 0 3px rgba(76, 175, 125, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface);
 }
 
 .auth-error {
