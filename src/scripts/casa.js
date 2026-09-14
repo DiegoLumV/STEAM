@@ -147,7 +147,7 @@ function sph(name, r, px, py, pz, mat) {
 
 // construye el suelo, la cuadrícula y los bordes de la zona de construcción
 function buildGround() {
-  const HALF = 13, ZONE = 10, Y = 0.002;
+  const HALF = GROUND_HALF_SIZE, ZONE = BUILD_ZONE, Y = 0.002;
 
   const ground = MeshBuilder.CreateGround(
     'ground', { width: HALF * 2, height: HALF * 2, subdivisions: 1 }, scene);
@@ -346,7 +346,7 @@ const BUILDERS = {
     // Luz puntual
     const lpt=new PointLight('lamparaL'+objIdCounter,new Vector3(0,2.0,0),scene);
     lpt.intensity=0; lpt.range=14; lpt.diffuse=new Color3(1,0.92,0.65); lpt.parent=root;
-    // Marcar como lampara para restriccion de esquina
+    // Identificar la lámpara
     root.userData = root.userData || {};
     root.userData.isLampara = true;
   },
@@ -358,18 +358,17 @@ const RESISTANCE = {block:0.9,concreto:0.95,barillas:0.85,vitropiso:0.7,madera:0
 
 // límites de la zona de construcción y mínimo en Y
 const BUILD_ZONE = 10;
+const GROUND_HALF_SIZE = 13;
 const MIN_Y = 0;
 
 function clampToZone(root) {
-  // La lampara queda fija en su esquina exterior, nunca entra a la zona verde
-  if (root.userData && root.userData.isLampara) {
-    if (root.position.y < MIN_Y) root.position.y = MIN_Y;
-    return;
-  }
+  // La lámpara puede recorrer todo el terreno, incluida la zona azul exterior.
+  const zone = root.userData?.type === 'lampara' || root.userData?.isLampara
+    ? GROUND_HALF_SIZE : BUILD_ZONE;
   const children = root.getChildMeshes();
   if (children.length === 0) {
-    root.position.x = Math.max(-BUILD_ZONE + 0.5, Math.min(BUILD_ZONE - 0.5, root.position.x));
-    root.position.z = Math.max(-BUILD_ZONE + 0.5, Math.min(BUILD_ZONE - 0.5, root.position.z));
+    root.position.x = Math.max(-zone + 0.5, Math.min(zone - 0.5, root.position.x));
+    root.position.z = Math.max(-zone + 0.5, Math.min(zone - 0.5, root.position.z));
     if (root.position.y < MIN_Y) root.position.y = MIN_Y;
     return;
   }
@@ -387,8 +386,8 @@ function clampToZone(root) {
   });
   const halfW = (maxX - minX) / 2;
   const halfD = (maxZ - minZ) / 2;
-  const limitX = BUILD_ZONE - halfW;
-  const limitZ = BUILD_ZONE - halfD;
+  const limitX = zone - halfW;
+  const limitZ = zone - halfD;
   root.position.x = Math.max(-limitX, Math.min(limitX, root.position.x));
   root.position.z = Math.max(-limitZ, Math.min(limitZ, root.position.z));
   if (root.position.y < MIN_Y) root.position.y = MIN_Y;
@@ -429,15 +428,14 @@ function countWalls() {
 }
 
 function addObjIfAllowed(type) {
-  // Restricción de lámpara: solo una, solo en esquina exterior
+  // Solo una lámpara; la existente se puede seleccionar y mover.
   if (type === 'lampara') {
     const existing = objList.find(o => o.type === 'lampara');
     if (existing) {
-      showLockedMessage('🔦 Solo puedes colocar UNA lámpara. Elimina la actual si quieres moverla a otra esquina.');
+      selectObject(existing.node);
+      setTip('🔦 Ya tienes una lámpara · Arrastra las flechas de colores para moverla');
       return;
     }
-    addLamparaToCorner();
-    return;
   }
   addObj(type);
 }
@@ -464,71 +462,6 @@ function addObj(type) {
   }); } catch(e) {}
 }
 
-// Coloca la lámpara en una esquina exterior del grid (fuera de la zona verde 20x20)
-function addLamparaToCorner() {
-  // Las 4 esquinas exteriores (fuera de la zona verde de ±10)
-  const CORNERS = [
-    { label: 'Esquina NO (↖)', x: -12, z: -12 },
-    { label: 'Esquina NE (↗)', x:  12, z: -12 },
-    { label: 'Esquina SO (↙)', x: -12, z:  12 },
-    { label: 'Esquina SE (↘)', x:  12, z:  12 },
-  ];
-
-  // Crear overlay de selección de esquina
-  const overlay = document.createElement('div');
-  overlay.id = 'corner-select-overlay';
-  overlay.style.cssText = `
-    position:fixed;inset:0;background:rgba(0,5,20,.82);backdrop-filter:blur(8px);
-    z-index:200;display:flex;align-items:center;justify-content:center;
-  `;
-  overlay.innerHTML = `
-    <div style="background:rgba(4,10,32,.97);border:1px solid rgba(80,140,255,.35);border-radius:18px;
-      padding:28px 32px;text-align:center;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.7);">
-      <div style="font-size:28px;margin-bottom:8px">🔦</div>
-      <div style="color:rgba(200,225,255,.95);font-size:14px;font-weight:700;margin-bottom:6px">Colocar Lámpara</div>
-      <div style="color:rgba(130,175,255,.7);font-size:11px;margin-bottom:20px;line-height:1.6">
-        Elige en qué esquina exterior del plano colocarás la lámpara.<br>
-        <b style="color:rgba(255,210,80,.9)">No puede colocarse dentro de la zona verde.</b>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        ${CORNERS.map((c,i)=>`
-          <button onclick="placeLamparaAt(${c.x},${c.z})"
-            style="background:rgba(12,28,80,.8);border:1.5px solid rgba(60,120,255,.3);
-            color:rgba(170,210,255,.9);border-radius:12px;padding:14px 10px;cursor:pointer;
-            font-size:12px;font-family:inherit;transition:all .16s;"
-            onmouseover="this.style.background='rgba(30,75,200,.7)';this.style.borderColor='rgba(100,170,255,.7)'"
-            onmouseout="this.style.background='rgba(12,28,80,.8)';this.style.borderColor='rgba(60,120,255,.3)'">
-            ${c.label}
-          </button>`).join('')}
-      </div>
-      <button onclick="document.getElementById('corner-select-overlay').remove()"
-        style="margin-top:14px;background:transparent;border:1px solid rgba(80,120,255,.2);
-        color:rgba(130,175,255,.7);border-radius:10px;padding:8px 18px;cursor:pointer;
-        font-size:11px;font-family:inherit;">Cancelar</button>
-    </div>`;
-  document.body.appendChild(overlay);
-}
-
-window.placeLamparaAt = function(x, z) {
-  document.getElementById('corner-select-overlay')?.remove();
-  const id = objIdCounter++;
-  const root = new TransformNode('obj_'+id+'_lampara', scene);
-  root.position.set(x, 0, z);
-  BUILDERS['lampara'](root);
-  root.getChildMeshes().forEach(m => {
-    if (shadowGen) shadowGen.addShadowCaster(m, false);
-  });
-  root.userData = {id, type:'lampara', label:'Lámpara', emoji:'🔦', isLampara:true};
-  objList.push({id, type:'lampara', label:'Lámpara', emoji:'🔦', node:root});
-  updateObjListUI();
-  selectObject(root);
-  setTip('🔦 Lámpara colocada en la esquina · Se encenderá según tu programa');
-  try { registrar('objeto_colocado', { 
-    pos_x: root.position.x, pos_y: root.position.y, pos_z: root.position.z,
-    contexto: { tipo: 'lampara', id: id }
-  }); } catch(e) {}
-};
-
 // configura el gizmo de posición y los controles de teclado para cámara y objetos
 function setupGizmos() {
   gizmoMgr = new GizmoManager(scene);
@@ -541,18 +474,49 @@ function setupGizmos() {
     if (selectedMesh) clampToZone(selectedMesh);
   });
 
-  const CAM_STEP = Math.PI / 6;
+  const CAM_SPEED = Math.PI / 3; // Radianes por segundo, independiente de los FPS.
   const BETA_MIN = 0.20;
   const BETA_MAX = Math.PI / 2.05;
+  const cameraKeys = new Set();
+  const arrowKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
+  let cameraFast = false;
+  const isEditing = target => target?.isContentEditable ||
+    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName);
+  const resetCameraKeys = () => { cameraKeys.clear(); cameraFast = false; };
+
+  scene.registerBeforeRender(() => {
+    if (isEditing(document.activeElement)) { resetCameraKeys(); return; }
+    const step = CAM_SPEED * (cameraFast ? 2.5 : 1) * Math.min(engine.getDeltaTime() / 1000, 0.05);
+    camera.alpha += (Number(cameraKeys.has('ArrowRight')) - Number(cameraKeys.has('ArrowLeft'))) * step;
+    const vertical = Number(cameraKeys.has('ArrowDown')) - Number(cameraKeys.has('ArrowUp'));
+    if (vertical) camera.beta = Math.max(BETA_MIN, Math.min(BETA_MAX, camera.beta + vertical * step));
+  });
+  window.addEventListener('keyup', e => {
+    cameraKeys.delete(e.code);
+    cameraFast = e.shiftKey;
+  });
+  window.addEventListener('blur', resetCameraKeys);
+  document.addEventListener('visibilitychange', resetCameraKeys);
+  document.addEventListener('focusin', e => { if (isEditing(e.target)) resetCameraKeys(); });
 
   window.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (isEditing(e.target)) return;
+    cameraFast = e.shiftKey;
+    if (e.ctrlKey || e.metaKey || e.altKey) { resetCameraKeys(); return; }
+    if (arrowKeys.has(e.code)) {
+      cameraKeys.add(e.code);
+      e.preventDefault();
+      return;
+    }
     let handled = false;
     switch (e.code) {
-      case 'ArrowLeft':  camera.alpha -= CAM_STEP; handled = true; break;
-      case 'ArrowRight': camera.alpha += CAM_STEP; handled = true; break;
-      case 'ArrowUp':    camera.beta = Math.max(BETA_MIN, camera.beta - CAM_STEP); handled = true; break;
-      case 'ArrowDown':  camera.beta = Math.min(BETA_MAX, camera.beta + CAM_STEP); handled = true; break;
+      case 'KeyC':
+        if (selectedMesh && !e.repeat) {
+          const bounds = selectedMesh.getHierarchyBoundingVectors(true);
+          camera.setTarget(bounds.min.add(bounds.max).scale(0.5));
+          handled = true;
+        }
+        break;
       case 'KeyQ': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.y -= Math.PI/12; handled=true; } break;
       case 'KeyE': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.y += Math.PI/12; handled=true; } break;
       case 'KeyR': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x -= Math.PI/12; handled=true; } break;
@@ -589,11 +553,8 @@ function selectObject(node) {
       try { highlightLayer.addMesh(c, new Color3(0.3, 0.6, 1.0)); } catch(e) {}
     });
   }
-  // Lampara fija: sin gizmo, sin mover. Concreto slab: sin rotar.
-  if (node.userData?.isLampara) {
-    gizmoMgr.attachToMesh(null);
-    setTip('🔦 Lámpara fija en esquina exterior · No se puede mover');
-  } else if (node.userData?.type === 'concreto_slab_20') {
+  // La losa de concreto permanece estática; los demás objetos se pueden mover.
+  if (node.userData?.type === 'concreto_slab_20') {
     gizmoMgr.attachToMesh(null);
     setTip('🪨 Concreto 20×20 · Estático — solo se puede eliminar desde la lista de objetos');
   } else {
@@ -2213,7 +2174,7 @@ Object.assign(window, {
   dropBlock, dropBlockNew, runProgram, runProgramNew, clearProgram, removeProgBlock, deleteRule,
   openColorPicker, closeColorPicker, setSwatchColor, applyColorPicker, confirmColorPicker,
   wbSelectMode, wbSetVentCount, renderWallPreview, updateModeCardStates,
-  updateOpeningCounters, placeLamparaAt,
+  updateOpeningCounters,
 });
 
 // función principal que arranca la escena, cámara, luces y todo lo demás
