@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="./Css/styles.css">
+  <link rel="stylesheet" href="./Css/PanelAdministrativo.css">
+  <link rel="icon" href="img/icon.png">
+  <title>Panel del Maestro · CasaSTEAM</title>
+  <style>
+    .estado-pill { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+    .estado-entregado  { background: rgba(34,197,94,.12); color: #16a34a; }
+    .estado-pendiente  { background: rgba(148,163,184,.15); color: #64748b; }
+    .calif-input { width: 64px; border: 1px solid var(--border-mid); border-radius: 6px; padding: 4px 6px; font-size: 12.5px; }
+    .btn-mini { border: none; background: #2563eb; color: #fff; border-radius: 6px; padding: 5px 10px; font-size: 11.5px; cursor: pointer; }
+    .btn-mini:hover { background: #1d4ed8; }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="logo-block">
+      <div class="logo-icon"><a href="index.html"><img src="img/icon.png" alt="CasaSTEAM"></a></div>
+      <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
+    </div>
+    <div class="nav-label">Navegación</div>
+    <button class="nav-btn active-intro"
+      style="background:var(--intro-soft);color:var(--intro-accent);border-color:var(--intro-accent);">
+      <span class="dot" style="background:var(--intro-accent);"></span>Panel del Maestro
+    </button>
+    <div style="flex:1;"></div>
+    <div class="nav-label">Sesión</div>
+    <div class="sidebar-user-info" id="sidebar-user"></div>
+    <button id="btn-logout" class="nav-btn" style="color:var(--math-accent);margin-top:4px;">
+      <span class="dot" style="background:var(--math-accent);"></span>Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <div class="admin-topbar-left">
+        <h1>Panel del Maestro</h1>
+        <p>Progreso y calificaciones de tus alumnos</p>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <h2>Alumnos</h2>
+        <input class="table-search" type="text" id="searchInput" placeholder="Buscar por nombre o correo…">
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Entrega (casa)</th>
+            <th>Calificación</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="alumnosTableBody">
+          <tr>
+            <td colspan="5" class="table-empty">Cargando alumnos…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <div class="toast" id="toast">
+    <span class="toast-dot green" id="toastDot"></span>
+    <span id="toastMsg">Acción completada</span>
+  </div>
+
+  <script>
+    const API = '/api';
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+
+    let me = null;
+    try {
+      me = JSON.parse(atob(token.split('.')[1]));
+      if (!['maestro', 'admin'].includes(me.rol_nombre)) window.location.href = 'learn.html';
+    } catch (e) { window.location.href = 'index.html'; }
+
+    document.getElementById('sidebar-user').innerHTML = `<strong>${me.nombre_completo}</strong>Maestro`;
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      localStorage.removeItem('token'); localStorage.removeItem('user');
+      window.location.href = 'index.html';
+    });
+
+    const hdrs = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` });
+    let alumnos = [];
+
+    function toast(msg, ok = true) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastDot').className = 'toast-dot ' + (ok ? 'green' : 'red');
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function fmt(fecha) {
+      return fecha ? new Date(fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    }
+
+    function render(lista) {
+      const tbody = document.getElementById('alumnosTableBody');
+      if (!lista.length) { tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Sin alumnos todavía.</td></tr>'; return; }
+      tbody.innerHTML = lista.map(a => `
+        <tr>
+          <td>${a.nombre_completo}</td>
+          <td>${a.email}</td>
+          <td>${a.entregado_en
+            ? `<span class="estado-pill estado-entregado">Entregado · ${fmt(a.entregado_en)}</span>`
+            : `<span class="estado-pill estado-pendiente">Sin entregar</span>`}</td>
+          <td>
+            ${a.entregado_en
+              ? `<input type="number" min="0" max="100" class="calif-input" id="calif-${a.id}" value="${a.calificacion_final ?? ''}" placeholder="—">`
+              : '—'}
+          </td>
+          <td>${a.entregado_en ? `<button class="btn-mini" onclick="guardarCalificacion(${a.id})">Guardar</button>` : ''}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function cargarAlumnos() {
+      const res = await fetch(`${API}/maestro/alumnos`, { headers: hdrs() });
+      const d = await res.json();
+      alumnos = d.alumnos || [];
+      render(alumnos);
+    }
+
+    async function guardarCalificacion(alumnoId) {
+      const input = document.getElementById(`calif-${alumnoId}`);
+      const val = input.value.trim();
+      if (val === '') { toast('Escribe una calificación', false); return; }
+      const res = await fetch(`${API}/maestro/calificaciones/${alumnoId}`, {
+        method: 'PUT', headers: hdrs(), body: JSON.stringify({ calificacion_final: parseFloat(val) })
+      });
+      const d = await res.json();
+      if (!res.ok) { toast(d.error || 'No se pudo guardar', false); return; }
+      toast('Calificación guardada');
+      cargarAlumnos();
+    }
+    window.guardarCalificacion = guardarCalificacion;
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      render(alumnos.filter(a => a.nombre_completo.toLowerCase().includes(q) || a.email.toLowerCase().includes(q)));
+    });
+
+    cargarAlumnos();
+  </script>
+</body>
+
+</html>

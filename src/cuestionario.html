@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="./Css/styles.css">
+  <link rel="icon" href="img/icon.png">
+  <title>Cuestionario del Proyecto · CasaSTEAM</title>
+  <style>
+    .quiz-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 36px 24px 80px;
+    }
+
+    .quiz-header {
+      margin-bottom: 26px;
+    }
+
+    .quiz-header h1 {
+      font-size: 22px;
+      color: var(--text-dark);
+      margin: 0 0 6px;
+    }
+
+    .quiz-header p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .new-q-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 13px;
+      transition: border-color .15s;
+    }
+
+    .new-q-box:hover {
+      border-color: #2563eb;
+    }
+
+    .q-form {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .q-form.open {
+      display: flex;
+    }
+
+    .q-form input,
+    .q-form textarea {
+      width: 100%;
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text-dark);
+      background: var(--surface-2);
+      box-sizing: border-box;
+      resize: vertical;
+    }
+
+    .q-form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .q-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .q-btn.primary {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .q-btn.ghost {
+      background: transparent;
+      color: var(--text-muted);
+    }
+
+    .q-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color .15s, transform .1s;
+    }
+
+    .q-card:hover {
+      border-color: #2563eb;
+    }
+
+    .q-card h3 {
+      margin: 0 0 4px;
+      font-size: 14.5px;
+      color: var(--text-dark);
+    }
+
+    .q-card .meta {
+      font-size: 11.5px;
+      color: var(--text-light);
+    }
+
+    .q-card .body-preview {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .q-empty {
+      text-align: center;
+      color: var(--text-light);
+      font-size: 13px;
+      padding: 40px 0;
+    }
+
+    /* modal detalle */
+    .modal-overlay-q {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 20, 30, .5);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      z-index: 80;
+      padding: 60px 16px;
+    }
+
+    .modal-overlay-q.open {
+      display: flex;
+    }
+
+    .modal-box-q {
+      background: var(--surface);
+      border-radius: 16px;
+      width: min(600px, 100%);
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .25);
+    }
+
+    .modal-box-q .mq-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-box-q .mq-head h2 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      color: var(--text-dark);
+    }
+
+    .modal-box-q .mq-head .meta {
+      font-size: 11.5px;
+      color: var(--text-light);
+    }
+
+    .modal-box-q .mq-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .mq-respuestas {
+      padding: 0 20px 12px;
+      overflow-y: auto;
+    }
+
+    .mq-r-item {
+      padding: 10px 0;
+      border-top: 1px solid var(--border);
+      font-size: 12.5px;
+      color: var(--text-dark);
+    }
+
+    .mq-r-item .meta {
+      font-size: 11px;
+      color: var(--text-light);
+      margin-bottom: 3px;
+    }
+
+    .mq-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+
+    .mq-footer input {
+      flex: 1;
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 12.5px;
+      font-family: inherit;
+    }
+
+    .mq-close {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+  </style>
+</head>
+
+<body>
+
+  <aside class="sidebar">
+    <div class="logo-block">
+      <div class="logo-icon"><a href="index.html"><img src="img/icon.png" alt="CasaSTEAM"></a></div>
+      <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
+    </div>
+    <div class="nav-label">Módulos</div>
+    <a href="learn.html" style="all:unset">
+      <button class="nav-btn">
+        <span class="dot"></span>← Volver a la ruta
+      </button>
+    </a>
+    <button class="nav-btn active-quiz">
+      <span class="dot"></span>💬 Cuestionario del Proyecto
+    </button>
+    <div id="sidebar-user-learn" style="padding:8px 12px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;">
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="quiz-wrap">
+      <div class="quiz-header">
+        <h1>💬 Cuestionario del Proyecto</h1>
+        <p>Publica y responde preguntas sobre las decisiones que tomaste al construir tu casa. Todo el grupo puede
+          participar.</p>
+      </div>
+
+      <div class="new-q-box" id="newQBox" onclick="abrirFormNueva()">
+        <div class="q-form" id="qForm">
+          <input type="text" id="qTitulo" placeholder="Escribe tu pregunta…" maxlength="200">
+          <textarea id="qCuerpo" placeholder="Agrega contexto (opcional)" rows="3"></textarea>
+          <div class="q-form-actions">
+            <button class="q-btn ghost" onclick="cerrarFormNueva(event)">Cancelar</button>
+            <button class="q-btn primary" onclick="publicarPregunta(event)">Publicar</button>
+          </div>
+        </div>
+        <div id="newQPlaceholder">+ Haz una pregunta al grupo…</div>
+      </div>
+
+      <div id="listaPreguntas"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay-q" id="mqOverlay" onclick="cerrarDetalle(event)">
+    <div class="modal-box-q" onclick="event.stopPropagation()">
+      <div class="mq-head">
+        <button class="mq-close" onclick="cerrarDetalle()">✕</button>
+        <h2 id="mqTitulo"></h2>
+        <div class="meta" id="mqMeta"></div>
+      </div>
+      <div class="mq-body" id="mqCuerpo"></div>
+      <div class="mq-respuestas" id="mqRespuestas"></div>
+      <div class="mq-footer">
+        <input type="text" id="mqInput" placeholder="Escribe una respuesta…"
+          onkeydown="if(event.key==='Enter') enviarRespuesta()">
+        <button class="q-btn primary" onclick="enviarRespuesta()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+    const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+    let preguntaActualId = null;
+
+    (function loadUserInfo() {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const rolLabel = payload.rol_nombre ? payload.rol_nombre.charAt(0).toUpperCase() + payload.rol_nombre.slice(1) : 'Usuario';
+        const sidebarUser = document.getElementById('sidebar-user-learn');
+        if (sidebarUser) sidebarUser.innerHTML = `<strong style="color:var(--text-dark);display:block">${payload.nombre_completo || 'Usuario'}</strong>${rolLabel}`;
+      } catch (e) { }
+    })();
+
+    // Defensa extra: si no ha entregado, lo regresamos a la ruta de aprendizaje.
+    fetch('/api/entrega?proyecto_id=1', { headers: authHeaders })
+      .then(r => r.json())
+      .then(d => { if (!d.entregado) window.location.href = 'learn.html'; })
+      .catch(() => { });
+
+    function fmt(fecha) {
+      return new Date(fecha).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function cargarPreguntas() {
+      const res = await fetch('/api/preguntas?proyecto_id=1', { headers: authHeaders });
+      const { preguntas } = await res.json();
+      const cont = document.getElementById('listaPreguntas');
+      if (!preguntas.length) {
+        cont.innerHTML = '<div class="q-empty">Nadie ha publicado preguntas todavía. ¡Sé el primero!</div>';
+        return;
+      }
+      cont.innerHTML = preguntas.map(p => `
+        <div class="q-card" onclick="abrirDetalle(${p.id})">
+          <h3>${escapeHtml(p.titulo)}</h3>
+          <div class="meta">${escapeHtml(p.autor)} · ${fmt(p.creado_en)} · ${p.total_respuestas} respuesta(s)</div>
+          ${p.cuerpo ? `<div class="body-preview">${escapeHtml(p.cuerpo).slice(0, 140)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(s) {
+      return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function abrirFormNueva() {
+      document.getElementById('qForm').classList.add('open');
+      document.getElementById('newQPlaceholder').style.display = 'none';
+    }
+    function cerrarFormNueva(e) {
+      e.stopPropagation();
+      document.getElementById('qForm').classList.remove('open');
+      document.getElementById('newQPlaceholder').style.display = 'block';
+      document.getElementById('qTitulo').value = '';
+      document.getElementById('qCuerpo').value = '';
+    }
+    async function publicarPregunta(e) {
+      e.stopPropagation();
+      const titulo = document.getElementById('qTitulo').value.trim();
+      const cuerpo = document.getElementById('qCuerpo').value.trim();
+      if (!titulo) { alert('Escribe una pregunta antes de publicar.'); return; }
+      const res = await fetch('/api/preguntas', { method: 'POST', headers: authHeaders, body: JSON.stringify({ proyecto_id: 1, titulo, cuerpo }) });
+      if (!res.ok) { alert('No se pudo publicar la pregunta.'); return; }
+      cerrarFormNueva(e);
+      cargarPreguntas();
+    }
+
+    async function abrirDetalle(id) {
+      preguntaActualId = id;
+      const res = await fetch(`/api/preguntas/${id}`, { headers: authHeaders });
+      if (!res.ok) return;
+      const { pregunta, respuestas } = await res.json();
+      document.getElementById('mqTitulo').textContent = pregunta.titulo;
+      document.getElementById('mqMeta').textContent = `${pregunta.autor} · ${fmt(pregunta.creado_en)}`;
+      document.getElementById('mqCuerpo').textContent = pregunta.cuerpo || '';
+      document.getElementById('mqRespuestas').innerHTML = respuestas.length
+        ? respuestas.map(r => `<div class="mq-r-item"><div class="meta">${escapeHtml(r.autor)} · ${fmt(r.creado_en)}</div>${escapeHtml(r.cuerpo)}</div>`).join('')
+        : '<div class="mq-r-item" style="color:var(--text-light)">Sin respuestas todavía.</div>';
+      document.getElementById('mqInput').value = '';
+      document.getElementById('mqOverlay').classList.add('open');
+    }
+    function cerrarDetalle(e) {
+      if (e && e.target !== e.currentTarget) return;
+      document.getElementById('mqOverlay').classList.remove('open');
+      preguntaActualId = null;
+    }
+    async function enviarRespuesta() {
+      const input = document.getElementById('mqInput');
+      const cuerpo = input.value.trim();
+      if (!cuerpo || !preguntaActualId) return;
+      const res = await fetch(`/api/preguntas/${preguntaActualId}/respuestas`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ cuerpo }) });
+      if (!res.ok) { alert('No se pudo enviar la respuesta.'); return; }
+      input.value = '';
+      abrirDetalle(preguntaActualId);
+      cargarPreguntas();
+    }
+
+    cargarPreguntas();
+  </script>
+</body>
+
+</html>

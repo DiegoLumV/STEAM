@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="./Css/styles.css">
+  <link rel="icon" href="img/icon.png">
+  <title>Mis Calificaciones · CasaSTEAM</title>
+  <style>
+    .calif-wrap {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 36px 24px 80px;
+    }
+
+    .calif-wrap h1 {
+      font-size: 22px;
+      color: var(--text-dark);
+      margin: 0 0 20px;
+    }
+
+    .calif-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .calif-card .info h3 {
+      margin: 0 0 3px;
+      font-size: 14px;
+      color: var(--text-dark);
+    }
+
+    .calif-card .info .meta {
+      font-size: 11.5px;
+      color: var(--text-light);
+    }
+
+    .calif-score {
+      font-size: 20px;
+      font-weight: 700;
+      color: #2563eb;
+    }
+
+    .calif-score.pendiente {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .calif-empty {
+      text-align: center;
+      color: var(--text-light);
+      font-size: 13px;
+      padding: 40px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="logo-block">
+      <div class="logo-icon"><a href="index.html"><img src="img/icon.png" alt="CasaSTEAM"></a></div>
+      <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
+    </div>
+    <div class="nav-label">Módulos</div>
+    <a href="learn.html" style="all:unset"><button class="nav-btn"><span class="dot"></span>← Volver a la
+        ruta</button></a>
+    <button class="nav-btn active-quiz"><span class="dot"></span> Mis Calificaciones</button>
+    <div id="sidebar-user-learn" style="padding:8px 12px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;">
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="calif-wrap">
+      <h1> Mis Calificaciones</h1>
+      <div id="listaCalif"></div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      document.getElementById('sidebar-user-learn').innerHTML =
+        `<strong style="color:var(--text-dark);display:block">${payload.nombre_completo}</strong>Alumno`;
+    } catch (e) { }
+
+    function fmt(fecha) {
+      return new Date(fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    fetch('/api/alumno/calificaciones', { headers })
+      .then(r => r.json())
+      .then(d => {
+        const cont = document.getElementById('listaCalif');
+        const calif = d.calificaciones || [];
+        if (!calif.length) {
+          cont.innerHTML = '<div class="calif-empty">Todavía no tienes calificaciones. Completa el examen final para ver la primera aquí.</div>';
+          return;
+        }
+        cont.innerHTML = calif.map(c => `
+          <div class="calif-card">
+            <div class="info">
+              <h3>${c.practica}</h3>
+              <div class="meta">${c.ruta} · ${fmt(c.fecha_realizacion)}</div>
+            </div>
+            ${c.calificacion_final != null
+            ? `<div class="calif-score">${parseFloat(c.calificacion_final)}/100</div>`
+            : `<div class="calif-score pendiente">⏳ Pendiente de revisión</div>`}
+          </div>
+        `).join('');
+      })
+      .catch(() => {
+        document.getElementById('listaCalif').innerHTML = '<div class="calif-empty">No se pudieron cargar tus calificaciones.</div>';
+      });
+  </script>
+</body>
+
+</html>

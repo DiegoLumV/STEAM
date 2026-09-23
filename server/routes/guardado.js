@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { verifyToken } from '../middleware/auth.js';
+import { registrarActividad } from '../actividad.js';
 
 const router = Router();
 router.use(verifyToken);
@@ -109,6 +110,7 @@ router.delete('/guardado', async (req, res) => {
       [req.user.id, proyectoId, slot]
     );
     res.json({ message: 'Progreso reiniciado' });
+    registrarActividad(req.user.id, 'reinicio_casa', { proyecto_id: proyectoId });
   } catch (e) {
     console.error('Error borrando snapshot:', e);
     res.status(500).json({ error: 'No se pudo reiniciar' });

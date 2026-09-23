@@ -1,18 +1,25 @@
--- 004_guardados_hist_fix.sql
--- El historial debía sobrevivir al borrado del guardado activo (para poder
--- archivar antes de un "reiniciar casa"), pero el CASCADE de 003 lo borraba
--- junto con su padre. Se guardan usuario/proyecto/slot directamente en vez
--- de depender de que la fila padre siga existiendo.
+-- 005_cuestionario.sql
+-- Punto de "entrega" del examen final + módulo de preguntas/respuestas
+-- estilo Classroom (cualquier usuario puede publicar una pregunta).
 
-ALTER TABLE proyecto_guardados_hist
-  DROP CONSTRAINT IF EXISTS proyecto_guardados_hist_guardado_id_fkey;
+ALTER TABLE proyecto_guardados
+  ADD COLUMN IF NOT EXISTS entregado_en TIMESTAMPTZ;
 
-ALTER TABLE proyecto_guardados_hist
-  ALTER COLUMN guardado_id DROP NOT NULL,
-  ADD COLUMN IF NOT EXISTS usuario_id  INTEGER,
-  ADD COLUMN IF NOT EXISTS proyecto_id INTEGER,
-  ADD COLUMN IF NOT EXISTS slot        SMALLINT,
-  ADD COLUMN IF NOT EXISTS motivo      VARCHAR(30) DEFAULT 'reinicio';
+CREATE TABLE IF NOT EXISTS casa_preguntas (
+  id          BIGSERIAL PRIMARY KEY,
+  proyecto_id INTEGER NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE,
+  autor_id    INTEGER NOT NULL REFERENCES usuarios(id)  ON DELETE CASCADE,
+  titulo      VARCHAR(200) NOT NULL,
+  cuerpo      TEXT,
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_preguntas_proyecto ON casa_preguntas (proyecto_id, creado_en DESC);
 
-CREATE INDEX IF NOT EXISTS idx_guardados_hist_usuario
-  ON proyecto_guardados_hist (usuario_id, proyecto_id, slot);
+CREATE TABLE IF NOT EXISTS casa_respuestas (
+  id          BIGSERIAL PRIMARY KEY,
+  pregunta_id BIGINT  NOT NULL REFERENCES casa_preguntas(id) ON DELETE CASCADE,
+  autor_id    INTEGER NOT NULL REFERENCES usuarios(id)       ON DELETE CASCADE,
+  cuerpo      TEXT NOT NULL,
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_respuestas_pregunta ON casa_respuestas (pregunta_id, creado_en ASC);

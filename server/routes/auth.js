@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { query } from '../db.js';
 import { verifyToken } from '../middleware/auth.js';
+import { registrarActividad } from '../actividad.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'casasteam_fallback_secret';
@@ -118,6 +119,8 @@ router.post('/login', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    registrarActividad(user.id, 'login', { rol: user.rol_nombre });
 
     res.json({
       message: 'Login exitoso',

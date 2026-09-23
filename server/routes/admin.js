@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { query } from '../db.js';
-import { verifyToken, requireAdmin } from '../middleware/auth.js';
+import { verifyToken, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
 // Todos los endpoints de admin requieren token + rol admin
-router.use(verifyToken, requireAdmin);
+router.use(verifyToken, requireRole('admin'));
 
 /* ───────────────────────────────────────────
    GET /api/admin/users
@@ -105,6 +105,38 @@ router.put('/users/:id/role', async (req, res) => {
   } catch (err) {
     console.error('Error actualizando rol:', err);
     res.status(500).json({ error: 'Error actualizando el rol' });
+  }
+});
+
+/* ───────────────────────────────────────────
+   GET /api/admin/actividad?limit=50&offset=0&tipo=
+   Feed de acciones del sistema (login, entregas, reinicios, preguntas, etc.)
+   ─────────────────────────────────────────── */
+router.get('/actividad', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const offset = parseInt(req.query.offset) || 0;
+  const tipo = req.query.tipo;
+  try {
+    const params = [];
+    let where = '';
+    if (tipo) { params.push(tipo); where = `WHERE a.tipo_accion = $${params.length}`; }
+    params.push(limit, offset);
+
+    const { rows } = await query(
+      `SELECT a.id, a.tipo_accion, a.detalle, a.creado_en,
+              u.nombre_completo AS usuario, r.nombre AS rol
+         FROM registro_actividad a
+         LEFT JOIN usuarios u ON u.id = a.usuario_id
+         LEFT JOIN roles r ON r.id = u.rol_id
+         ${where}
+        ORDER BY a.creado_en DESC
+        LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+    res.json({ actividad: rows });
+  } catch (err) {
+    console.error('Error obteniendo actividad:', err);
+    res.status(500).json({ error: 'Error obteniendo actividad' });
   }
 });
 

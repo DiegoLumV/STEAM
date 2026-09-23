@@ -11,7 +11,7 @@ import pool from './db.js';
 
 const ROLES = [
   { nombre: 'admin', descripcion: 'Administrador del sistema' },
-  { nombre: 'profesor', descripcion: 'Profesor que crea rutas de aprendizaje' },
+  { nombre: 'maestro', descripcion: 'Maestro que gestiona alumnos, revisa progreso y calificaciones' },
   { nombre: 'alumno', descripcion: 'Estudiante que sigue las rutas' },
 ];
 
@@ -33,9 +33,9 @@ async function seed() {
           'INSERT INTO roles (nombre, descripcion) VALUES ($1, $2)',
           [rol.nombre, rol.descripcion]
         );
-        console.log(`   ✅ Rol "${rol.nombre}" creado`);
+        console.log(`Rol "${rol.nombre}" creado`);
       } else {
-        console.log(`   ⏭️  Rol "${rol.nombre}" ya existe`);
+        console.log(`Rol "${rol.nombre}" ya existe`);
       }
     }
 
@@ -50,16 +50,16 @@ async function seed() {
          VALUES ($1, $2, $3, $4, NOW())`,
         [ADMIN_USER.nombre_completo, ADMIN_USER.email, passwordHash, rolAdmin.rows[0].id]
       );
-      console.log(`\n   ✅ Usuario admin creado:`);
+      console.log(`\n Usuario admin creado:`);
       console.log(`      Email:    ${ADMIN_USER.email}`);
       console.log(`      Password: ${ADMIN_USER.password}`);
     } else {
-      console.log(`\n   ⏭️  Usuario admin ya existe`);
+      console.log(`\n Usuario admin ya existe`);
     }
 
-    console.log('\n🎉 Seed completado exitosamente!\n');
+    console.log('\n Seed completado exitosamente!\n');
   } catch (err) {
-    console.error('\n❌ Error en seed:', err.message);
+    console.error('\n Error en seed:', err.message);
     console.error(err);
   } finally {
     await pool.end();

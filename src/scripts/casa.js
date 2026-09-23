@@ -2143,6 +2143,45 @@ document.addEventListener('guardado:error', () => setSaveBadge('error'));
   window.addEventListener('pointerup', () => { dragging = false; });
 })();
 
+// ── Entrega de la casa (desbloquea el Cuestionario en learn.html) ──
+async function entregarCasa() {
+  const btn = document.getElementById('btnEntregar');
+  if (btn.classList.contains('entregado')) {
+    showLockedMessage('Ya entregaste tu casa. Puedes seguir editándola si quieres.');
+    return;
+  }
+  if (!confirm('¿Entregar tu casa? Esto desbloqueará el Cuestionario del Proyecto en tu ruta de aprendizaje. Podrás seguir editando después si quieres.')) return;
+
+  try {
+    const res = await fetch('/api/entrega', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      body: JSON.stringify({ proyecto_id: 1 })
+    });
+    if (!res.ok) throw new Error((await res.json()).error || res.status);
+    btn.classList.add('entregado');
+    btn.title = 'Ya entregada';
+    showSuccessMessage('🎉 ¡Casa entregada! Ya puedes ir al Cuestionario del Proyecto.');
+  } catch (e) {
+    showLockedMessage('No se pudo entregar: ' + e.message + '. Verifica que tu casa esté guardada.');
+  }
+}
+window.entregarCasa = entregarCasa;
+
+(async function chequearEntrega() {
+  try {
+    const res = await fetch('/api/entrega?proyecto_id=1', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    if (d.entregado) {
+      const btn = document.getElementById('btnEntregar');
+      if (btn) { btn.classList.add('entregado'); btn.title = 'Ya entregada'; }
+    }
+  } catch (e) { /* silencioso: no bloquea el simulador */ }
+})();
+
 function showLockedMessage(msg) {
   let toast = document.getElementById('locked-toast');
   if (!toast) {
@@ -2658,7 +2697,7 @@ const init = () => {
   pp.imageProcessing.toneMappingEnabled = true;
   pp.imageProcessing.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
 
-  // SSAO2
+  // SSAO2 importado arriba, si no está disponible simplemente lo ignoramos
   try {
     const ssao = new SSAO2RenderingPipeline('ssao', scene, { ssaoRatio: 0.5, blurRatio: 1 }, [camera]);
     ssao.radius = 2.0; ssao.totalStrength = 1.0; ssao.base = 0.12;

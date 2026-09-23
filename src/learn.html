@@ -44,17 +44,32 @@
         <span class="dot"></span>Examen Final
       </button>
     </a>
+    <button class="nav-btn locked" id="btn-cuestionario" title="Entrega tu casa en el simulador para desbloquearlo">
+      <span class="dot"></span>🔒 Cuestionario del Proyecto
+    </button>
+    <a href="mis-calificaciones.html" style="all:unset">
+      <button class="nav-btn active-quiz">
+        <span class="dot"></span>📊 Mis Calificaciones
+      </button>
+    </a>
     <!-- Opción solo visible para administradores (oculta por defecto) -->
     <a href="PanelAdministrativo.html" style="all: unset;" id="link-admin">
       <button class="nav-btn inactive-admin" id="btn-admin" style="display:none;">
         <span class="dot"></span>Administrador
       </button>
     </a>
+    <!-- Opción solo visible para maestros (oculta por defecto) -->
+    <a href="maestro.html" style="all: unset;" id="link-maestro">
+      <button class="nav-btn inactive-admin" id="btn-maestro" style="display:none;">
+        <span class="dot"></span>Panel del Maestro
+      </button>
+    </a>
 
     <div style="flex:1;"></div>
 
     <div class="nav-label">Sesión</div>
-    <div id="sidebar-user-learn" style="padding:8px 12px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;"></div>
+    <div id="sidebar-user-learn" style="padding:8px 12px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;">
+    </div>
     <button id="btn-logout-learn" class="nav-btn" style="color:var(--math-accent);margin-top:4px;">
       <span class="dot" style="background:var(--math-accent);"></span>Cerrar sesión
     </button>
@@ -87,7 +102,7 @@
       </div>
       <p class="module-subtitle">Identificación de necesidades · Análisis del terreno y entorno </p>
       <div class="path-container">
-        
+
         <div class="lesson-nodes" id="nodes-intro">
           <div class="node-col center">
             <div class="lesson-cube next-up clickable" data-module="intro" data-lesson="1">
@@ -160,7 +175,7 @@
       </div>
       <p class="module-subtitle">Cálculo de medidas · Áreas y proporciones · Planos numéricos</p>
       <div class="path-container">
-        
+
         <div class="lesson-nodes" id="nodes-math">
           <div class="node-col center">
             <div class="lesson-cube next-up clickable" data-module="math" data-lesson="1">
@@ -233,7 +248,7 @@
       </div>
       <p class="module-subtitle">Física de materiales · Impermeabilización</p>
       <div class="path-container">
-        
+
         <div class="lesson-nodes" id="nodes-science">
           <div class="node-col center">
             <div class="lesson-cube next-up clickable" data-module="science" data-lesson="1">
@@ -306,7 +321,7 @@
       </div>
       <p class="module-subtitle">Cimentación · Estructura · Proceso constructivo completo</p>
       <div class="path-container">
-        
+
         <div class="lesson-nodes" id="nodes-engineering">
           <div class="node-col center">
             <div class="lesson-cube next-up clickable" data-module="engineering" data-lesson="1">
@@ -380,7 +395,7 @@
       </div>
       <p class="module-subtitle">Circuitos eléctricos · Domótica · Focos y sensores inteligentes</p>
       <div class="path-container">
-        
+
         <div class="lesson-nodes" id="nodes-tech">
           <div class="node-col center">
             <div class="lesson-cube next-up clickable" data-module="tech" data-lesson="1">
@@ -454,7 +469,7 @@
       </div>
       <p class="module-subtitle">Diseño de interiores · Paleta cromática · Acabados y decoración</p>
       <div class="path-container">
-        
+
         <div class="lesson-nodes" id="nodes-arts">
           <div class="node-col center">
             <div class="lesson-cube next-up clickable" data-module="arts" data-lesson="1">
@@ -561,6 +576,11 @@
           const btnAdmin = document.getElementById('btn-admin');
           if (btnAdmin) btnAdmin.style.display = 'flex';
         }
+        // Mostrar botón maestro solo si es maestro
+        if (payload.rol_nombre === 'maestro') {
+          const btnMaestro = document.getElementById('btn-maestro');
+          if (btnMaestro) btnMaestro.style.display = 'flex';
+        }
 
         // Cerrar sesión
         const logoutBtn = document.getElementById('btn-logout-learn');
@@ -571,6 +591,22 @@
             window.location.href = 'index.html';
           });
         }
+
+        // Cuestionario: se desbloquea solo si ya entregaste la casa en el simulador
+        fetch('/api/entrega?proyecto_id=1', { headers: { 'Authorization': `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : { entregado: false })
+          .then(d => {
+            const btn = document.getElementById('btn-cuestionario');
+            if (!btn) return;
+            if (d.entregado) {
+              btn.classList.remove('locked');
+              btn.classList.add('active-quiz');
+              btn.innerHTML = '<span class="dot"></span>💬 Cuestionario del Proyecto';
+              btn.title = 'Ver y responder preguntas del proyecto';
+              btn.addEventListener('click', () => { window.location.href = 'cuestionario.html'; });
+            }
+          })
+          .catch(() => { /* si falla, se queda bloqueado por defecto: no rompe la página */ });
       } catch (e) {
         console.warn('No se pudo leer la información del usuario.', e);
       }

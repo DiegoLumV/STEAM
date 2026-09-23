@@ -1541,6 +1541,33 @@ body.day-mode::after {
   box-shadow: 0 8px 30px rgba(0, 0, 0, .6), 0 0 24px rgba(255, 60, 60, .28);
 }
 
+#btnEntregar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  font-size: 20px;
+  background: rgba(8, 40, 20, .92);
+  border: 1px solid rgba(90, 255, 140, .45);
+  color: rgba(190, 255, 210, .95);
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .55), 0 0 18px rgba(60, 255, 120, .15);
+  transition: transform .15s, box-shadow .15s;
+}
+
+#btnEntregar:hover {
+  transform: scale(1.08);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .6), 0 0 24px rgba(60, 255, 120, .28);
+}
+
+#btnEntregar.entregado {
+  opacity: .55;
+  cursor: default;
+}
+
+#btnEntregar.entregado:hover {
+  transform: none;
+}
+
 #reset-fab-group .save-badge {
   align-self: flex-end;
 }

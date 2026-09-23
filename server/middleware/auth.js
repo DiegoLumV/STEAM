@@ -27,17 +27,25 @@ export function verifyToken(req, res, next) {
  * Middleware que requiere rol "admin".
  * Debe usarse DESPUÉS de verifyToken.
  */
-export async function requireAdmin(req, res, next) {
-  try {
-    const result = await query(
-      'SELECT r.nombre FROM roles r WHERE r.id = $1',
-      [req.user.rol_id]
-    );
-    if (result.rows.length === 0 || result.rows[0].nombre !== 'admin') {
-      return res.status(403).json({ error: 'Acceso denegado: se requiere rol admin' });
+/**
+ * Middleware genérico: requiere que el usuario tenga uno de los roles dados.
+ * Uso: router.use(verifyToken, requireRole('maestro', 'admin'))
+ */
+export function requireRole(...rolesPermitidos) {
+  return async (req, res, next) => {
+    try {
+      const result = await query('SELECT r.nombre FROM roles r WHERE r.id = $1', [req.user.rol_id]);
+      const rol = result.rows[0]?.nombre;
+      if (!rol || !rolesPermitidos.includes(rol)) {
+        return res.status(403).json({ error: `Acceso denegado: se requiere rol ${rolesPermitidos.join(' o ')}` });
+      }
+      req.rolActual = rol;
+      next();
+    } catch (err) {
+      return res.status(500).json({ error: 'Error verificando permisos' });
     }
-    next();
-  } catch (err) {
-    return res.status(500).json({ error: 'Error verificando permisos' });
-  }
+  };
 }
+
+/** Alias por compatibilidad: código existente (evaluacion.js) sigue usando este nombre. */
+export const requireAdmin = requireRole('admin');

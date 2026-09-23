@@ -4,22 +4,22 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const pool = new pg.Pool({
-  host:     process.env.DB_HOST || 'localhost',
-  port:     parseInt(process.env.DB_PORT || '5432'),
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'ProyectoUPV',
-  user:     process.env.DB_USER || 'postgres',
+  user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
-  max:      10,
+  max: 10,
   idleTimeoutMillis: 30000,
 });
 
 // Verificar conexión al arrancar
 pool.on('connect', () => {
-  console.log('✅ Conectado a PostgreSQL – ProyectoUPV');
+  console.log(' Conectado a PostgreSQL – ProyectoUPV');
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Error en pool de PostgreSQL:', err.message);
+  console.error(' Error en pool de PostgreSQL:', err.message);
 });
 
 /**
