@@ -6,6 +6,15 @@
     const modalRegister = $('#modalRegister');
     const formLogin = $('#formLogin');
     const formRegister = $('#formRegister');
+
+    // Toggle visual del selector de rol (Alumno / Maestro)
+    document.querySelectorAll('.role-option').forEach((opt) => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.role-option').forEach((o) => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            opt.querySelector('input').checked = true;
+        });
+    });
     const loginError = $('#loginError');
     const regError = $('#regError');
 
@@ -81,8 +90,8 @@
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
-            // Redirigir a learn.html (todos los roles)
-            window.location.href = 'learn.html';
+            // Redirigir a proyectos.html (todos los roles)
+            window.location.href = 'proyectos.html';
         } catch (err) {
             showError(loginError, 'Error de conexión. ¿Está corriendo el servidor?');
             setLoading(btn, false);
@@ -104,6 +113,7 @@
                     nombre_completo: $('#regName').value.trim(),
                     email: $('#regEmail').value.trim(),
                     password: $('#regPassword').value,
+                    rol: document.querySelector('input[name="regRole"]:checked')?.value || 'alumno',
                 }),
             });
             const data = await res.json();
@@ -116,7 +126,8 @@
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            window.location.href = 'learn.html';
+            // Redirigir a proyectos.html para todos los roles
+            window.location.href = 'proyectos.html';
         } catch (err) {
             showError(regError, 'Error de conexión. ¿Está corriendo el servidor?');
             setLoading(btn, false);
@@ -137,10 +148,10 @@
                     const enterBtn = topbar.querySelector('.btn-main');
                     const firstName = data.user.nombre_completo.split(' ')[0];
                     enterBtn.textContent = `Hola, ${firstName} →`;
-                    enterBtn.href = 'learn.html';
+                    enterBtn.href = 'proyectos.html';
                     enterBtn.onclick = (e) => {
                         e.preventDefault();
-                        window.location.href = 'learn.html';
+                        window.location.href = 'proyectos.html';
                     };
                 }
             })
@@ -164,4 +175,4 @@
             });
         });
     }
-})();
+})();

@@ -1892,6 +1892,44 @@ body {
   background: var(--surface);
 }
 
+.role-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.role-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  background: var(--bg);
+}
+
+.role-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.role-option:hover {
+  border-color: var(--science-accent);
+}
+
+.role-option.selected {
+  border-color: var(--science-accent);
+  background: rgba(76, 175, 125, 0.10);
+  color: var(--text-dark);
+}
+
 .auth-error {
   background: rgba(220, 38, 38, 0.1);
   border: 1px solid rgba(220, 38, 38, 0.3);

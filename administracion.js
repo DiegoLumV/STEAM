@@ -6,11 +6,13 @@ if (!token) { window.location.href = 'index.html'; }
 let me = null;
 try {
     me = JSON.parse(atob(token.split('.')[1]));
-    if (me.rol_nombre !== 'admin') window.location.href = 'learn.html';
+    if (!['admin', 'maestro'].includes(me.rol_nombre)) window.location.href = 'proyectos.html';
 } catch (e) { window.location.href = 'index.html'; }
 
-document.getElementById('sidebar-user').innerHTML =
-    `<strong>${me.nombre_completo}</strong>Administrador`;
+if (document.getElementById('sidebar-user') && me.rol_nombre === 'admin') {
+    document.getElementById('sidebar-user').innerHTML =
+        `<strong>${me.nombre_completo}</strong>Administrador`;
+}
 
 document.getElementById('btn-logout').addEventListener('click', () => {
     localStorage.removeItem('token');
@@ -153,8 +155,12 @@ document.getElementById('formAddUser').addEventListener('submit', async e => {
         } else {
             document.getElementById('modalAddUser').classList.remove('visible');
             showToast(`✓ "${body.nombre_completo}" creado como alumno`, 'green');
-            loadUsers();
-            loadStats();
+            if (me.rol_nombre === 'admin') {
+                loadUsers();
+                loadStats();
+            } else if (typeof cargarAlumnos === 'function') {
+                cargarAlumnos();
+            }
         }
     } catch (e) {
         errEl.textContent = 'Error de conexión';
@@ -227,8 +233,10 @@ document.getElementById('formChangeRole').addEventListener('submit', async e => 
     btn.textContent = 'Actualizar rol';
 });
 
-loadStats();
-loadUsers();
+if (me.rol_nombre === 'admin') {
+    loadStats();
+    loadUsers();
+}
 
 /* ── Actividad reciente ── */
 const ETIQUETAS_ACCION = {
@@ -265,4 +273,6 @@ async function loadActividad() {
         tbody.innerHTML = '<tr><td colspan="5" class="table-empty">No se pudo cargar la actividad.</td></tr>';
     }
 }
-loadActividad();
+if (me.rol_nombre === 'admin') {
+    loadActividad();
+}

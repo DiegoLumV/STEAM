@@ -16,7 +16,7 @@
       <img src="img/iconv2.png" alt="CasaSTEAM">
       <h2>CasaSTEAM</h2>
     </div>
-    <a href="learn.html" class="btn-main" style="padding:10px 22px;font-size:0.78rem;min-width:auto;">Entrar →</a>
+    <a href="proyectos.html" class="btn-main" style="padding:10px 22px;font-size:0.78rem;min-width:auto;">Entrar →</a>
   </header>
 
   <!-- ---- HERO ---- -->
@@ -31,7 +31,7 @@
     <h1>Aprende a construir tu casa desde cero.</h1>
     <p>Una ruta de aprendizaje STEAM que te lleva paso a paso: del análisis del terreno hasta los acabados finales.</p>
     <div class="cta-container">
-      <a href="learn.html" class="btn-main">Empieza ahora</a>
+      <a href="proyectos.html" class="btn-main">Empieza ahora</a>
       <button id="btnOpenLogin" class="btn-login">Ya tengo una cuenta</button>
     </div>
   </div>
@@ -151,7 +151,7 @@
   <section class="final-cta">
     <h2>¿Listo para construir?</h2>
     <p style="color:var(--text-muted);font-size:1rem;">6 módulos · 36 lecciones · 0 conocimientos previos necesarios</p>
-    <a href="learn.html" class="btn-main">¡Empezar ahora!</a>
+    <a href="proyectos.html" class="btn-main">¡Empezar ahora!</a>
   </section>
 
   <!-- Estructura del modal de inicio de sesion -->
@@ -204,6 +204,19 @@
       </div>
       <form id="formRegister" class="auth-form">
         <div class="auth-field">
+          <label>Quiero registrarme como</label>
+          <div class="role-select" id="roleSelect">
+            <label class="role-option selected">
+              <input type="radio" name="regRole" value="alumno" checked>
+              <span>🎓 Alumno</span>
+            </label>
+            <label class="role-option">
+              <input type="radio" name="regRole" value="maestro">
+              <span>🧑‍🏫 Maestro</span>
+            </label>
+          </div>
+        </div>
+        <div class="auth-field">
           <label for="regName">Nombre completo</label>
           <input type="text" id="regName" placeholder="Tu nombre" required autocomplete="name">
         </div>
@@ -234,4 +247,4 @@
 
 </body>
 
-</html>
+</html>     

@@ -11,7 +11,7 @@ import { aplicarMigraciones } from './migraciones.js';
   try {
     await aplicarMigraciones(query);
   } catch (e) {
-    console.error('\n❌ Migración fallida:', e.message);
+    console.error('\n Migración fallida:', e.message);
     process.exitCode = 1;
   } finally {
     await pool.end();

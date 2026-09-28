@@ -6,7 +6,7 @@ if (!token) { window.location.href = 'index.html'; }
 let me = null;
 try {
     me = JSON.parse(atob(token.split('.')[1]));
-    if (me.rol_nombre !== 'admin') window.location.href = 'learn.html';
+    if (me.rol_nombre !== 'admin') window.location.href = 'proyectos.html';
 } catch (e) { window.location.href = 'index.html'; }
 
 document.getElementById('sidebar-user').innerHTML =

@@ -23,6 +23,7 @@ export default defineConfig({
         main:    'src/index.html',
         learn:   'src/learn.html',
         sandbox: 'src/sandbox.html',
+        proyectos: 'src/proyectos.html',
       },
       output: {
         manualChunks: {
