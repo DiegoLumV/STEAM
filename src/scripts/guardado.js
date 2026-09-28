@@ -2,6 +2,7 @@
 // Snapshot del estado de la escena. NO reemplaza a telemetria.js:
 // telemetría = historial de eventos (analítica), esto = foto para reanudar.
 
+
 const API_BASE = '/api';
 export const SCHEMA_VERSION = 1;
 

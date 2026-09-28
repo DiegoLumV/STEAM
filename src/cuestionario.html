@@ -240,9 +240,9 @@
       <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
     </div>
     <div class="nav-label">Módulos</div>
-    <a href="learn.html" style="all:unset">
+    <a href="alumno.html" style="all:unset">
       <button class="nav-btn">
-        <span class="dot"></span>← Volver a la ruta
+        <span class="dot"></span>← Volver al inicio
       </button>
     </a>
     <button class="nav-btn active-quiz">
@@ -311,7 +311,7 @@
     // Defensa extra: si no ha entregado, lo regresamos a la ruta de aprendizaje.
     fetch('/api/entrega?proyecto_id=1', { headers: authHeaders })
       .then(r => r.json())
-      .then(d => { if (!d.entregado) window.location.href = 'learn.html'; })
+      .then(d => { if (!d.entregado) window.location.href = 'alumno.html'; })
       .catch(() => { });
 
     function fmt(fecha) {

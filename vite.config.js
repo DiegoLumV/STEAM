@@ -24,6 +24,11 @@ export default defineConfig({
         learn:   'src/learn.html',
         sandbox: 'src/sandbox.html',
         proyectos: 'src/proyectos.html',
+        alumno:  'src/alumno.html',
+        maestro: 'src/maestro.html',
+        misCalificaciones: 'src/mis-calificaciones.html',
+        cuestionario: 'src/cuestionario.html',
+        panelAdmin: 'src/PanelAdministrativo.html',
       },
       output: {
         manualChunks: {

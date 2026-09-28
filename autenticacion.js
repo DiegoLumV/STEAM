@@ -6,6 +6,15 @@
     const modalRegister = $('#modalRegister');
     const formLogin = $('#formLogin');
     const formRegister = $('#formRegister');
+
+    // Toggle visual del selector de rol (Alumno / Maestro)
+    document.querySelectorAll('.role-option').forEach((opt) => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.role-option').forEach((o) => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            opt.querySelector('input').checked = true;
+        });
+    });
     const loginError = $('#loginError');
     const regError = $('#regError');
 
@@ -82,8 +91,8 @@
             localStorage.setItem('user', JSON.stringify(data.user));
 
             // Redirigir según el rol
-            const destinos = { admin: 'PanelAdministrativo.html', maestro: 'maestro.html', alumno: 'learn.html' };
-            window.location.href = destinos[data.user.rol_nombre] || 'learn.html';
+            const destinos = { admin: 'PanelAdministrativo.html', maestro: 'maestro.html', alumno: 'alumno.html' };
+            window.location.href = destinos[data.user.rol_nombre] || 'alumno.html';
         } catch (err) {
             showError(loginError, 'Error de conexión. ¿Está corriendo el servidor?');
             setLoading(btn, false);
@@ -105,6 +114,7 @@
                     nombre_completo: $('#regName').value.trim(),
                     email: $('#regEmail').value.trim(),
                     password: $('#regPassword').value,
+                    rol: document.querySelector('input[name="regRole"]:checked')?.value || 'alumno',
                 }),
             });
             const data = await res.json();
@@ -117,7 +127,8 @@
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            window.location.href = 'learn.html';
+                    const destinosRegistro = { admin: 'PanelAdministrativo.html', maestro: 'maestro.html', alumno: 'alumno.html' };
+            window.location.href = destinosRegistro[data.user.rol_nombre] || 'alumno.html';
         } catch (err) {
             showError(regError, 'Error de conexión. ¿Está corriendo el servidor?');
             setLoading(btn, false);
@@ -137,8 +148,8 @@
                     const topbar = document.querySelector('.topbar');
                     const enterBtn = topbar.querySelector('.btn-main');
                     const firstName = data.user.nombre_completo.split(' ')[0];
-                    const destinos = { admin: 'PanelAdministrativo.html', maestro: 'maestro.html', alumno: 'learn.html' };
-                    const destino = destinos[data.user.rol_nombre] || 'learn.html';
+                    const destinos2 = { admin: 'PanelAdministrativo.html', maestro: 'maestro.html', alumno: 'alumno.html' };
+                    const destino = destinos2[data.user.rol_nombre] || 'alumno.html';
                     enterBtn.textContent = `Hola, ${firstName} →`;
                     enterBtn.href = destino;
                     enterBtn.onclick = (e) => {
@@ -167,4 +178,4 @@
             });
         });
     }
-})();
+})();

@@ -6,13 +6,11 @@ if (!token) { window.location.href = 'index.html'; }
 let me = null;
 try {
     me = JSON.parse(atob(token.split('.')[1]));
-    if (!['admin', 'maestro'].includes(me.rol_nombre)) window.location.href = 'proyectos.html';
+    if (me.rol_nombre !== 'admin') window.location.href = 'alumno.html';
 } catch (e) { window.location.href = 'index.html'; }
 
-if (document.getElementById('sidebar-user') && me.rol_nombre === 'admin') {
-    document.getElementById('sidebar-user').innerHTML =
-        `<strong>${me.nombre_completo}</strong>Administrador`;
-}
+document.getElementById('sidebar-user').innerHTML =
+    `<strong>${me.nombre_completo}</strong>Administrador`;
 
 document.getElementById('btn-logout').addEventListener('click', () => {
     localStorage.removeItem('token');
@@ -155,12 +153,8 @@ document.getElementById('formAddUser').addEventListener('submit', async e => {
         } else {
             document.getElementById('modalAddUser').classList.remove('visible');
             showToast(`✓ "${body.nombre_completo}" creado como alumno`, 'green');
-            if (me.rol_nombre === 'admin') {
-                loadUsers();
-                loadStats();
-            } else if (typeof cargarAlumnos === 'function') {
-                cargarAlumnos();
-            }
+            loadUsers();
+            loadStats();
         }
     } catch (e) {
         errEl.textContent = 'Error de conexión';
@@ -233,46 +227,5 @@ document.getElementById('formChangeRole').addEventListener('submit', async e => 
     btn.textContent = 'Actualizar rol';
 });
 
-if (me.rol_nombre === 'admin') {
-    loadStats();
-    loadUsers();
-}
-
-/* ── Actividad reciente ── */
-const ETIQUETAS_ACCION = {
-    login: 'Inició sesión',
-    entrega_casa: 'Entregó su casa',
-    reinicio_casa: 'Reinició su casa',
-    pregunta_creada: 'Publicó una pregunta',
-    calificacion_asignada: 'Calificación asignada',
-};
-
-function fmtFechaActividad(f) {
-    return new Date(f).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-}
-
-async function loadActividad() {
-    const tbody = document.getElementById('actividadTableBody');
-    try {
-        const d = await fetch(`${API}/admin/actividad?limit=50`, { headers: hdrs() }).then(r => r.json());
-        const lista = d.actividad || [];
-        if (!lista.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Sin actividad registrada todavía.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = lista.map(a => `
-            <tr>
-                <td>${a.usuario || '—'}</td>
-                <td>${a.rol || '—'}</td>
-                <td>${ETIQUETAS_ACCION[a.tipo_accion] || a.tipo_accion}</td>
-                <td style="font-size:11.5px;color:var(--text-muted)">${Object.keys(a.detalle || {}).length ? JSON.stringify(a.detalle) : '—'}</td>
-                <td>${fmtFechaActividad(a.creado_en)}</td>
-            </tr>
-        `).join('');
-    } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="5" class="table-empty">No se pudo cargar la actividad.</td></tr>';
-    }
-}
-if (me.rol_nombre === 'admin') {
-    loadActividad();
-}
+loadStats();
+loadUsers();

@@ -1,11 +1,48 @@
 // server/routes/maestro.js
 import { Router } from 'express';
+import bcrypt from 'bcrypt';
 import { query } from '../db.js';
 import { verifyToken, requireRole } from '../middleware/auth.js';
 import { registrarActividad } from '../actividad.js';
 
+const SALT_ROUNDS = 10;
 const router = Router();
 router.use(verifyToken, requireRole('maestro', 'admin'));
+
+/* ───────────────────────────────────────────
+   POST /api/maestro/alumnos
+   El maestro crea una cuenta de alumno directamente, sin pasar por el
+   admin. El rol queda forzado a 'alumno' pase lo que mande el cliente.
+   ─────────────────────────────────────────── */
+router.post('/alumnos', async (req, res) => {
+  const { nombre_completo, email, password } = req.body;
+  if (!nombre_completo || !email || !password) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+  }
+  try {
+    const existe = await query('SELECT id FROM usuarios WHERE email = $1', [email.toLowerCase()]);
+    if (existe.rows.length) return res.status(409).json({ error: 'Ya existe una cuenta con ese correo' });
+
+    const rolAlumno = await query(`SELECT id FROM roles WHERE nombre = 'alumno'`);
+    if (!rolAlumno.rows.length) return res.status(500).json({ error: 'Rol alumno no encontrado. Corre las migraciones.' });
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const { rows } = await query(
+      `INSERT INTO usuarios (nombre_completo, email, password_hash, rol_id, creado_en)
+       VALUES ($1, $2, $3, $4, NOW()) RETURNING id, nombre_completo, email`,
+      [nombre_completo, email.toLowerCase(), passwordHash, rolAlumno.rows[0].id]
+    );
+
+    res.status(201).json({ message: 'Alumno creado', alumno: rows[0] });
+    registrarActividad(req.user.id, 'alumno_creado_por_maestro', { alumno_id: rows[0].id, email: rows[0].email });
+  } catch (err) {
+    console.error('Error creando alumno:', err);
+    res.status(500).json({ error: 'No se pudo crear la cuenta' });
+  }
+});
 
 /* ───────────────────────────────────────────
    GET /api/maestro/alumnos
