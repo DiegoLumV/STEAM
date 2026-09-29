@@ -111,10 +111,10 @@ router.post('/evaluacion/sesion/:sesion_id', async (req, res) => {
 
       // Calcular resultados
       for (const evt of evts) {
-        if (evt.contexto && evt.contexto.correcto === 'false') {
+        if (evt.contexto && (evt.contexto.correcto === false || evt.contexto.correcto === 'false')) {
           intentosFallidos++;
           esPrimerIntento = false;
-        } else if (evt.contexto && evt.contexto.correcto === 'true') {
+        } else if (evt.contexto && (evt.contexto.correcto === true || evt.contexto.correcto === 'true')) {
           intentoCorrecto = true;
           break; // Nos detenemos en el primer éxito
         }

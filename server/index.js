@@ -29,9 +29,9 @@ app.use(express.json());
 /* ── Rutas API ── */
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', beaconRouter);
 app.use('/api', telemetriaRoutes);
 app.use('/api', evaluacionRoutes);
-app.use('/api', beaconRouter);
 app.use('/api', guardadoRoutes);
 app.use('/api', cuestionarioRoutes);
 app.use('/api/maestro', maestroRoutes);

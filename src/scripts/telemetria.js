@@ -47,6 +47,7 @@ export async function iniciarSesion() {
       headers: getHeaders(),
       body: JSON.stringify({ proyecto_id: 1, metadata: { pagina: 'sandbox' } })
     });
+    if (!res.ok) throw new Error(`Sesión: HTTP ${res.status}`);
     const data = await res.json();
     sesionId = data.sesion_id;
     console.log('📡 Telemetría iniciada. Sesión:', sesionId);
@@ -106,11 +107,12 @@ async function flushBuffer() {
   const eventos = [...eventBuffer];
   eventBuffer = [];
   try {
-    await fetch(`${API_BASE}/telemetria`, {
+    const res = await fetch(`${API_BASE}/telemetria`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ sesion_id: sesionId, eventos })
     });
+    if (!res.ok) throw new Error(`Telemetría: HTTP ${res.status}`);
   } catch (err) {
     // Put events back if send failed
     eventBuffer = [...eventos, ...eventBuffer];

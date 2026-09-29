@@ -10,6 +10,7 @@ const AUTOSAVE_MS = 30000;      // guardado periódico
 const DEBOUNCE_MS = 4000;       // guardado tras una acción del usuario
 let autosaveTimer = null, debounceTimer = null;
 let dirty = false, guardando = false;
+let revision = 0;
 let getSnapshot = null;         // callback que provee casa.js
 let proyectoId = 1, slot = 1;
 
@@ -56,6 +57,7 @@ export async function guardar(force = false) {
   guardando = true;
   document.dispatchEvent(new CustomEvent('guardado:guardando'));
   const { estado, progreso } = getSnapshot();
+  const savedRevision = revision;
   try {
     const res = await fetch(`${API_BASE}/guardado`, {
       method: 'PUT',
@@ -63,8 +65,8 @@ export async function guardar(force = false) {
       body: JSON.stringify({ proyecto_id: proyectoId, slot, estado, progreso })
     });
     if (!res.ok) throw new Error((await res.json()).error || res.status);
-    dirty = false;
-    document.dispatchEvent(new CustomEvent('guardado:ok', { detail: new Date() }));
+    dirty = revision !== savedRevision;
+    document.dispatchEvent(new CustomEvent(dirty ? 'guardado:pendiente' : 'guardado:ok', { detail: new Date() }));
   } catch (err) {
     console.warn('No se pudo guardar:', err.message);
     document.dispatchEvent(new CustomEvent('guardado:error', { detail: err.message }));
@@ -86,14 +88,16 @@ export async function cargar() {
 }
 
 export async function reiniciar() {
-  await fetch(`${API_BASE}/guardado?proyecto_id=${proyectoId}&slot=${slot}`, {
+  const res = await fetch(`${API_BASE}/guardado?proyecto_id=${proyectoId}&slot=${slot}`, {
     method: 'DELETE', headers: headers()
   });
+  if (!res.ok) throw new Error('No se pudo reiniciar el proyecto');
   dirty = false;
 }
 
 /* ── Marcar cambios: llamar desde addObj, deleteSelected, gizmo drag-end, etc. ── */
 export function marcarSucio() {
+  revision++;
   dirty = true;
   document.dispatchEvent(new CustomEvent('guardado:pendiente'));
   clearTimeout(debounceTimer);
@@ -129,8 +133,8 @@ function flushBeacon() {
     proyecto_id: proyectoId, slot, estado, progreso,
     token: localStorage.getItem('token')   // sendBeacon no manda headers
   })], { type: 'application/json' });
+  // Beacon no confirma persistencia; conservar pendiente para reintentar al volver.
   navigator.sendBeacon(`${API_BASE}/guardado/beacon`, blob);
-  dirty = false;
 }
 
 export function detenerAutoguardado() {

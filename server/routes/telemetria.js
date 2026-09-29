@@ -99,6 +99,16 @@ router.post('/telemetria', async (req, res) => {
       return res.status(404).json({ error: 'Sesión no encontrada o no autorizada' });
     }
 
+    // Resolver IDs reales del catálogo; no asumir el orden del seed.
+    const catalogo = await query('SELECT id, nombre FROM actividades_criticas');
+    const ids = new Map(catalogo.rows.map(a => [a.nombre, a.id]));
+    const actividadesPorEvento = {
+      matematicas_intento: 'Calcular área del terreno',
+      concreto_intento: 'Crear mezcla de concreto',
+      programa_ejecutado: 'Programar foco inteligente',
+      piso_construido: 'Construir piso',
+    };
+
     // Construir la consulta de inserción masiva
     const values = [];
     const params = [sesion_id]; // $1
@@ -111,7 +121,7 @@ router.post('/telemetria', async (req, res) => {
         evt.pos_x,
         evt.pos_y,
         evt.pos_z,
-        evt.actividad_id,
+        evt.actividad_id ?? ids.get(actividadesPorEvento[evt.tipo_evento]) ?? null,
         evt.contexto || {},
         evt.marca_tiempo || new Date()
       );
