@@ -609,13 +609,17 @@ function deleteSelected() {
     m.dispose();
   });
   selectedMesh.dispose();
-  objList = objList.filter(o => o.id !== id);
+  // Si lo eliminado era una pared, sus puertas/ventanas embebidas ya
+  // perdieron su nodo 3D (eran hijos de esta malla) — hay que sacarlas
+  // también de objList o quedarían fantasmas contando de más.
+  objList = objList.filter(o => o.id !== id && o.embeddedInWall !== id);
   selectedMesh = null;
   updateObjListUI();
   document.getElementById('btnDel').style.display = 'none';
   document.getElementById('xinfo').style.display = 'none';
   try { registrar('objeto_eliminado', { contexto: { tipo: deletedType, id: id } }); } catch (e) { }
   setTip('Objeto eliminado');
+  recalcularObjetivos();
   marcarSucio();
 }
 
@@ -827,6 +831,7 @@ function cloneObj(id) {
     openColorPicker(root);
   }
   setTip(`<b>${src.emoji} ${src.label}</b> clonado · Muévelo con las flechas o teclas`);
+  recalcularObjetivos();
   marcarSucio();
 }
 
@@ -2266,6 +2271,17 @@ function showSuccessMessage(msg) {
   }, 4500);
 }
 
+// Recalcula puertas_colocadas/ventanas_colocadas a partir del estado REAL
+// de la construcción (objList), en vez de confiar en contadores que solo
+// se incrementaban al agregar y nunca se corregían al eliminar. Se llama
+// después de cualquier eliminación y al restaurar una casa guardada, para
+// que el objetivo siempre refleje lo que de verdad existe en la escena.
+function recalcularObjetivos() {
+  puertas_colocadas = objList.filter(o => o.type === 'puerta').length;
+  ventanas_colocadas = objList.filter(o => o.type === 'ventana').length;
+  updateOpeningCounters();
+}
+
 function updateOpeningCounters() {
   const badge = document.getElementById('opening-counters');
   if (badge) {
@@ -2584,6 +2600,9 @@ async function restaurarProgreso() {
   }
 
   updateObjListUI();
+  // Recalcular desde los objetos ya reconstruidos, no desde el número que
+  // se guardó (pudo quedar desactualizado si venía de antes de este fix).
+  recalcularObjetivos();
 }
 
 // función principal que arranca la escena, cámara, luces y todo lo demás
