@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="./Css/styles.css">
+  <link rel="stylesheet" href="./Css/PanelAdministrativo.css">
+  <link rel="icon" href="img/icon.png">
+  <title>Panel del Maestro · CasaSTEAM</title>
+  <style>
+    .estado-pill {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .estado-entregado {
+      background: rgba(34, 197, 94, .12);
+      color: #16a34a;
+    }
+
+    .estado-pendiente {
+      background: rgba(148, 163, 184, .15);
+      color: #64748b;
+    }
+
+    .calif-input {
+      width: 64px;
+      border: 1px solid var(--border-mid);
+      border-radius: 6px;
+      padding: 4px 6px;
+      font-size: 12.5px;
+    }
+
+    .btn-mini {
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11.5px;
+      cursor: pointer;
+    }
+
+    .btn-mini:hover {
+      background: #1d4ed8;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+
+    .stat-card .num {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .stat-card .label {
+      font-size: 11.5px;
+      color: var(--text-light);
+      margin-top: 2px;
+    }
+
+    .cursos-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .curso-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+    .curso-card h3 { margin: 0 0 4px; font-size: 14px; color: var(--text-dark); }
+    .curso-card .curso-count { font-size: 12px; color: var(--text-light); }
+    .curso-pill { font-size: 11px; color: #64748b; background: rgba(148,163,184,.15); padding: 3px 8px; border-radius: 20px; }
+    select.form-select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border-mid); border-radius: 8px;
+      font-size: 13px; font-family: inherit; background: var(--surface);
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="logo-block">
+      <div class="logo-icon"><a href="index.html"><img src="img/icon.png" alt="CasaSTEAM"></a></div>
+      <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
+    </div>
+    <div class="nav-label">Navegación</div>
+    <button class="nav-btn active-intro"
+      style="background:var(--intro-soft);color:var(--intro-accent);border-color:var(--intro-accent);">
+      <span class="dot" style="background:var(--intro-accent);"></span>Panel del Maestro
+    </button>
+    <div style="flex:1;"></div>
+    <div class="nav-label">Sesión</div>
+    <div class="sidebar-user-info" id="sidebar-user"></div>
+    <button id="btn-logout" class="nav-btn" style="color:var(--math-accent);margin-top:4px;">
+      <span class="dot" style="background:var(--math-accent);"></span>Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <div class="admin-topbar-left">
+        <h1>Panel del Maestro</h1>
+        <p>Progreso y calificaciones de tus alumnos</p>
+      </div>
+      <div class="admin-topbar-right">
+        <button class="btn-main" id="btnAddUser" style="padding: 10px 22px; font-size: 0.9rem;">+ Agregar
+          alumno</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="num" id="statTotal">—</div>
+        <div class="label">Alumnos totales</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statEntregados">—</div>
+        <div class="label">Entregaron la casa</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statPendientes">—</div>
+        <div class="label">Por calificar</div>
+      </div>
+    </div>
+
+    <h2 style="font-size:15px;color:var(--text-dark);margin:0 0 12px;">Mis Cursos</h2>
+    <div class="cursos-row" id="cursosRow">
+      <div class="curso-card"><div class="curso-count">Cargando cursos…</div></div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <h2>Alumnos</h2>
+        <input class="table-search" type="text" id="searchInput" placeholder="Buscar por nombre o correo…">
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Curso</th>
+            <th>Estado</th>
+            <th>Entrega (casa)</th>
+            <th>Calificación</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="alumnosTableBody">
+          <tr>
+            <td colspan="7" class="table-empty">Cargando alumnos…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <div class="toast" id="toast">
+    <span class="toast-dot green" id="toastDot"></span>
+    <span id="toastMsg">Acción completada</span>
+  </div>
+
+  <!-- Modal: Agregar alumno -->
+  <div class="modal-overlay" id="modalAddUser">
+    <div class="modal-box">
+      <button class="modal-close" id="btnCloseAdd">&times;</button>
+      <div class="modal-title">Agregar alumno</div>
+      <div class="modal-sub">El nuevo alumno podrá iniciar sesión de inmediato.</div>
+      <form id="formAddUser" autocomplete="off">
+        <div class="form-field">
+          <label>Nombre completo</label>
+          <input type="text" id="addName" placeholder="Ej. María García" required>
+        </div>
+        <div class="form-field">
+          <label>Correo electrónico</label>
+          <input type="email" id="addEmail" placeholder="correo@ejemplo.com" required>
+        </div>
+        <div class="form-field">
+          <label>Contraseña</label>
+          <input type="password" id="addPassword" placeholder="Mínimo 6 caracteres" minlength="6" required>
+        </div>
+        <div class="form-field">
+          <label>Curso</label>
+          <select id="addCurso" class="form-select" required>
+            <option value="">Selecciona un curso…</option>
+          </select>
+        </div>
+        <div class="form-error" id="addError"></div>
+        <button type="submit" class="btn-submit" id="btnSubmitAdd">Crear alumno</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+
+    let me = null;
+    try {
+      me = JSON.parse(atob(token.split('.')[1]));
+      if (!['maestro', 'admin'].includes(me.rol_nombre)) window.location.href = 'alumno.html';
+    } catch (e) { window.location.href = 'index.html'; }
+
+    document.getElementById('sidebar-user').innerHTML = `<strong>${me.nombre_completo}</strong>Maestro`;
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      localStorage.removeItem('token'); localStorage.removeItem('user');
+      window.location.href = 'index.html';
+    });
+
+    const hdrs = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` });
+    let alumnos = [];
+    let cursos = [];
+
+    const ETIQUETA_ESTADO = { en_progreso: 'En progreso', completado: 'Completado' };
+
+    function toast(msg, ok = true) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastDot').className = 'toast-dot ' + (ok ? 'green' : 'red');
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function fmt(fecha) {
+      return fecha ? new Date(fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    }
+
+    function actualizarStats(lista) {
+      document.getElementById('statTotal').textContent = lista.length;
+      const entregados = lista.filter(a => a.entregado_en);
+      document.getElementById('statEntregados').textContent = entregados.length;
+      document.getElementById('statPendientes').textContent = entregados.filter(a => a.calificacion_final == null).length;
+    }
+
+    function render(lista) {
+      const tbody = document.getElementById('alumnosTableBody');
+      if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="table-empty">Sin alumnos todavía.</td></tr>'; return; }
+      tbody.innerHTML = lista.map(a => `
+        <tr>
+          <td>${a.nombre_completo}</td>
+          <td>${a.email}</td>
+          <td><span class="curso-pill">${a.curso}</span></td>
+          <td>${ETIQUETA_ESTADO[a.estado_general] || a.estado_general || '—'}</td>
+          <td>${a.entregado_en
+          ? `<span class="estado-pill estado-entregado">Entregado · ${fmt(a.entregado_en)}</span>`
+          : `<span class="estado-pill estado-pendiente">Sin entregar</span>`}</td>
+          <td>
+            ${a.entregado_en
+          ? `<input type="number" min="0" max="100" class="calif-input" id="calif-${a.id}" value="${a.calificacion_final ?? ''}" placeholder="—">`
+          : '—'}
+          </td>
+          <td>${a.entregado_en ? `<button class="btn-mini" onclick="guardarCalificacion(${a.id})">Guardar</button>` : ''}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderCursos(lista) {
+      const cont = document.getElementById('cursosRow');
+      if (!lista.length) { cont.innerHTML = '<div class="curso-card"><div class="curso-count">Sin cursos todavía.</div></div>'; return; }
+      cont.innerHTML = lista.map(c => `
+        <div class="curso-card">
+          <h3>${c.titulo}</h3>
+          <div class="curso-count">${c.total_alumnos} alumno(s) inscrito(s)</div>
+        </div>
+      `).join('');
+
+      const select = document.getElementById('addCurso');
+      select.innerHTML = '<option value="">Selecciona un curso…</option>' +
+        lista.map(c => `<option value="${c.id}">${c.titulo}</option>`).join('');
+    }
+
+    async function cargarCursos() {
+      const res = await fetch(`${API}/maestro/cursos`, { headers: hdrs() });
+      const d = await res.json();
+      cursos = d.cursos || [];
+      renderCursos(cursos);
+    }
+
+    async function cargarAlumnos() {
+      const res = await fetch(`${API}/maestro/alumnos`, { headers: hdrs() });
+      const d = await res.json();
+      alumnos = d.alumnos || [];
+      render(alumnos);
+      actualizarStats(alumnos);
+    }
+
+    async function guardarCalificacion(alumnoId) {
+      const input = document.getElementById(`calif-${alumnoId}`);
+      const val = input.value.trim();
+      if (val === '') { toast('Escribe una calificación', false); return; }
+      const res = await fetch(`${API}/maestro/calificaciones/${alumnoId}`, {
+        method: 'PUT', headers: hdrs(), body: JSON.stringify({ calificacion_final: parseFloat(val) })
+      });
+      const d = await res.json();
+      if (!res.ok) { toast(d.error || 'No se pudo guardar', false); return; }
+      toast('Calificación guardada');
+      cargarAlumnos();
+    }
+    window.guardarCalificacion = guardarCalificacion;
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      render(alumnos.filter(a => a.nombre_completo.toLowerCase().includes(q) || a.email.toLowerCase().includes(q)));
+    });
+
+    /* ── Modal: Agregar alumno ── */
+    const modalAdd = document.getElementById('modalAddUser');
+    const formAdd = document.getElementById('formAddUser');
+    const addError = document.getElementById('addError');
+
+    document.getElementById('btnAddUser').addEventListener('click', () => {
+      formAdd.reset();
+      addError.style.display = 'none';
+      modalAdd.classList.add('visible');
+    });
+    document.getElementById('btnCloseAdd').addEventListener('click', () => modalAdd.classList.remove('visible'));
+    modalAdd.addEventListener('click', (e) => { if (e.target === modalAdd) modalAdd.classList.remove('visible'); });
+
+    formAdd.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmitAdd');
+      btn.disabled = true; btn.textContent = 'Creando…';
+      addError.style.display = 'none';
+
+      const rutaId = document.getElementById('addCurso').value;
+      if (!rutaId) {
+        addError.textContent = 'Selecciona un curso';
+        addError.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Crear alumno';
+        return;
+      }
+
+      const res = await fetch(`${API}/maestro/alumnos`, {
+        method: 'POST', headers: hdrs(),
+        body: JSON.stringify({
+          nombre_completo: document.getElementById('addName').value.trim(),
+          email: document.getElementById('addEmail').value.trim(),
+          password: document.getElementById('addPassword').value,
+          ruta_id: parseInt(rutaId),
+        })
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        addError.textContent = d.error || 'No se pudo crear el alumno';
+        addError.style.display = 'block';
+      } else {
+        modalAdd.classList.remove('visible');
+        toast('✓ Alumno creado correctamente');
+        cargarAlumnos();
+        cargarCursos();
+      }
+      btn.disabled = false; btn.textContent = 'Crear alumno';
+    });
+
+    cargarCursos();
+    cargarAlumnos();
+  </script>
+</body>
+
+</html>

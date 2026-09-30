@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seleccionar Proyecto · CasaSTEAM</title>
+  <link rel="stylesheet" href="./Css/styles.css">
+  <style>
+    body {
+      background: var(--bg, #f4f6fb);
+      margin: 0;
+      padding: 60px 24px 100px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .proyectos-header {
+      max-width: 900px;
+      margin: 0 auto 40px;
+    }
+
+    .proyectos-header h1 {
+      color: #111827;
+      font-size: 28px;
+      margin: 0 0 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .proyectos-header p {
+      color: #6b7280;
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .project-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .project-card {
+      position: relative;
+      height: 260px;
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      text-decoration: none;
+      background-size: cover;
+      background-position: center;
+
+      background-image: url('');
+      box-shadow: 0 12px 30px rgba(15, 23, 42, .18);
+      transition: transform .2s ease;
+    }
+
+    .project-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .project-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .card-orange::before {
+      background: linear-gradient(115deg, rgba(255, 106, 0, .92) 0%, rgba(30, 10, 5, .55) 55%, rgba(10, 8, 12, .75) 100%);
+    }
+
+    .card-blue::before {
+      background: linear-gradient(115deg, rgba(0, 110, 255, .90) 0%, rgba(8, 15, 35, .55) 55%, rgba(10, 8, 12, .75) 100%);
+    }
+
+    .card-green::before {
+      background: linear-gradient(115deg, rgba(20, 190, 110, .90) 0%, rgba(6, 25, 18, .55) 55%, rgba(10, 8, 12, .75) 100%);
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 2;
+      padding: 28px 32px;
+      max-width: 60%;
+    }
+
+    .card-eyebrow {
+      color: rgba(255, 255, 255, .85);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+    }
+
+    .card-title {
+      color: #fff;
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1.05;
+      margin: 0 0 10px;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, .35);
+    }
+
+    .card-desc {
+      color: rgba(255, 255, 255, .85);
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0 0 16px;
+    }
+
+    .card-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 30px;
+      background: #fff;
+      color: #111;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .card-orange .card-cta {
+      color: #b8420a;
+    }
+
+    .card-blue .card-cta {
+      color: #0a4bb8;
+    }
+
+    .card-green .card-cta {
+      color: #0a8a4f;
+    }
+
+    /* Tarjetas todavía sin proyecto asignado */
+    .empty-card {
+      background-image: none;
+      background-color: #ffffff;
+      border: 1.5px dashed #cbd5e1;
+      justify-content: center;
+      align-items: center;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .empty-card::before {
+      content: none;
+    }
+
+    .empty-card:hover {
+      transform: none;
+    }
+
+    .empty-card .card-content {
+      text-align: center;
+      max-width: 100%;
+      padding: 0;
+    }
+
+    .empty-card .card-title {
+      color: #94a3b8;
+      font-size: 15px;
+      font-weight: 600;
+      text-shadow: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="proyectos-header">
+    <h1>Selecciona tu proyecto</h1>
+    <p>Elige el simulador con el que quieres trabajar.</p>
+  </div>
+
+  <div class="project-grid">
+
+    <!-- ══════════ TARJETA 1 — NARANJA (proyecto activo) ══════════ -->
+    <a href="learn.html" class="project-card card-orange"
+      style="background-image: url('https://static.vecteezy.com/system/resources/thumbnails/066/122/288/small/house-construction-site-colored-cartoon-vector.jpg');">
+      <div class="card-content">
+        <p class="card-eyebrow">Proyecto activo</p>
+        <h2 class="card-title">Constructor de Casa</h2>
+        <p class="card-desc">Aprende a modelar y construir una vivienda dentro del simulador 3D.</p>
+        <span class="card-cta">Entrar →</span>
+      </div>
+    </a>
+
+    <!-- ══════════ TARJETA 2 — AZUL (aún sin proyecto) ══════════
+         Cuando tengas el proyecto, cambia el <div> por un <a href="...">
+         igual que la tarjeta de arriba, y pega tu imagen aquí: -->
+    <div class="project-card card-blue empty-card" style="background-image: url('');">
+      <div class="card-content">
+        <h2 class="card-title">Próximamente</h2>
+      </div>
+    </div>
+
+    <!-- ══════════ TARJETA 3 — VERDE (aún sin proyecto) ══════════
+         Pega tu imagen aquí: -->
+    <div class="project-card card-green empty-card" style="background-image: url('');">
+      <div class="card-content">
+        <h2 class="card-title">Próximamente</h2>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+
+</html>

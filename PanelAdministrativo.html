@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./Css/styles.css">
+    <link rel="stylesheet" href="./Css/PanelAdministrativo.css">
+    <link rel="icon" href="img/icon.png">
+    <title>Panel Administrativo · CasaSTEAM</title>
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo-block">
+            <div class="logo-icon"><a href="index.html"><img src="img/icon.png" alt="CasaSTEAM"></a></div>
+            <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
+        </div>
+
+        <div class="nav-label">Navegación</div>
+        <a href="learn.html" style="all:unset;">
+            <button class="nav-btn inactive-intro"><span class="dot"></span>Módulos de aprendizaje</button>
+        </a>
+        <a href="PanelAdministrativo.html" style="all:unset;">
+            <button class="nav-btn active-intro"
+                style="background:var(--intro-soft);color:var(--intro-accent);border-color:var(--intro-accent);">
+                <span class="dot" style="background:var(--intro-accent);"></span>Panel Administrativo
+            </button>
+        </a>
+
+        <div style="flex:1;"></div>
+
+        <div class="nav-label">Sesión</div>
+        <div class="sidebar-user-info" id="sidebar-user"></div>
+        <button id="btn-logout" class="nav-btn" style="color:var(--math-accent);margin-top:4px;">
+            <span class="dot" style="background:var(--math-accent);"></span>Cerrar sesión
+        </button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="admin-main">
+        <div class="admin-topbar">
+            <div class="admin-topbar-left">
+                <h1>Panel Administrativo</h1>
+                <p id="topbar-sub">Cargando información…</p>
+            </div>
+            <button class="btn-add" id="btnAddUser">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                </svg>
+                Agregar usuario
+            </button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card accent-green">
+                <div class="stat-label">Total usuarios</div>
+                <div class="stat-value" id="stat-total">—</div>
+            </div>
+            <div class="stat-card accent-blue">
+                <div class="stat-label">Alumnos</div>
+                <div class="stat-value" id="stat-alumnos">—</div>
+            </div>
+            <div class="stat-card accent-yellow">
+                <div class="stat-label">Rutas activas</div>
+                <div class="stat-value" id="stat-rutas">—</div>
+            </div>
+            <div class="stat-card accent-purple">
+                <div class="stat-label">Promedio general</div>
+                <div class="stat-value" id="stat-avg">—</div>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <div class="table-header">
+                <h2>Usuarios registrados</h2>
+                <input class="table-search" type="text" id="searchInput" placeholder="Buscar por nombre o correo…">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Correo</th>
+                        <th>Rol</th>
+                        <th>Registro</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="5" class="table-empty">Cargando usuarios…</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-section">
+            <div class="table-header">
+                <h2>Actividad reciente</h2>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Rol</th>
+                        <th>Acción</th>
+                        <th>Detalle</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody id="actividadTableBody">
+                    <tr>
+                        <td colspan="5" class="table-empty">Cargando actividad…</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal: Agregar usuario -->
+    <div class="modal-overlay" id="modalAddUser">
+        <div class="modal-box">
+            <button class="modal-close" id="btnCloseAdd">&times;</button>
+            <div class="modal-title">Agregar usuario</div>
+            <div class="modal-sub">El nuevo usuario podrá iniciar sesión de inmediato.</div>
+            <form id="formAddUser" autocomplete="off">
+                <div class="form-field">
+                    <label>Nombre completo</label>
+                    <input type="text" id="addName" placeholder="Ej. María García" required>
+                </div>
+                <div class="form-field">
+                    <label>Correo electrónico</label>
+                    <input type="email" id="addEmail" placeholder="correo@ejemplo.com" required>
+                </div>
+                <div class="form-field">
+                    <label>Contraseña</label>
+                    <input type="password" id="addPassword" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                </div>
+                <div class="form-error" id="addError"></div>
+                <button type="submit" class="btn-submit" id="btnSubmitAdd">Crear usuario</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Confirmar eliminación -->
+    <div class="modal-overlay" id="modalConfirmDelete">
+        <div class="modal-box">
+            <div class="confirm-body">
+                <div class="confirm-icon">🗑️</div>
+                <h3>¿Eliminar usuario?</h3>
+                <p id="deleteUserName">Esta acción no se puede deshacer.</p>
+                <div class="confirm-actions">
+                    <button class="btn-cancel" id="btnCancelDelete">Cancelar</button>
+                    <button class="btn-confirm-delete" id="btnConfirmDelete">Sí, eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Cambiar rol -->
+    <div class="modal-overlay" id="modalChangeRole">
+        <div class="modal-box">
+            <button class="modal-close" id="btnCloseRole">&times;</button>
+            <div class="modal-title">Cambiar rol de usuario</div>
+            <div class="modal-sub" id="roleUserName">Selecciona el nuevo rol para el usuario.</div>
+            <form id="formChangeRole" autocomplete="off">
+                <div class="form-field">
+                    <label>Nuevo Rol</label>
+                    <select id="changeRoleSelect" required>
+                        <option value="alumno">Alumno</option>
+                        <option value="maestro">Maestro</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="form-error" id="roleError"></div>
+                <button type="submit" class="btn-submit" id="btnSubmitRole">Actualizar rol</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span class="toast-dot green" id="toastDot"></span>
+        <span id="toastMsg">Acción completada</span>
+    </div>
+
+    <script src="scripts/administracion.js"></script>
+</body>
+
+</html>

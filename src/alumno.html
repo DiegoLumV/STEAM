@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="./Css/styles.css">
+  <link rel="icon" href="img/icon.png">
+  <title>Mi Dashboard · CasaSTEAM</title>
+  <style>
+    .dash-wrap { max-width: 900px; margin: 0 auto; padding: 36px 24px 80px; }
+    .dash-wrap h1 { font-size: 22px; color: var(--text-dark); margin: 0 0 4px; }
+    .dash-wrap .sub { font-size: 13px; color: var(--text-muted); margin: 0 0 28px; }
+
+    .dash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .dash-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 20px; text-decoration: none; display: block; transition: border-color .15s, transform .1s;
+    }
+    .dash-card:hover { border-color: #2563eb; transform: translateY(-1px); }
+    .dash-card .icon { font-size: 26px; margin-bottom: 10px; display: block; }
+    .dash-card h3 { margin: 0 0 4px; font-size: 15px; color: var(--text-dark); }
+    .dash-card p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .dash-card .badge {
+      display: inline-block; margin-top: 10px; font-size: 11px; font-weight: 600;
+      padding: 3px 9px; border-radius: 20px; background: rgba(37,99,235,.10); color: #2563eb;
+    }
+    .dash-card .badge.ok { background: rgba(34,197,94,.12); color: #16a34a; }
+    .dash-card .badge.warn { background: rgba(148,163,184,.15); color: #64748b; }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="logo-block">
+      <div class="logo-icon"><a href="index.html"><img src="img/icon.png" alt="CasaSTEAM"></a></div>
+      <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
+    </div>
+    <div class="nav-label">Navegación</div>
+    <button class="nav-btn active-quiz"><span class="dot"></span>Mi Dashboard</button>
+    <div id="sidebar-user-learn" style="padding:8px 12px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;"></div>
+  </aside>
+
+  <div class="main">
+    <div class="dash-wrap">
+      <h1 id="saludo">Bienvenido</h1>
+      <p class="sub">Aquí están tus cursos, tu examen final y tus calificaciones.</p>
+
+      <div class="dash-grid">
+        <a href="learn.html" class="dash-card">
+          <span class="icon">📘</span>
+          <h3>Constructor de Casa</h3>
+          <p>Tu curso activo — sigue los módulos de fundamentos, matemáticas, mezclas, construcción y más.</p>
+        </a>
+
+        <a href="sandbox.html" class="dash-card">
+          <span class="icon">🏗️</span>
+          <h3>Examen Final</h3>
+          <p>Modela y construye tu casa dentro del simulador.</p>
+          <span class="badge" id="badgeEntrega">Cargando…</span>
+        </a>
+
+        <a href="mis-calificaciones.html" class="dash-card">
+          <span class="icon">📊</span>
+          <h3>Mis Calificaciones</h3>
+          <p>Consulta el resultado de tu examen final una vez calificado.</p>
+          <span class="badge" id="badgeCalif">Cargando…</span>
+        </a>
+
+        <a href="cuestionario.html" class="dash-card" id="cardCuestionario">
+          <span class="icon">💬</span>
+          <h3>Preguntas del Proyecto</h3>
+          <p>Publica preguntas sobre tu casa y responde las de tus compañeros.</p>
+          <span class="badge warn" id="badgeCuestionario">Entrega tu casa para desbloquear</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    let payload = null;
+    try {
+      payload = JSON.parse(atob(token.split('.')[1]));
+      document.getElementById('saludo').textContent = `Bienvenido, ${payload.nombre_completo.split(' ')[0]}`;
+      document.getElementById('sidebar-user-learn').innerHTML =
+        `<strong style="color:var(--text-dark);display:block">${payload.nombre_completo}</strong>Alumno`;
+    } catch (e) { window.location.href = 'index.html'; }
+
+    // Estado de entrega → habilita/deshabilita el cuestionario y muestra el badge del examen
+    fetch('/api/entrega?proyecto_id=1', { headers })
+      .then(r => r.json())
+      .then(d => {
+        const badgeEntrega = document.getElementById('badgeEntrega');
+        const badgeCuestionario = document.getElementById('badgeCuestionario');
+        if (d.entregado) {
+          badgeEntrega.textContent = 'Entregado';
+          badgeEntrega.classList.add('ok');
+          badgeCuestionario.textContent = 'Disponible';
+          badgeCuestionario.classList.remove('warn');
+          badgeCuestionario.classList.add('ok');
+        } else {
+          badgeEntrega.textContent = 'Sin entregar';
+        }
+      })
+      .catch(() => { document.getElementById('badgeEntrega').textContent = '—'; });
+
+    // Resumen de calificaciones
+    fetch('/api/alumno/calificaciones', { headers })
+      .then(r => r.json())
+      .then(d => {
+        const badge = document.getElementById('badgeCalif');
+        const calif = d.calificaciones || [];
+        const calificada = calif.find(c => c.calificacion_final != null);
+        if (calificada) {
+          badge.textContent = `${parseFloat(calificada.calificacion_final)}/100`;
+          badge.classList.add('ok');
+        } else if (calif.length) {
+          badge.textContent = 'Pendiente de revisión';
+        } else {
+          badge.textContent = 'Sin calificaciones aún';
+        }
+      })
+      .catch(() => { document.getElementById('badgeCalif').textContent = '—'; });
+  </script>
+</body>
+
+</html>
