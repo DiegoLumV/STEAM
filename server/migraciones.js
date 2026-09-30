@@ -184,6 +184,7 @@ export const MIGRACIONES = [
         AND NOT EXISTS (SELECT 1 FROM practicas WHERE titulo = 'Examen Final: Construcción de Casa')`,
     ]
   },
+
   {
     // Dashboard del maestro: un alumno no puede inscribirse dos veces al
     // mismo curso (avance_rutas ya modela "inscripción/progreso", se
