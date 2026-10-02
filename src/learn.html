@@ -52,14 +52,20 @@
         <span class="dot"></span>📊 Mis Calificaciones
       </button>
     </a>
+    <!-- Dashboard del alumno (oculto por defecto) -->
+    <a href="alumno.html?proyecto=1" style="all: unset;" id="link-dash-alumno">
+      <button class="nav-btn active-quiz" id="btn-dash-alumno" style="display:none;">
+        <span class="dot"></span>📋 Mi Dashboard
+      </button>
+    </a>
     <!-- Opción solo visible para administradores (oculta por defecto) -->
-    <a href="PanelAdministrativo.html" style="all: unset;" id="link-admin">
+    <a href="PanelAdministrativo.html?proyecto=1" style="all: unset;" id="link-admin">
       <button class="nav-btn inactive-admin" id="btn-admin" style="display:none;">
         <span class="dot"></span>Administrador
       </button>
     </a>
     <!-- Opción solo visible para maestros (oculta por defecto) -->
-    <a href="maestro.html" style="all: unset;" id="link-maestro">
+    <a href="maestro.html?curso=1" style="all: unset;" id="link-maestro">
       <button class="nav-btn inactive-admin" id="btn-maestro" style="display:none;">
         <span class="dot"></span>Panel del Maestro
       </button>
@@ -569,6 +575,12 @@
         const sidebarUser = document.getElementById('sidebar-user-learn');
         if (sidebarUser) {
           sidebarUser.innerHTML = `<strong style="color:var(--text-dark);display:block">${nameUser}</strong>${rolLabel}`;
+        }
+
+        // Mostrar Mi Dashboard solo a alumnos
+        if (payload.rol_nombre === 'alumno') {
+          const btnDash = document.getElementById('btn-dash-alumno');
+          if (btnDash) btnDash.style.display = 'flex';
         }
 
         // Mostrar botón admin solo si es admin

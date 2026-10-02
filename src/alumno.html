@@ -27,6 +27,20 @@
     }
     .dash-card .badge.ok { background: rgba(34,197,94,.12); color: #16a34a; }
     .dash-card .badge.warn { background: rgba(148,163,184,.15); color: #64748b; }
+    
+    /* Dashboard del alumno: secciones nuevas */
+    .dx-section { margin: 0 0 24px; }
+    .dx-section h2 { font-size: 14px; color: var(--text-dark); margin: 0 0 10px; }
+    .dx-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; }
+    .dx-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .dx-stat b { display: block; font-size: 22px; color: var(--text-dark); }
+    .dx-stat span { font-size: 12px; color: var(--text-muted); }
+    .dx-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-dark); }
+    .dx-row:last-child { border-bottom: 0; }
+    .dx-row small { color: var(--text-muted); font-size: 12px; }
+    .dx-row.ok b { color: #16a34a; }
+    .dx-empty { font-size: 13px; color: var(--text-muted); margin: 0; }
+    .dx-back { display: inline-block; font-size: 12px; margin: 0 0 14px; color: #2563eb; text-decoration: none; }
   </style>
 </head>
 
@@ -38,13 +52,18 @@
     </div>
     <div class="nav-label">Navegación</div>
     <button class="nav-btn active-quiz"><span class="dot"></span>Mi Dashboard</button>
+    <a href="proyectos.html" style="all:unset"><button class="nav-btn"><span class="dot"></span>Proyectos</button></a>
+    <a href="learn.html" id="navVolverProyecto" style="all:unset;display:none"><button class="nav-btn"><span class="dot"></span>← Volver al proyecto</button></a>
     <div id="sidebar-user-learn" style="padding:8px 12px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;"></div>
   </aside>
 
   <div class="main">
     <div class="dash-wrap">
       <h1 id="saludo">Bienvenido</h1>
-      <p class="sub">Aquí están tus cursos, tu examen final y tus calificaciones.</p>
+      <p class="sub" id="subtitulo">Aquí están tus cursos, tu examen final y tus calificaciones.</p>
+
+      <div id="dash-extra"></div>
+
 
       <div class="dash-grid">
         <a href="learn.html" class="dash-card">
@@ -125,6 +144,76 @@
         }
       })
       .catch(() => { document.getElementById('badgeCalif').textContent = '—'; });
+  </script>
+  
+  <script>
+    // Dashboard del alumno: general (sin ?proyecto) o de un proyecto (?proyecto=ID).
+    (function () {
+      const rol = payload && payload.rol_nombre;
+      if (rol !== 'alumno') return;
+
+      const box = document.getElementById('dash-extra');
+      const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const fecha = f => f ? new Date(f).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+      const EXAMEN = { no_iniciado: 'No iniciado', en_progreso: 'En progreso', entregado: 'Entregado' };
+      const ACCION = { login: 'Inicio de sesión', entrega_casa: 'Entrega del examen', reinicio_casa: 'Reinicio de la casa', pregunta_creada: 'Pregunta publicada' };
+      const lista = (items, vacio) => items.length ? items.join('') : `<p class="dx-empty">${vacio}</p>`;
+      const eventos = ev => lista(ev.map(e => `<div class="dx-row"><span>${esc(ACCION[e.tipo_accion] || e.tipo_accion)}</span><small>${fecha(e.creado_en)}</small></div>`), 'Sin actividad registrada todavía.');
+      const get = url => fetch(url, { headers }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+      const califs = get('/api/alumno/calificaciones').then(d => d.calificaciones || []).catch(() => null);
+      const califHtml = (cs, vacio) => cs === null ? '<p class="dx-empty">No se pudieron cargar tus calificaciones.</p>'
+        : lista(cs.map(c => `<div class="dx-row"><span>${esc(c.practica)}</span><small>${c.calificacion_final != null ? parseFloat(c.calificacion_final) + '/100' : 'Pendiente de revisión'}</small></div>`), vacio);
+
+      const pid = parseInt(new URLSearchParams(location.search).get('proyecto'), 10);
+
+      if (Number.isInteger(pid)) {
+        // ── Dentro de un proyecto ──
+        document.getElementById('navVolverProyecto').style.display = '';
+        document.getElementById('subtitulo').style.display = 'none';
+        Promise.all([get(`/api/alumno/proyectos/${pid}/dashboard`), califs]).then(([d, cs]) => {
+          document.getElementById('saludo').textContent = d.proyecto.nombre;
+          const propias = cs === null ? null : cs.filter(c => c.ruta === d.proyecto.nombre);
+          box.innerHTML = `
+            <div class="dx-section"><h2>Información del proyecto</h2><div class="dx-panel">
+              <div class="dx-row"><span>Estado</span><b>${EXAMEN[d.examen.estado]}</b></div>
+              <div class="dx-row"><span>Inscripción</span><b>${d.proyecto.inscrito ? 'Inscrito' : 'Sin inscripción en un curso'}</b></div>
+              ${d.proyecto.descripcion ? `<p class="dx-empty" style="margin-top:8px">${esc(d.proyecto.descripcion)}</p>` : ''}
+            </div></div>
+            <div class="dx-section"><h2>Mi progreso</h2><div class="dx-panel">
+              <div class="dx-row"><span>Objetivos completos</span><b>${d.progreso.objetivos_completos} de ${d.progreso.objetivos_total}</b></div>
+              <div class="dx-row"><span>Etapa actual</span><b>${esc(d.progreso.etapa || 'Sin avance guardado')}</b></div>
+            </div></div>
+            <div class="dx-section"><h2>Mis objetivos</h2><div class="dx-panel">
+              ${d.objetivos.map(o => `<div class="dx-row ${o.completo ? 'ok' : ''}"><span>${esc(o.label)}</span><b>${o.actual}/${o.requerido}${o.completo ? ' ✓' : ''}</b></div>`).join('')}
+            </div></div>
+            <div class="dx-section"><h2>Mi examen</h2><div class="dx-panel">
+              <div class="dx-row"><span>Estado</span><b>${EXAMEN[d.examen.estado]}</b></div>
+              <div class="dx-row"><span>Entregado</span><small>${fecha(d.examen.entregado_en)}</small></div>
+            </div></div>
+            <div class="dx-section"><h2>Mis calificaciones</h2><div class="dx-panel">${califHtml(propias, 'Aún no tienes calificaciones en este proyecto.')}</div></div>
+            <div class="dx-section"><h2>Mi actividad</h2><div class="dx-panel">
+              <div class="dx-row"><span>Último guardado</span><small>${fecha(d.actividad.ultimo_guardado)}</small></div>
+              <div class="dx-row"><span>Última entrega</span><small>${fecha(d.actividad.ultima_entrega)}</small></div>
+              ${eventos(d.actividad.eventos)}
+            </div></div>`;
+        }).catch(() => { box.innerHTML = '<p class="dx-empty">No se pudo cargar el dashboard de este proyecto.</p>'; });
+      } else {
+        // ── Fuera de un proyecto: dashboard general ──
+        Promise.all([get('/api/alumno/dashboard'), califs]).then(([d, cs]) => {
+          box.innerHTML = `
+            <div class="dx-section"><h2>Progreso general</h2><div class="dx-panel dx-stats">
+              <div class="dx-stat"><b>${d.resumen.total}</b><span>Proyectos</span></div>
+              <div class="dx-stat"><b>${d.resumen.completados}</b><span>Completados</span></div>
+              <div class="dx-stat"><b>${d.resumen.pendientes}</b><span>Pendientes</span></div>
+            </div></div>
+            <div class="dx-section"><h2>Mis proyectos y exámenes</h2><div class="dx-panel">
+              ${lista(d.proyectos.map(p => `<div class="dx-row"><span><a href="alumno.html?proyecto=${p.id}" style="color:inherit">${esc(p.nombre)}</a><br><small>Objetivos ${p.objetivos_completos}/${p.objetivos_total} · Último guardado ${fecha(p.ultimo_guardado)}</small></span><b>${EXAMEN[p.examen]}</b></div>`), 'Todavía no estás inscrito en ningún proyecto. Elige uno en Proyectos.')}
+            </div></div>
+            <div class="dx-section"><h2>Calificaciones</h2><div class="dx-panel">${califHtml(cs, 'Aún no tienes calificaciones.')}</div></div>
+            <div class="dx-section"><h2>Actividad reciente</h2><div class="dx-panel">${eventos(d.actividad)}</div></div>`;
+        }).catch(() => { box.innerHTML = ''; });
+      }
+    })();
   </script>
 </body>
 

@@ -132,14 +132,16 @@
       </div>
     </div>
 
-    <h2 style="font-size:15px;color:var(--text-dark);margin:0 0 12px;">Mis Cursos</h2>
-    <div class="cursos-row" id="cursosRow">
-      <div class="curso-card"><div class="curso-count">Cargando cursos…</div></div>
+    <div id="general-section">
+      <h2 style="font-size:15px;color:var(--text-dark);margin:0 0 12px;">Mis Cursos</h2>
+      <div class="cursos-row" id="cursosRow">
+        <div class="curso-card"><div class="curso-count">Cargando cursos…</div></div>
+      </div>
     </div>
 
     <div class="table-section">
       <div class="table-header">
-        <h2>Alumnos</h2>
+        <h2 id="tablaTitulo">Alumnos</h2>
         <input class="table-search" type="text" id="searchInput" placeholder="Buscar por nombre o correo…">
       </div>
       <table>
@@ -267,15 +269,23 @@
       const cont = document.getElementById('cursosRow');
       if (!lista.length) { cont.innerHTML = '<div class="curso-card"><div class="curso-count">Sin cursos todavía.</div></div>'; return; }
       cont.innerHTML = lista.map(c => `
-        <div class="curso-card">
+        <a href="maestro.html?curso=${c.id}" class="curso-card" style="text-decoration:none; display:block; cursor:pointer;">
           <h3>${c.titulo}</h3>
           <div class="curso-count">${c.total_alumnos} alumno(s) inscrito(s)</div>
-        </div>
+          <div style="margin-top:8px; font-size:11px; color:#2563eb; font-weight:600;">Ver detalles →</div>
+        </a>
       `).join('');
 
       const select = document.getElementById('addCurso');
       select.innerHTML = '<option value="">Selecciona un curso…</option>' +
         lista.map(c => `<option value="${c.id}">${c.titulo}</option>`).join('');
+    }
+
+    const currentCursoId = parseInt(new URLSearchParams(location.search).get('curso'), 10);
+    
+    if (Number.isInteger(currentCursoId)) {
+      document.getElementById('general-section').style.display = 'none';
+      document.querySelector('.admin-topbar-left p').innerHTML = '<a href="maestro.html" style="color:#2563eb;text-decoration:none;">← Volver al Panel General</a>';
     }
 
     async function cargarCursos() {
@@ -288,7 +298,19 @@
     async function cargarAlumnos() {
       const res = await fetch(`${API}/maestro/alumnos`, { headers: hdrs() });
       const d = await res.json();
-      alumnos = d.alumnos || [];
+      let todosAlumnos = d.alumnos || [];
+      
+      if (Number.isInteger(currentCursoId)) {
+        // Filtrar alumnos al curso actual
+        const cursoInfo = cursos.find(c => c.id === currentCursoId);
+        if (cursoInfo) {
+          document.querySelector('.admin-topbar-left h1').textContent = cursoInfo.titulo;
+          document.getElementById('tablaTitulo').textContent = `Alumnos en ${cursoInfo.titulo}`;
+          todosAlumnos = todosAlumnos.filter(a => a.curso === cursoInfo.titulo);
+        }
+      }
+      
+      alumnos = todosAlumnos;
       render(alumnos);
       actualizarStats(alumnos);
     }

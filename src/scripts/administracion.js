@@ -227,5 +227,59 @@ document.getElementById('formChangeRole').addEventListener('submit', async e => 
     btn.textContent = 'Actualizar rol';
 });
 
-loadStats();
-loadUsers();
+
+const currentProyectoId = parseInt(new URLSearchParams(location.search).get('proyecto'), 10);
+
+if (Number.isInteger(currentProyectoId)) {
+    document.getElementById('general-section').style.display = 'none';
+    document.getElementById('project-section').style.display = 'block';
+    
+    // Add breadcrumb to go back
+    document.getElementById('topbar-sub').innerHTML = '<a href="PanelAdministrativo.html" style="color:#2563eb;text-decoration:none;">← Volver al Panel General</a>';
+    
+    // Fetch project info using maestro APIs (admin is allowed to do this)
+    async function loadProjectContext() {
+        try {
+            const [cursosRes, alumnosRes] = await Promise.all([
+                fetch(`${API}/maestro/cursos`, { headers: hdrs() }),
+                fetch(`${API}/maestro/alumnos`, { headers: hdrs() })
+            ]);
+            
+            const cursosData = await cursosRes.json();
+            const alumnosData = await alumnosRes.json();
+            
+            const curso = (cursosData.cursos || []).find(c => c.id === currentProyectoId);
+            if (curso) {
+                document.getElementById('panelTitle').textContent = `Proyecto: ${curso.titulo}`;
+                
+                // Filter students who are in this course
+                const projectAlumnos = (alumnosData.alumnos || []).filter(a => a.curso === curso.titulo);
+                
+                const tbody = document.getElementById('projectTableBody');
+                if (!projectAlumnos.length) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Sin alumnos en este proyecto todavía.</td></tr>`;
+                } else {
+                    const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                    tbody.innerHTML = projectAlumnos.map(a => `
+                        <tr>
+                            <td class="cell-name">${a.nombre_completo}</td>
+                            <td class="cell-email">${a.email}</td>
+                            <td>${a.estado_general || '—'}</td>
+                            <td>${a.entregado_en ? `<span style="color:#16a34a">Entregado (${fmtDate(a.entregado_en)})</span>` : '<span style="color:#64748b">Pendiente</span>'}</td>
+                            <td>${a.calificacion_final ?? '—'}</td>
+                        </tr>
+                    `).join('');
+                }
+            } else {
+                document.getElementById('projectTableBody').innerHTML = `<tr><td colspan="5" class="table-empty">Proyecto no encontrado.</td></tr>`;
+            }
+        } catch (e) {
+            document.getElementById('projectTableBody').innerHTML = `<tr><td colspan="5" class="table-empty">Error al cargar datos del proyecto.</td></tr>`;
+        }
+    }
+    
+    loadProjectContext();
+} else {
+    loadStats();
+    loadUsers();
+}

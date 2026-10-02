@@ -176,6 +176,12 @@
     <p>Elige el simulador con el que quieres trabajar.</p>
   </div>
 
+  <div style="max-width:900px;margin:-24px auto 24px;">
+    <a id="link-dash-alumno" href="alumno.html" style="display:none;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;">📋 Mi Dashboard</a>
+    <a id="link-dash-maestro" href="maestro.html" style="display:none;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;margin-right:16px;">📋 Panel del Maestro</a>
+    <a id="link-dash-admin" href="PanelAdministrativo.html" style="display:none;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;">📋 Panel Administrativo</a>
+  </div>
+
   <div class="project-grid">
 
     <!-- ══════════ TARJETA 1 — NARANJA (proyecto activo) ══════════ -->
@@ -208,6 +214,15 @@
 
   </div>
 
+  <script>
+    // Mostrar enlaces a los dashboards según el rol
+    try {
+      const p = JSON.parse(atob((localStorage.getItem('token') || '').split('.')[1]));
+      if (p.rol_nombre === 'alumno') document.getElementById('link-dash-alumno').style.display = 'inline-block';
+      if (p.rol_nombre === 'maestro') document.getElementById('link-dash-maestro').style.display = 'inline-block';
+      if (p.rol_nombre === 'admin') document.getElementById('link-dash-admin').style.display = 'inline-block';
+    } catch (e) { /* sin sesión: el enlace queda oculto */ }
+  </script>
 </body>
 
 </html>
