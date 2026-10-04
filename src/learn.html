@@ -1634,6 +1634,7 @@
       }
       updateNodes(moduleKey);
       updateProgressChip(moduleKey);
+      guardarProgresoModulos();
 
       const total = 6;
       if (lessonNum < total) {
@@ -1755,6 +1756,32 @@
     document.getElementById('btn-examen').addEventListener('click', () => {
       window.location.href = 'examen.html';
     });
+
+    // ── Progreso de módulos: guardar y recuperar (por alumno, vía avance_rutas) ──
+    function guardarProgresoModulos() {
+      fetch('/api/progreso-modulos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ completed })
+      }).catch(() => { /* si falla, no interrumpe al alumno; se reintenta en la próxima lección */ });
+    }
+
+    (function cargarProgresoModulos() {
+      fetch('/api/progreso-modulos', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+        .then(r => r.ok ? r.json() : { completed: null })
+        .then(d => {
+          if (d.completed) {
+            moduleKeys.forEach(key => {
+              if (Array.isArray(d.completed[key])) completed[key] = d.completed[key];
+            });
+          }
+          // Refresca la vista de cada módulo con el progreso ya aplicado
+          // (si no había nada guardado, esto deja exactamente el mismo
+          // estado inicial que ya se veía antes: lección 1 desbloqueada).
+          moduleKeys.forEach(key => { updateNodes(key); updateProgressChip(key); });
+        })
+        .catch(() => { /* sin progreso guardado o sin conexión: se queda como arrancaba antes */ });
+    })();
 
   </script>
 </body>
