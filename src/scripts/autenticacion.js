@@ -21,7 +21,9 @@
     // ─── Abrir / cerrar modales ───
     $('#btnOpenLogin').addEventListener('click', (e) => {
         e.preventDefault();
+        if (authenticated) { window.location.href = 'proyectos.html'; return; }
         modalLogin.classList.add('visible');
+        $('#loginEmail').focus();
     });
 
     function closeModal(modal) {
@@ -134,45 +136,39 @@
         }
     });
 
-    // ─── Si ya está logueado, redirigir ───
+    // Validar la sesión sin saltar la selección de proyectos.
+    let authenticated = false;
+    const accessButtons = document.querySelectorAll('a.btn-main');
+    accessButtons.forEach(btn => btn.addEventListener('click', e => {
+        if (!authenticated) {
+            e.preventDefault();
+            modalLogin.classList.add('visible');
+            $('#loginEmail').focus();
+        }
+    }));
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeModal(modalLogin);
+            closeModal(modalRegister);
+        }
+    });
     const token = localStorage.getItem('token');
     if (token) {
-        fetch('/api/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` },
-        })
-            .then(r => r.json())
-            .then(data => {
-                if (data.user) {
-                    // Ya está logueado — mostrar opción en topbar
-                    const topbar = document.querySelector('.topbar');
-                    const enterBtn = topbar.querySelector('.btn-main');
-                    const firstName = data.user.nombre_completo.split(' ')[0];
-                    enterBtn.textContent = `Hola, ${firstName} →`;
-                    enterBtn.href = 'proyectos.html';
-                    enterBtn.onclick = (e) => {
-                        e.preventDefault();
-                        window.location.href = 'proyectos.html';
-                    };
+        fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+            .then(async r => {
+                if (r.status === 401 || r.status === 403) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
                 }
+                if (!r.ok) return;
+                const data = await r.json();
+                if (!data.user) return;
+                authenticated = true;
+                $('#btnOpenLogin').textContent = 'Mis proyectos';
+                const enterBtn = document.querySelector('.topbar .btn-main');
+                enterBtn.textContent = 'Mis proyectos →';
+                enterBtn.href = 'proyectos.html';
             })
-            .catch(() => {
-                // Token inválido, limpiar y proteger botones
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                guardButtons();
-            });
-    } else {
-        // Sin sesión — bloquear botones de acceso
-        guardButtons();
-    }
-
-    // Intercepta clics en todos los btn-main para abrir login si no hay sesión
-    function guardButtons() {
-        document.querySelectorAll('a.btn-main').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                modalLogin.classList.add('visible');
-            });
-        });
+            .catch(() => {});
     }
 })();

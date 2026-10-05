@@ -282,4 +282,4 @@ if (Number.isInteger(currentProyectoId)) {
 } else {
     loadStats();
     loadUsers();
-}
+}
