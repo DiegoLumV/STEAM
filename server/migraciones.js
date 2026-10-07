@@ -201,6 +201,16 @@ export const MIGRACIONES = [
        END $$`,
     ]
   },
+  {
+    // Soporte para "Continuar con Google": se agrega google_id a usuarios.
+    // password_hash ya acepta NULL (no se cambió la tabla) — los usuarios que
+    // se registren solo con Google simplemente no tendrán hash de contraseña.
+    id: '008_google_auth',
+    sql: [
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS google_id VARCHAR(128) UNIQUE`,
+      `CREATE INDEX IF NOT EXISTS idx_usuarios_google_id ON usuarios (google_id)`,
+    ]
+  },
   // ── La próxima migración se agrega aquí, como un objeto nuevo ──
 ];
 

@@ -394,6 +394,154 @@ function clampToZone(root) {
   if (root.position.y < MIN_Y) root.position.y = MIN_Y;
 }
 
+// ── Colisión entre bloques (Block y Madera) ─────────────────────────────────
+// Se consideran "bloques" las piezas sueltas del catálogo (Block, Madera) y las paredes
+// de Block/Madera que se crean con "Construir". Cada una tiene un hitbox ORIENTADO (OBB)
+// calculado con las medidas reales de sus mallas (p. ej. Block 1.0×0.7×0.5; una pared 4×4
+// = 4 de ancho × 2.8 de alto × 0.5 de grosor), de modo que respeta también las rotaciones
+// de Q/E/R/F/T/G. Dos bloques se consideran superpuestos cuando sus hitbox se penetran más
+// de COLLISION_TOLERANCE (tocarse o apoyarse uno sobre otro sí se permite).
+const COLLISION_TYPES = ['block', 'madera', 'wall_block', 'wall_madera'];
+const COLLISION_TOLERANCE = 0.03; // margen permitido de penetración, en unidades de la escena
+
+// Hitbox del bloque: centro, ejes locales (en mundo) y semi-medidas a lo largo de cada eje.
+// Las medidas locales se calculan una vez por bloque (se recalculan si cambia su número de
+// mallas); en cada comprobación solo se aplica la transformación actual del bloque.
+// Las puertas/ventanas incrustadas en una pared no forman parte del hitbox de la pared.
+const hitboxLocal = new WeakMap();
+function getBlockHitbox(node) {
+  node.computeWorldMatrix(true);
+  const world = node.getWorldMatrix();
+  const embebida = m => {
+    for (let p = m.parent; p && p !== node; p = p.parent) if (p.userData?.embeddedInWall) return true;
+    return false;
+  };
+  const todas = node.getChildMeshes();
+  let loc = hitboxLocal.get(node);
+  if (!loc || loc.n !== todas.length) {
+    const propias = todas.filter(m => !embebida(m));
+    const mallas = propias.length ? propias : todas;
+    const inv = world.clone().invert();
+    const mn = new Vector3(Infinity, Infinity, Infinity);
+    const mx = new Vector3(-Infinity, -Infinity, -Infinity);
+    mallas.forEach(m => {
+      m.computeWorldMatrix(true);
+      m.getBoundingInfo().boundingBox.vectorsWorld.forEach(corner => {
+        const local = Vector3.TransformCoordinates(corner, inv); // al espacio local del bloque
+        mn.minimizeInPlace(local);
+        mx.maximizeInPlace(local);
+      });
+    });
+    if (!isFinite(mn.x)) return null;
+    loc = { n: todas.length, c: mn.add(mx).scale(0.5), h: [(mx.x - mn.x) / 2, (mx.y - mn.y) / 2, (mx.z - mn.z) / 2] };
+    hitboxLocal.set(node, loc);
+  }
+  const axes = [Vector3.Right(), Vector3.Up(), Vector3.Forward()].map(v => Vector3.TransformNormal(v, world));
+  const scale = axes.map(a => a.length());
+  return {
+    c: Vector3.TransformCoordinates(loc.c, world),
+    u: axes.map((a, i) => a.scale(1 / scale[i])),
+    e: [loc.h[0] * scale[0], loc.h[1] * scale[1], loc.h[2] * scale[2]],
+  };
+}
+
+// Profundidad de penetración entre dos hitbox orientados (teorema de ejes separadores, 15 ejes).
+// Devuelve 0 si existe algún eje que los separa (no se superponen).
+function obbPenetration(a, b) {
+  const t = b.c.subtract(a.c);
+  let min = Infinity;
+  const test = axis => {
+    const len = axis.length();
+    if (len < 1e-6) return true; // eje degenerado (aristas paralelas): no separa
+    const n = axis.scale(1 / len);
+    const ra = a.e[0] * Math.abs(Vector3.Dot(a.u[0], n)) + a.e[1] * Math.abs(Vector3.Dot(a.u[1], n)) + a.e[2] * Math.abs(Vector3.Dot(a.u[2], n));
+    const rb = b.e[0] * Math.abs(Vector3.Dot(b.u[0], n)) + b.e[1] * Math.abs(Vector3.Dot(b.u[1], n)) + b.e[2] * Math.abs(Vector3.Dot(b.u[2], n));
+    const overlap = ra + rb - Math.abs(Vector3.Dot(t, n));
+    if (overlap <= 0) return false;
+    if (overlap < min) min = overlap;
+    return true;
+  };
+  for (const ax of [...a.u, ...b.u]) if (!test(ax)) return 0;
+  for (const ua of a.u) for (const ub of b.u) if (!test(Vector3.Cross(ua, ub))) return 0;
+  return min;
+}
+
+// Devuelve el bloque ya colocado con el que `node` se superpone, o null si está libre.
+function findBlockCollision(node) {
+  if (!COLLISION_TYPES.includes(node.userData?.type)) return null;
+  const a = getBlockHitbox(node);
+  if (!a) return null;
+  for (const o of objList) {
+    if (o.node === node || !COLLISION_TYPES.includes(o.type)) continue;
+    const b = getBlockHitbox(o.node);
+    if (b && obbPenetration(a, b) > COLLISION_TOLERANCE) return o;
+  }
+  return null;
+}
+
+// Para bloques nuevos (creados o clonados): conserva la posición si está libre; si no,
+// prueba las alternativas dadas. Devuelve false si no hay ninguna libre (no se coloca).
+function colocarSinSolapar(root, candidatos) {
+  if (!findBlockCollision(root)) return true;
+  for (const [x, z] of candidatos) {
+    root.position.x = x;
+    root.position.z = z;
+    clampToZone(root);
+    if (!findBlockCollision(root)) return true;
+  }
+  return false;
+}
+
+// Al mover o rotar un bloque ya colocado: nunca se acepta una posición/rotación que lo meta
+// dentro de otro. El movimiento se recorre en pasos desde el último estado válido, así un
+// arrastre rápido no puede "saltar" a través de otro bloque; se queda en el punto de contacto.
+const blockEstado = new WeakMap(); // último estado válido de cada bloque
+let blockAvisoTs = 0;
+const blockSig = n => [n.position.x, n.position.y, n.position.z, n.rotation.x, n.rotation.y, n.rotation.z]
+  .map(v => v.toFixed(4)).join('|');
+
+function enforceBlockCollision(node) {
+  if (!COLLISION_TYPES.includes(node.userData?.type)) return;
+  const st = blockEstado.get(node);
+  const sig = blockSig(node);
+  if (st && st.sig === sig) return; // no se movió desde la última comprobación
+  const guardarValido = () => blockEstado.set(node, { sig: blockSig(node), pos: node.position.clone(), rot: node.rotation.clone(), valido: true });
+
+  if (!st || !st.valido) {
+    // Sin estado válido previo (p. ej. un bloque que ya venía superpuesto en un guardado):
+    // se deja moverlo libremente hasta que quede libre; desde ahí ya se aplica la regla.
+    if (!findBlockCollision(node)) guardarValido(); else blockEstado.set(node, { sig, valido: false });
+    return;
+  }
+
+  const destino = node.position.clone();
+  const rotCambio = !node.rotation.equals(st.rot);
+  let libre = !rotCambio ? destino : st.pos.clone();
+  if (!rotCambio) {
+    const pasos = Math.min(120, Math.max(1, Math.ceil(Vector3.Distance(st.pos, destino) / 0.1)));
+    libre = st.pos.clone();
+    let bloqueado = false;
+    for (let i = 1; i <= pasos; i++) {
+      node.position.copyFrom(Vector3.Lerp(st.pos, destino, i / pasos));
+      if (findBlockCollision(node)) { bloqueado = true; break; }
+      libre = node.position.clone();
+    }
+    if (!bloqueado) { node.position.copyFrom(destino); guardarValido(); return; }
+  } else if (!findBlockCollision(node)) {
+    guardarValido();
+    return;
+  }
+
+  // Superpone: se vuelve al último punto libre (y a la rotación válida)
+  node.position.copyFrom(libre);
+  node.rotation.copyFrom(st.rot);
+  guardarValido();
+  if (Date.now() - blockAvisoTs > 1500) {
+    blockAvisoTs = Date.now();
+    setTip('🧱 No se puede colocar ahí: el bloque se superpondría con otro bloque');
+  }
+}
+
 // desbloquea fases en orden: primero piso, luego paredes, luego todo
 function unlockPhase1() {
   // Desbloquea Crear Concreto despues de Matematicas
@@ -453,6 +601,15 @@ function addObj(type) {
     if (shadowGen) shadowGen.addShadowCaster(m, false);
   });
   root.userData = { id, type, label: LABELS[type], emoji: EMOJIS[type] };
+  if (COLLISION_TYPES.includes(type)) {
+    const otros = Array.from({ length: 80 }, () => [(Math.random() - .5) * (BUILD_ZONE * 1.5), (Math.random() - .5) * (BUILD_ZONE * 1.5)]);
+    if (!colocarSinSolapar(root, otros)) {
+      root.getChildMeshes().forEach(m => { if (shadowGen) shadowGen.removeShadowCaster(m); });
+      root.dispose();
+      showLockedMessage('🧱 No hay espacio libre para colocar otro bloque sin que se superponga con los existentes.');
+      return;
+    }
+  }
   objList.push({ id, type, label: LABELS[type], emoji: EMOJIS[type], node: root });
   updateObjListUI(); selectObject(root);
   setTip(`<b>${EMOJIS[type]} ${LABELS[type]}</b> añadido · Arrastra las flechas de colores para moverlo · Q/E para rotar`);
@@ -472,12 +629,15 @@ function setupGizmos() {
   gizmoMgr.usePointerToAttachGizmos = false;
   gizmoMgr.positionGizmoEnabled = true;
   gizmoMgr.rotationGizmoEnabled = false;
-  gizmoMgr.scaleGizmoEnabled    = false;
+  gizmoMgr.scaleGizmoEnabled = false;
 
   gizmoMgr.gizmos.positionGizmo?.onDragEndObservable.add(() => marcarSucio());
 
   scene.registerBeforeRender(() => {
     if (selectedMesh) clampToZone(selectedMesh);
+  });
+  scene.registerBeforeRender(() => {
+    if (selectedMesh) enforceBlockCollision(selectedMesh);
   });
 
   const CAM_SPEED = Math.PI / 3; // Radianes por segundo, independiente de los FPS.
@@ -523,13 +683,13 @@ function setupGizmos() {
           handled = true;
         }
         break;
-      case 'KeyQ': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.y -= Math.PI/12; handled=true; marcarSucio(); } break;
-      case 'KeyE': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.y += Math.PI/12; handled=true; marcarSucio(); } break;
-      case 'KeyR': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x -= Math.PI/12; handled=true; marcarSucio(); } break;
-      case 'KeyF': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x += Math.PI/12; handled=true; marcarSucio(); } break;
-      case 'KeyT': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.z -= Math.PI/12; handled=true; marcarSucio(); } break;
-      case 'KeyG': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.z += Math.PI/12; handled=true; marcarSucio(); } break;
-      case 'KeyX': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x=0; selectedMesh.rotation.z=0; handled=true; marcarSucio(); } break;
+      case 'KeyQ': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.y -= Math.PI / 12; handled = true; marcarSucio(); } break;
+      case 'KeyE': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.y += Math.PI / 12; handled = true; marcarSucio(); } break;
+      case 'KeyR': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x -= Math.PI / 12; handled = true; marcarSucio(); } break;
+      case 'KeyF': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x += Math.PI / 12; handled = true; marcarSucio(); } break;
+      case 'KeyT': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.z -= Math.PI / 12; handled = true; marcarSucio(); } break;
+      case 'KeyG': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.z += Math.PI / 12; handled = true; marcarSucio(); } break;
+      case 'KeyX': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x = 0; selectedMesh.rotation.z = 0; handled = true; marcarSucio(); } break;
     }
     if (handled) e.preventDefault();
   });
@@ -813,6 +973,26 @@ function cloneObj(id) {
 
   clampToZone(root);
   root.userData = { id: newId, type: src.type, label: src.label, emoji: src.emoji };
+  // Si el bloque original estaba cortado, aplicar el mismo corte al clon
+  if (CUT_TYPES.includes(src.type) && src.node.userData?.cutFactor != null && src.node.userData.cutFactor < 1) {
+    root.userData.cutFactor = src.node.userData.cutFactor;
+    cortarBloque(root, src.node.userData.cutFactor);
+  }
+  if (COLLISION_TYPES.includes(src.type)) {
+    const cercanos = [];
+    for (let r = 0.5; r <= 20; r += (r < 5 ? 0.5 : 1)) {
+      for (let k = 0; k < 12; k++) {
+        const ang = k * Math.PI / 6;
+        cercanos.push([src.node.position.x + 1.0 + Math.cos(ang) * r, src.node.position.z + 1.0 + Math.sin(ang) * r]);
+      }
+    }
+    if (!colocarSinSolapar(root, cercanos)) {
+      root.getChildMeshes().forEach(m => { if (shadowGen) shadowGen.removeShadowCaster(m); });
+      root.dispose();
+      showLockedMessage('🧱 No hay espacio libre para clonar esto sin que se superponga con otro bloque o pared.');
+      return;
+    }
+  }
   const cloneEntry = { id: newId, type: src.type, label: src.label, emoji: src.emoji, node: root };
   // Conservar metadatos de vitropiso para validación de cobertura
   if (src.type === 'floor_vitropiso') {
@@ -1946,6 +2126,21 @@ function buildWall() {
     }
   }
 
+  // Colisión: la pared nueva no puede quedar dentro de otra pared o bloque ya colocado.
+  // Nace en el origen; si está ocupado se busca el hueco libre más cercano. Se hace antes de
+  // registrar puertas/ventanas o contadores, así que si no hay espacio no queda nada a medias.
+  root.userData = { type: 'wall_' + type };
+  const huecosLibres = [];
+  for (let r = 1; r <= 20; r++) {
+    for (let k = 0; k < 16; k++) huecosLibres.push([Math.cos(k * Math.PI / 8) * r, Math.sin(k * Math.PI / 8) * r]);
+  }
+  if (!colocarSinSolapar(root, huecosLibres)) {
+    root.getChildMeshes().forEach(m => { if (shadowGen) shadowGen.removeShadowCaster(m); });
+    root.dispose();
+    showLockedMessage('🧱 No hay espacio libre para construir otra pared sin que se superponga con las existentes.');
+    return;
+  }
+
   // Colocar puertas/ventanas en los huecos automáticamente
   if (mode === 'puerta') {
     const midCol = Math.floor(w / 2);
@@ -2166,7 +2361,260 @@ function showLockedMessage(msg) {
   }, 3500);
 }
 
-// modal de matemáticas
+// ── Cortar bloque: menú contextual + modal + lógica de corte ─────────────────
+// Permite reducir el ancho (eje X local) de un Block o Madera suelto al
+// porcentaje que elija el alumno. Reconstruye las mallas con las nuevas
+// medidas, conserva material/color, posición, rotación y actualiza el hitbox.
+const CUT_TYPES = ['block', 'madera'];
+
+/**
+ * Reconstruye las mallas hijas de `node` con un ancho = 1.0 × factor.
+ * Conserva material, color personalizado, posición y rotación del nodo.
+ */
+function cortarBloque(node, factor) {
+  const type = node.userData?.type;
+  if (!type || !CUT_TYPES.includes(type)) return;
+  factor = Math.max(0.05, Math.min(1, Math.round(factor * 100) / 100));
+
+  // ── guardar material actual del cuerpo (puede estar pintado) ──
+  const children = node.getChildMeshes();
+  let savedMat = null;
+  const bodyMesh = children.find(m => m.name.includes('blk_body') || m.name.includes('mad_body'));
+  if (bodyMesh) savedMat = bodyMesh.material;
+
+  // ── eliminar mallas viejas ──
+  children.slice().forEach(m => {
+    if (shadowGen) try { shadowGen.removeShadowCaster(m); } catch (_) { }
+    m.dispose();
+  });
+
+  const newW = 1.0 * factor;
+
+  if (type === 'block') {
+    // Block original: width=1.0, height=0.7, depth=0.5, pos (0,0.35,0)
+    const b = box('blk_body', newW, 0.7, 0.5, 0, 0.35, 0, savedMat || MAT.block);
+    b.parent = node;
+    if (shadowGen) shadowGen.addShadowCaster(b, false);
+  } else {
+    // Madera original: body width=1.0, height=0.2, depth=0.2, pos (0,0.1,0)
+    const body = box('mad_body', newW, 0.2, 0.2, 0, 0.1, 0, savedMat || MAT.madera);
+    body.parent = node;
+    if (shadowGen) shadowGen.addShadowCaster(body, false);
+    // vetas de madera: solo las que caben dentro del nuevo ancho
+    const halfW = newW / 2;
+    [-0.38, -0.13, 0.12, 0.37].filter(x => x > -halfW + 0.02 && x < halfW - 0.02).forEach((px, i) => {
+      const gm = new PBRMaterial('grain_cut_' + i + '_' + (node.userData?.id || 0), scene);
+      gm.albedoColor = new Color3(0.28, 0.16, 0.06); gm.roughness = 0.9;
+      const g = box('mad_g' + i, 0.01, 0.2, 0.2, px, 0.1, 0, gm);
+      g.parent = node;
+      if (shadowGen) shadowGen.addShadowCaster(g, false);
+    });
+  }
+
+  // actualizar estado
+  node.userData.cutFactor = factor;
+  hitboxLocal.delete(node);   // invalida caché para que el hitbox OBB se recalcule
+  blockEstado.delete(node);   // resetea el estado válido de colisión
+  marcarSucio();
+}
+
+/**
+ * Crea el menú contextual de clic derecho y el modal de corte.
+ * Se llama una vez desde init().
+ */
+function setupBlockContextMenu() {
+  // ── evitar menú nativo del navegador en el canvas ──
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  // ── menú contextual ──
+  const menu = document.createElement('div');
+  menu.id = 'block-ctx-menu';
+  menu.style.cssText = `
+    display:none; position:fixed; z-index:300;
+    background:rgba(8,16,40,.97); border:1px solid rgba(100,160,255,.45);
+    border-radius:10px; padding:4px 0; min-width:190px;
+    box-shadow:0 8px 32px rgba(0,0,0,.6); backdrop-filter:blur(8px);
+    font-family:inherit; font-size:13px; user-select:none;
+  `;
+  const cutBtn = document.createElement('div');
+  cutBtn.id = 'ctx-cut-btn';
+  cutBtn.style.cssText = `
+    padding:10px 16px; color:rgba(220,230,255,.95); cursor:pointer;
+    display:flex; align-items:center; gap:8px; transition:background .15s;
+    border-radius:8px; margin:2px 4px;
+  `;
+  cutBtn.textContent = '✂️ Cortar bloque';
+  cutBtn.addEventListener('mouseenter', () => { cutBtn.style.background = 'rgba(80,140,255,.25)'; });
+  cutBtn.addEventListener('mouseleave', () => { cutBtn.style.background = 'transparent'; });
+  menu.appendChild(cutBtn);
+  document.body.appendChild(menu);
+
+  // ── modal de corte ──
+  const overlay = document.createElement('div');
+  overlay.id = 'cut-overlay';
+  overlay.style.cssText = `
+    display:none; position:fixed; inset:0; z-index:310;
+    background:rgba(0,0,0,.50); backdrop-filter:blur(3px);
+    justify-content:center; align-items:center;
+  `;
+  overlay.innerHTML = `
+    <div id="cut-modal" style="
+      background:rgba(10,18,42,.97); border:1px solid rgba(100,160,255,.40);
+      border-radius:16px; padding:24px 28px 20px; width:340px; max-width:92vw;
+      box-shadow:0 12px 48px rgba(0,0,0,.65); color:rgba(220,230,255,.95);
+      font-family:inherit; font-size:13px;
+    ">
+      <div style="font-size:15px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+        ✂️ Cortar bloque
+      </div>
+      <div style="margin-bottom:8px; color:rgba(180,195,225,.8); font-size:12px;">
+        Elige qué porcentaje del ancho quieres conservar:
+      </div>
+      <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;" id="cut-presets"></div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+        <input type="range" id="cut-slider" min="5" max="100" value="100" step="1" style="
+          flex:1; accent-color:#5b8cff; cursor:pointer;
+        " />
+        <div style="display:flex; align-items:center; gap:3px;">
+          <input type="number" id="cut-input" min="5" max="100" value="100" step="1" style="
+            width:52px; background:rgba(30,45,80,.8); border:1px solid rgba(100,160,255,.35);
+            border-radius:6px; color:#d0daff; text-align:center; padding:5px 4px;
+            font-size:13px; outline:none;
+          " />
+          <span style="color:rgba(180,195,225,.7);">%</span>
+        </div>
+      </div>
+      <div id="cut-preview" style="
+        height:48px; margin-bottom:14px; display:flex; align-items:center;
+        justify-content:center; position:relative; overflow:hidden;
+        background:rgba(20,30,60,.5); border-radius:8px; border:1px solid rgba(100,160,255,.15);
+      ">
+        <div id="cut-preview-full" style="
+          position:absolute; width:80%; height:28px; border-radius:4px;
+          background:rgba(100,140,200,.18); border:1px dashed rgba(140,170,220,.3);
+        "></div>
+        <div id="cut-preview-cut" style="
+          position:absolute; left:10%; height:28px; border-radius:4px;
+          background:rgba(90,140,255,.45); border:1px solid rgba(120,170,255,.5);
+          transition:width .15s;
+        "></div>
+        <span id="cut-preview-label" style="
+          position:relative; z-index:1; font-size:11px; font-weight:600;
+          color:rgba(200,220,255,.9); text-shadow:0 1px 4px rgba(0,0,0,.6);
+        ">100%</span>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cut-cancel" style="
+          padding:8px 18px; border-radius:8px; border:1px solid rgba(140,160,200,.3);
+          background:rgba(40,50,80,.6); color:rgba(200,210,235,.9); cursor:pointer;
+          font-size:12px; transition:background .15s;
+        ">Cancelar</button>
+        <button id="cut-confirm" style="
+          padding:8px 18px; border-radius:8px; border:1px solid rgba(90,140,255,.5);
+          background:rgba(60,110,220,.5); color:rgba(230,240,255,.95); cursor:pointer;
+          font-size:12px; font-weight:600; transition:background .15s;
+        ">✂️ Cortar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // preset buttons
+  const presetsBox = document.getElementById('cut-presets');
+  [25, 50, 75, 100].forEach(pct => {
+    const btn = document.createElement('button');
+    btn.textContent = pct + '%';
+    btn.dataset.pct = pct;
+    btn.style.cssText = `
+      padding:5px 12px; border-radius:6px; font-size:12px; cursor:pointer;
+      border:1px solid rgba(100,160,255,.35); color:rgba(200,220,255,.9);
+      background:rgba(40,60,110,.5); transition:background .15s, border-color .15s;
+    `;
+    btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(60,110,220,.5)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(40,60,110,.5)'; });
+    btn.addEventListener('click', () => setCutValue(pct));
+    presetsBox.appendChild(btn);
+  });
+
+  const slider = document.getElementById('cut-slider');
+  const numInput = document.getElementById('cut-input');
+  const previewCut = document.getElementById('cut-preview-cut');
+  const previewLabel = document.getElementById('cut-preview-label');
+
+  function setCutValue(v) {
+    v = Math.max(5, Math.min(100, Math.round(Number(v)) || 100));
+    slider.value = v;
+    numInput.value = v;
+    previewCut.style.width = (v * 0.8) + '%';
+    previewLabel.textContent = v + '%';
+  }
+  slider.addEventListener('input', () => setCutValue(slider.value));
+  numInput.addEventListener('input', () => setCutValue(numInput.value));
+  numInput.addEventListener('blur', () => setCutValue(numInput.value));
+
+  // ── estado ──
+  let ctxTarget = null;
+
+  function closeCtxMenu() { menu.style.display = 'none'; }
+  function closeCutModal() { overlay.style.display = 'none'; ctxTarget = null; }
+
+  function openCutModal(node) {
+    ctxTarget = node;
+    const current = node.userData?.cutFactor ?? 1;
+    setCutValue(Math.round(current * 100));
+    overlay.style.display = 'flex';
+  }
+
+  // ── detectar clic derecho sobre un Block o Madera ──
+  canvas.addEventListener('pointerdown', e => {
+    if (e.button !== 2) return;
+    closeCtxMenu();
+    const pick = scene.pick(e.offsetX, e.offsetY);
+    if (!pick.hit || !pick.pickedMesh) return;
+    let node = pick.pickedMesh;
+    while (node && !node.userData?.type) node = node.parent;
+    if (!node || !CUT_TYPES.includes(node.userData?.type)) return;
+    ctxTarget = node;
+    // posicionar menú sin salir de la pantalla
+    const mx = Math.min(e.clientX, window.innerWidth - 210);
+    const my = Math.min(e.clientY, window.innerHeight - 60);
+    menu.style.left = mx + 'px';
+    menu.style.top = my + 'px';
+    menu.style.display = 'block';
+  });
+
+  // cerrar menú contextual al hacer clic en otro lado
+  window.addEventListener('pointerdown', e => {
+    if (e.button === 2) return;
+    if (!menu.contains(e.target) && !overlay.contains(e.target)) closeCtxMenu();
+  });
+  window.addEventListener('keydown', e => { if (e.code === 'Escape') { closeCtxMenu(); closeCutModal(); } });
+
+  // botón "Cortar bloque" del menú contextual
+  cutBtn.addEventListener('click', () => {
+    if (!ctxTarget) return;
+    const node = ctxTarget;
+    closeCtxMenu();
+    openCutModal(node);
+  });
+
+  // confirmar corte
+  document.getElementById('cut-confirm').addEventListener('click', () => {
+    if (!ctxTarget) { closeCutModal(); return; }
+    const pct = Math.max(5, Math.min(100, Math.round(Number(numInput.value)) || 100));
+    cortarBloque(ctxTarget, pct / 100);
+    selectObject(ctxTarget);
+    const lbl = ctxTarget.userData?.type === 'block' ? 'Block' : 'Madera';
+    setTip(`✂️ <b>${lbl}</b> cortado al ${pct}% de su ancho original`);
+    closeCutModal();
+  });
+
+  // cancelar
+  document.getElementById('cut-cancel').addEventListener('click', closeCutModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeCutModal(); });
+}
+
+
 function openMatematicasModal() {
   try { registrar('modal_abierto', { contexto: { modal: 'matematicas' } }); } catch (e) { }
   document.getElementById('matematicas-overlay').classList.add('open');
@@ -2595,6 +3043,31 @@ async function restaurarProgreso() {
       root.userData = { id: o.id, type: o.type, label, emoji };
       if (o.type === 'lampara') root.userData.isLampara = true;
       if (o.color) root.userData.color = o.color;
+      // Restaurar bloque cortado: reconstruir con las dimensiones reducidas
+      if (o.cutFactor != null && o.cutFactor < 1 && CUT_TYPES.includes(o.type)) {
+        root.userData.cutFactor = o.cutFactor;
+        cortarBloque(root, o.cutFactor);
+        // Re-aplicar color personalizado tras el corte (cortarBloque conserva
+        // el material del cuerpo, pero si venía del guardado el color se aplicó
+        // a las mallas antiguas que ya fueron eliminadas por cortarBloque).
+        if (o.color) {
+          const cr2 = parseInt(o.color.slice(1, 3), 16) / 255;
+          const cg2 = parseInt(o.color.slice(3, 5), 16) / 255;
+          const cb2 = parseInt(o.color.slice(5, 7), 16) / 255;
+          const col2 = new Color3(cr2, cg2, cb2);
+          root.getChildMeshes().forEach(m => {
+            if (m.material && m.material.albedoColor !== undefined) {
+              const nm = m.name || '';
+              const isD = nm.includes('mad_g') || nm.includes('con_l');
+              if (!isD) {
+                const cl = m.material.clone(m.material.name + '_colored_' + o.id);
+                cl.albedoColor = col2;
+                m.material = cl;
+              }
+            }
+          });
+        }
+      }
       objList.push({ id: o.id, type: o.type, label, emoji, node: root });
     }
   }
@@ -2659,7 +3132,7 @@ const init = () => {
   highlightLayer.outerGlow = true;
   highlightLayer.blurHorizontalSize = 0.5; highlightLayer.blurVerticalSize = 0.5;
 
-  P(86, 'Picking…'); setupPicking();
+  P(86, 'Picking…'); setupPicking(); setupBlockContextMenu();
 
   P(94, 'Post-proceso…');
   const pp = new DefaultRenderingPipeline('pp', true, scene, [camera]);

@@ -171,4 +171,101 @@
             })
             .catch(() => {});
     }
+
+    // ─── GOOGLE IDENTITY SERVICES ───
+    // Carga el Client ID desde el servidor (variable de entorno GOOGLE_CLIENT_ID).
+    // Si no está configurado, los botones de Google se ocultan automáticamente.
+    // El Client ID es público (va en el HTML de todas formas), pero así nunca
+    // queda hardcodeado en el código fuente ni en el repositorio.
+    let GOOGLE_CLIENT_ID = '';
+
+    async function cargarConfigGoogle() {
+        try {
+            const res = await fetch('/api/config');
+            if (!res.ok) return;
+            const cfg = await res.json();
+            GOOGLE_CLIENT_ID = cfg.googleClientId || '';
+        } catch (e) {
+            // Sin config → botones de Google ocultos
+        }
+        aplicarEstadoBotonesGoogle();
+    }
+
+    function aplicarEstadoBotonesGoogle() {
+        const btnLogin = $('#btnGoogleLogin');
+        const btnReg = $('#btnGoogleRegister');
+        if (!GOOGLE_CLIENT_ID) {
+            if (btnLogin) btnLogin.style.display = 'none';
+            if (btnReg) btnReg.style.display = 'none';
+            // Ocultar también los divisores
+            document.querySelectorAll('.auth-divider').forEach(d => d.style.display = 'none');
+        }
+    }
+
+    async function handleGoogleCredential(credential) {
+        try {
+            const res = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential }),
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                const errEl = modalLogin.classList.contains('visible') ? loginError : regError;
+                showError(errEl, data.error || 'Error al autenticar con Google');
+                return;
+            }
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            window.location.href = 'proyectos.html';
+        } catch (err) {
+            const errEl = modalLogin.classList.contains('visible') ? loginError : regError;
+            showError(errEl, 'Error de conexión con Google');
+        }
+    }
+
+    function iniciarFlujoGoogle(targetErrorEl) {
+        if (!GOOGLE_CLIENT_ID) {
+            showError(targetErrorEl, 'Google no está configurado en este servidor.');
+            return;
+        }
+        if (!(window.google && window.google.accounts)) {
+            showError(targetErrorEl, 'La librería de Google no cargó. Verifica tu conexión.');
+            return;
+        }
+        window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response) => handleGoogleCredential(response.credential),
+            cancel_on_tap_outside: true,
+        });
+        window.google.accounts.id.prompt((notification) => {
+            // Si One Tap no está disponible, mostramos aviso
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                showError(targetErrorEl, 'El popup de Google fue bloqueado. Permite ventanas emergentes e intenta de nuevo.');
+            }
+        });
+    }
+
+    // Botón Google en el modal de Login
+    const btnGoogleLogin = $('#btnGoogleLogin');
+    if (btnGoogleLogin) {
+        btnGoogleLogin.addEventListener('click', () => {
+            loginError.hidden = true;
+            iniciarFlujoGoogle(loginError);
+        });
+    }
+
+    // Botón Google en el modal de Registro
+    const btnGoogleRegister = $('#btnGoogleRegister');
+    if (btnGoogleRegister) {
+        btnGoogleRegister.addEventListener('click', () => {
+            regError.hidden = true;
+            iniciarFlujoGoogle(regError);
+        });
+    }
+
+    // Cargar configuración de Google al inicio (oculta botones si no hay Client ID)
+    cargarConfigGoogle();
 })();

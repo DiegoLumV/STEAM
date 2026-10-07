@@ -170,24 +170,22 @@
     <span id="toastMsg">Acción completada</span>
   </div>
 
-  <!-- Modal: Agregar alumno -->
+  <!-- Modal: Asignar alumno existente -->
   <div class="modal-overlay" id="modalAddUser">
     <div class="modal-box">
       <button class="modal-close" id="btnCloseAdd">&times;</button>
-      <div class="modal-title">Agregar alumno</div>
-      <div class="modal-sub">El nuevo alumno podrá iniciar sesión de inmediato.</div>
+      <div class="modal-title">Asignar alumno</div>
+      <div class="modal-sub">Selecciona un alumno ya registrado en el sistema y asígnalo a uno de tus cursos.</div>
       <form id="formAddUser" autocomplete="off">
         <div class="form-field">
-          <label>Nombre completo</label>
-          <input type="text" id="addName" placeholder="Ej. María García" required>
+          <label>Buscar alumno</label>
+          <input type="text" id="addSearch" placeholder="Escribe nombre o correo…" autocomplete="off">
         </div>
         <div class="form-field">
-          <label>Correo electrónico</label>
-          <input type="email" id="addEmail" placeholder="correo@ejemplo.com" required>
-        </div>
-        <div class="form-field">
-          <label>Contraseña</label>
-          <input type="password" id="addPassword" placeholder="Mínimo 6 caracteres" minlength="6" required>
+          <label>Alumno seleccionado</label>
+          <select id="addAlumnoSelect" class="form-select" required>
+            <option value="">— Escribe arriba para buscar —</option>
+          </select>
         </div>
         <div class="form-field">
           <label>Curso</label>
@@ -196,7 +194,7 @@
           </select>
         </div>
         <div class="form-error" id="addError"></div>
-        <button type="submit" class="btn-submit" id="btnSubmitAdd">Crear alumno</button>
+        <button type="submit" class="btn-submit" id="btnSubmitAdd">Asignar alumno</button>
       </form>
     </div>
   </div>
@@ -334,14 +332,51 @@
       render(alumnos.filter(a => a.nombre_completo.toLowerCase().includes(q) || a.email.toLowerCase().includes(q)));
     });
 
-    /* ── Modal: Agregar alumno ── */
+    /* ── Modal: Asignar alumno existente ── */
     const modalAdd = document.getElementById('modalAddUser');
     const formAdd = document.getElementById('formAddUser');
     const addError = document.getElementById('addError');
+    let alumnosDisponibles = [];
+
+    async function cargarAlumnosDisponibles() {
+      try {
+        const res = await fetch(`${API}/maestro/alumnos-disponibles`, { headers: hdrs() });
+        const d = await res.json();
+        alumnosDisponibles = d.alumnos || [];
+        actualizarSelectAlumnos('');
+      } catch (err) {
+        alumnosDisponibles = [];
+      }
+    }
+
+    function actualizarSelectAlumnos(filtro) {
+      const select = document.getElementById('addAlumnoSelect');
+      const q = filtro.toLowerCase().trim();
+      const filtrados = q
+        ? alumnosDisponibles.filter(a =>
+            a.nombre_completo.toLowerCase().includes(q) ||
+            a.email.toLowerCase().includes(q)
+          )
+        : alumnosDisponibles;
+
+      if (!filtrados.length) {
+        select.innerHTML = '<option value="">— Sin resultados —</option>';
+      } else {
+        select.innerHTML = '<option value="">— Selecciona un alumno —</option>' +
+          filtrados.map(a =>
+            `<option value="${a.id}">${a.nombre_completo} &lt;${a.email}&gt;</option>`
+          ).join('');
+      }
+    }
+
+    document.getElementById('addSearch').addEventListener('input', (e) => {
+      actualizarSelectAlumnos(e.target.value);
+    });
 
     document.getElementById('btnAddUser').addEventListener('click', () => {
       formAdd.reset();
       addError.style.display = 'none';
+      cargarAlumnosDisponibles();
       modalAdd.classList.add('visible');
     });
     document.getElementById('btnCloseAdd').addEventListener('click', () => modalAdd.classList.remove('visible'));
@@ -350,37 +385,43 @@
     formAdd.addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('btnSubmitAdd');
-      btn.disabled = true; btn.textContent = 'Creando…';
+      btn.disabled = true; btn.textContent = 'Asignando…';
       addError.style.display = 'none';
 
+      const alumnoId = document.getElementById('addAlumnoSelect').value;
       const rutaId = document.getElementById('addCurso').value;
+
+      if (!alumnoId) {
+        addError.textContent = 'Selecciona un alumno';
+        addError.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Asignar alumno';
+        return;
+      }
       if (!rutaId) {
         addError.textContent = 'Selecciona un curso';
         addError.style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Crear alumno';
+        btn.disabled = false; btn.textContent = 'Asignar alumno';
         return;
       }
 
       const res = await fetch(`${API}/maestro/alumnos`, {
         method: 'POST', headers: hdrs(),
         body: JSON.stringify({
-          nombre_completo: document.getElementById('addName').value.trim(),
-          email: document.getElementById('addEmail').value.trim(),
-          password: document.getElementById('addPassword').value,
+          alumno_id: parseInt(alumnoId),
           ruta_id: parseInt(rutaId),
         })
       });
       const d = await res.json();
       if (!res.ok) {
-        addError.textContent = d.error || 'No se pudo crear el alumno';
+        addError.textContent = d.error || 'No se pudo asignar el alumno';
         addError.style.display = 'block';
       } else {
         modalAdd.classList.remove('visible');
-        toast('✓ Alumno creado correctamente');
+        toast('✓ Alumno asignado correctamente');
         cargarAlumnos();
         cargarCursos();
       }
-      btn.disabled = false; btn.textContent = 'Crear alumno';
+      btn.disabled = false; btn.textContent = 'Asignar alumno';
     });
 
     cargarCursos();

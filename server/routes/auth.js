@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import { query } from '../db.js';
 import { verifyToken } from '../middleware/auth.js';
 import { registrarActividad } from '../actividad.js';
@@ -8,6 +9,10 @@ import { registrarActividad } from '../actividad.js';
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'casasteam_fallback_secret';
 const SALT_ROUNDS = 10;
+
+// Client ID público de Google (se expone en el frontend de todas formas)
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 /* ───────────────────────────────────────────
    POST /api/auth/register
@@ -139,6 +144,125 @@ router.post('/login', async (req, res) => {
 });
 
 /* ───────────────────────────────────────────
+   POST /api/auth/google
+   Body: { credential }   ← ID Token de Google Identity Services
+   Valida el token con Google, luego:
+     - Si existe el google_id → login directo
+     - Si existe el email → vincula google_id y hace login
+     - Si no existe → crea cuenta nueva con rol alumno
+   Devuelve el mismo formato JWT que /login y /register.
+   ─────────────────────────────────────────── */
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ error: 'Se requiere el credential de Google' });
+    }
+    if (!GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ error: 'Google no está configurado en el servidor (falta GOOGLE_CLIENT_ID)' });
+    }
+
+    // Verificar el ID token con Google (nunca confiar solo en el frontend)
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.error('Token de Google inválido:', verifyErr.message);
+      return res.status(401).json({ error: 'Token de Google inválido o expirado' });
+    }
+
+    const { sub: googleId, email, name } = payload;
+    if (!email) {
+      return res.status(400).json({ error: 'Google no proporcionó un correo electrónico' });
+    }
+
+    // 1. Buscar por google_id (sesiones posteriores)
+    let userResult = await query(
+      `SELECT u.id, u.nombre_completo, u.email, u.rol_id, r.nombre AS rol_nombre
+         FROM usuarios u
+         JOIN roles r ON r.id = u.rol_id
+        WHERE u.google_id = $1`,
+      [googleId]
+    );
+
+    if (userResult.rows.length === 0) {
+      // 2. Buscar por email (cuenta tradicional que nunca usó Google antes)
+      userResult = await query(
+        `SELECT u.id, u.nombre_completo, u.email, u.rol_id, r.nombre AS rol_nombre
+           FROM usuarios u
+           JOIN roles r ON r.id = u.rol_id
+          WHERE u.email = $1`,
+        [email.toLowerCase()]
+      );
+
+      if (userResult.rows.length > 0) {
+        // Vincular google_id a la cuenta existente
+        await query(
+          'UPDATE usuarios SET google_id = $1 WHERE id = $2',
+          [googleId, userResult.rows[0].id]
+        );
+      } else {
+        // 3. Crear cuenta nueva (solo rol alumno para registro público)
+        const rolResult = await query("SELECT id FROM roles WHERE nombre = 'alumno'");
+        if (rolResult.rows.length === 0) {
+          return res.status(500).json({ error: 'Rol alumno no encontrado. Ejecuta seed primero.' });
+        }
+        const insertResult = await query(
+          `INSERT INTO usuarios (nombre_completo, email, password_hash, rol_id, google_id, creado_en)
+           VALUES ($1, $2, NULL, $3, $4, NOW())
+           RETURNING id, nombre_completo, email, rol_id`,
+          [name || email.split('@')[0], email.toLowerCase(), rolResult.rows[0].id, googleId]
+        );
+
+        // Obtener nombre del rol para el JWT
+        const rolNombreResult = await query('SELECT nombre FROM roles WHERE id = $1', [insertResult.rows[0].rol_id]);
+        const nuevoUser = {
+          ...insertResult.rows[0],
+          rol_nombre: rolNombreResult.rows[0]?.nombre || 'alumno',
+        };
+
+        const token = jwt.sign(
+          { id: nuevoUser.id, nombre_completo: nuevoUser.nombre_completo, email: nuevoUser.email, rol_id: nuevoUser.rol_id, rol_nombre: nuevoUser.rol_nombre },
+          JWT_SECRET,
+          { expiresIn: '24h' }
+        );
+
+        registrarActividad(nuevoUser.id, 'registro_google', { email: nuevoUser.email });
+
+        return res.status(201).json({
+          message: 'Cuenta creada con Google',
+          token,
+          user: { id: nuevoUser.id, nombre_completo: nuevoUser.nombre_completo, email: nuevoUser.email, rol_nombre: nuevoUser.rol_nombre },
+        });
+      }
+    }
+
+    // Login con cuenta existente (por google_id o por email vinculado)
+    const user = userResult.rows[0];
+    const token = jwt.sign(
+      { id: user.id, nombre_completo: user.nombre_completo, email: user.email, rol_id: user.rol_id, rol_nombre: user.rol_nombre },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    registrarActividad(user.id, 'login_google', { rol: user.rol_nombre });
+
+    res.json({
+      message: 'Login con Google exitoso',
+      token,
+      user: { id: user.id, nombre_completo: user.nombre_completo, email: user.email, rol_nombre: user.rol_nombre },
+    });
+  } catch (err) {
+    console.error('Error en /auth/google:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+/* ───────────────────────────────────────────
    GET /api/auth/me
    Header: Authorization: Bearer <token>
    ─────────────────────────────────────────── */
@@ -164,3 +288,4 @@ router.get('/me', verifyToken, async (req, res) => {
 });
 
 export default router;
+

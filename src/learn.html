@@ -52,19 +52,20 @@
         <span class="dot"></span>📊 Mis Calificaciones
       </button>
     </a>
-    <a href="alumno.html" style="all: unset;" id="link-dash-alumno">
+    <!-- Dashboard del alumno (oculto por defecto) -->
+    <a href="alumno.html?proyecto=1" style="all: unset;" id="link-dash-alumno">
       <button class="nav-btn active-quiz" id="btn-dash-alumno" style="display:none;">
         <span class="dot"></span>📋 Mi Dashboard
       </button>
     </a>
     <!-- Opción solo visible para administradores (oculta por defecto) -->
-    <a href="PanelAdministrativo.html" style="all: unset;" id="link-admin">
+    <a href="PanelAdministrativo.html?proyecto=1" style="all: unset;" id="link-admin">
       <button class="nav-btn inactive-admin" id="btn-admin" style="display:none;">
         <span class="dot"></span>Administrador
       </button>
     </a>
     <!-- Opción solo visible para maestros (oculta por defecto) -->
-    <a href="maestro.html" style="all: unset;" id="link-maestro">
+    <a href="maestro.html?curso=1" style="all: unset;" id="link-maestro">
       <button class="nav-btn inactive-admin" id="btn-maestro" style="display:none;">
         <span class="dot"></span>Panel del Maestro
       </button>
@@ -1603,11 +1604,6 @@
 
     function openLesson(moduleKey, lessonNum) {
       const cube = document.querySelector(`[data-module="${moduleKey}"][data-lesson="${lessonNum}"]`);
-      if (cube && cube.classList.contains('locked')) {
-        cube.style.transform = 'scale(0.95)';
-        setTimeout(() => cube.style.transform = '', 150);
-        return;
-      }
       currentModule = moduleKey;
       currentLesson = lessonNum;
 
@@ -1700,12 +1696,7 @@
       if (cube) {
         const moduleKey = cube.dataset.module;
         const lessonNum = parseInt(cube.dataset.lesson);
-        if (cube.classList.contains('clickable') || cube.classList.contains('completed')) {
-          openLesson(moduleKey, lessonNum);
-        } else if (cube.classList.contains('locked')) {
-          cube.style.transform = 'scale(0.95)';
-          setTimeout(() => cube.style.transform = '', 150);
-        }
+        openLesson(moduleKey, lessonNum);
       }
     });
 
@@ -1753,7 +1744,7 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLesson(); });
 
     document.getElementById('btn-examen').addEventListener('click', () => {
-      window.location.href = 'sandbox.html';
+      window.location.href = 'examen.html';
     });
 
     // ── Progreso de módulos: guardar y recuperar (por alumno, vía avance_rutas) ──

@@ -34,6 +34,7 @@ export function serializarObjeto(o) {
   if (n.scaling && (n.scaling.x !== 1 || n.scaling.y !== 1 || n.scaling.z !== 1))
     e.s = [r3(n.scaling.x), r3(n.scaling.y), r3(n.scaling.z)];
   if (ud.color) e.color = ud.color;
+  if (ud.cutFactor != null && ud.cutFactor < 1) e.cutFactor = ud.cutFactor;
   if (ud.wallMode) e.wallMode = ud.wallMode;
   if (ud.embeddedInWall) e.embeddedInWall = ud.embeddedInWall;
   if (o.area != null) e.area = o.area;

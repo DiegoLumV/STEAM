@@ -2010,3 +2010,54 @@ body {
 .auth-switch:hover {
   color: #6dd4a0;
 }
+
+/* ── Google auth button & divider ── */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-light);
+  font-size: 0.78rem;
+  margin: 2px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-mid);
+  border-radius: 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.auth-google-btn:hover {
+  border-color: #4285F4;
+  background: rgba(66, 133, 244, 0.05);
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+}
+
+.auth-google-btn:active {
+  transform: translateY(1px);
+}
+
+.auth-google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

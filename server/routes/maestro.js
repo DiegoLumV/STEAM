@@ -11,12 +11,10 @@
 //   - Un maestro solo puede asignar alumnos a SUS propios cursos.
 //   - Un admin que entre a estas mismas rutas ve todo, sin filtrar.
 import { Router } from 'express';
-import bcrypt from 'bcrypt';
 import pool, { query } from '../db.js';
 import { verifyToken, requireRole } from '../middleware/auth.js';
 import { registrarActividad } from '../actividad.js';
 
-const SALT_ROUNDS = 10;
 const router = Router();
 router.use(verifyToken, requireRole('maestro', 'admin'));
 
@@ -89,24 +87,61 @@ router.get('/cursos/:id/alumnos', async (req, res) => {
 });
 
 /* ───────────────────────────────────────────
+   GET /api/maestro/alumnos-disponibles
+   Alumnos con rol 'alumno' que AÚN NO están inscritos en ningún curso
+   de este maestro. Sirve para llenar el selector del modal de asignación.
+   ─────────────────────────────────────────── */
+router.get('/alumnos-disponibles', async (req, res) => {
+  try {
+    // Si es admin, no hay filtro de cursos propios
+    const filtroProfesor = esAdmin(req) ? '' : 'AND ra.profesor_id = $1';
+    const paramsSubquery = esAdmin(req) ? [] : [req.user.id];
+
+    // IDs de alumnos ya inscritos en los cursos de este maestro
+    const inscritos = await query(
+      `SELECT DISTINCT av.alumno_id
+         FROM avance_rutas av
+         JOIN rutas_aprendizaje ra ON ra.id = av.ruta_id
+        WHERE 1=1 ${filtroProfesor}`,
+      paramsSubquery
+    );
+    const inscritosIds = inscritos.rows.map(r => r.alumno_id);
+
+    // Todos los usuarios con rol alumno
+    const { rows } = await query(
+      `SELECT u.id, u.nombre_completo, u.email
+         FROM usuarios u
+         JOIN roles r ON r.id = u.rol_id
+        WHERE r.nombre = 'alumno'
+        ORDER BY u.nombre_completo ASC`
+    );
+
+    // Excluir los que ya están inscritos
+    const disponibles = rows.filter(u => !inscritosIds.includes(u.id));
+    res.json({ alumnos: disponibles });
+  } catch (err) {
+    console.error('Error listando alumnos disponibles:', err);
+    res.status(500).json({ error: 'Error obteniendo alumnos disponibles' });
+  }
+});
+
+/* ───────────────────────────────────────────
    POST /api/maestro/alumnos
-   Body: { nombre_completo, email, password, ruta_id }
-   Crea el alumno Y lo inscribe al curso en una sola transacción: si algo
-   falla a medio camino, no queda un usuario huérfano sin curso.
+   Body: { alumno_id, ruta_id }
+   Asigna/inscribe un alumno EXISTENTE al curso del maestro.
+   NO crea cuentas nuevas — el alumno ya debe estar registrado en el sistema.
    ─────────────────────────────────────────── */
 router.post('/alumnos', async (req, res) => {
-  const { nombre_completo, email, password, ruta_id } = req.body;
-  if (!nombre_completo || !email || !password || !ruta_id) {
-    return res.status(400).json({ error: 'Nombre, correo, contraseña y curso son obligatorios' });
-  }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+  const { alumno_id, ruta_id } = req.body;
+  if (!alumno_id || !ruta_id) {
+    return res.status(400).json({ error: 'alumno_id y ruta_id son obligatorios' });
   }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
+    // Verificar que el curso pertenece al maestro
     const cursoQ = await client.query('SELECT id, profesor_id FROM rutas_aprendizaje WHERE id = $1', [ruta_id]);
     if (!cursoQ.rows.length) {
       await client.query('ROLLBACK');
@@ -117,39 +152,42 @@ router.post('/alumnos', async (req, res) => {
       return res.status(403).json({ error: 'Ese curso no te pertenece' });
     }
 
-    const existe = await client.query('SELECT id FROM usuarios WHERE email = $1', [email.toLowerCase()]);
-    if (existe.rows.length) {
-      await client.query('ROLLBACK');
-      return res.status(409).json({ error: 'Ya existe una cuenta con ese correo' });
-    }
-
-    const rolAlumno = await client.query(`SELECT id FROM roles WHERE nombre = 'alumno'`);
-    if (!rolAlumno.rows.length) {
-      await client.query('ROLLBACK');
-      return res.status(500).json({ error: 'Rol alumno no encontrado. Corre las migraciones.' });
-    }
-
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const nuevo = await client.query(
-      `INSERT INTO usuarios (nombre_completo, email, password_hash, rol_id, creado_en)
-       VALUES ($1, $2, $3, $4, NOW()) RETURNING id, nombre_completo, email`,
-      [nombre_completo, email.toLowerCase(), passwordHash, rolAlumno.rows[0].id]
+    // Verificar que el alumno existe y tiene rol alumno
+    const alumnoQ = await client.query(
+      `SELECT u.id, u.nombre_completo FROM usuarios u
+         JOIN roles r ON r.id = u.rol_id
+        WHERE u.id = $1 AND r.nombre = 'alumno'`,
+      [alumno_id]
     );
+    if (!alumnoQ.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Alumno no encontrado' });
+    }
+
+    // Verificar que no esté ya inscrito en este curso
+    const yaInscrito = await client.query(
+      'SELECT id FROM avance_rutas WHERE alumno_id = $1 AND ruta_id = $2',
+      [alumno_id, ruta_id]
+    );
+    if (yaInscrito.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'El alumno ya está inscrito en ese curso' });
+    }
 
     await client.query(
       `INSERT INTO avance_rutas (alumno_id, ruta_id, estado_general, detalle_avance)
        VALUES ($1, $2, 'en_progreso', '{}'::jsonb)`,
-      [nuevo.rows[0].id, ruta_id]
+      [alumno_id, ruta_id]
     );
 
     await client.query('COMMIT');
 
-    res.status(201).json({ message: 'Alumno creado e inscrito', alumno: nuevo.rows[0] });
-    registrarActividad(req.user.id, 'alumno_creado_por_maestro', { alumno_id: nuevo.rows[0].id, ruta_id });
+    res.status(201).json({ message: 'Alumno asignado al curso correctamente', alumno: alumnoQ.rows[0] });
+    registrarActividad(req.user.id, 'alumno_asignado_por_maestro', { alumno_id, ruta_id });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Error creando alumno:', err);
-    res.status(500).json({ error: 'No se pudo crear la cuenta' });
+    console.error('Error asignando alumno:', err);
+    res.status(500).json({ error: 'No se pudo asignar el alumno' });
   } finally {
     client.release();
   }

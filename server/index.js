@@ -49,6 +49,15 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+/* ── Configuración pública (sin secretos) ── */
+app.get('/api/config', (req, res) => {
+  res.json({
+    // El Client ID de Google es público: va en el HTML de todas formas.
+    // Exponerlo aquí permite cambiarlo por variable de entorno sin tocar código.
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  });
+});
+
 /* ── Arrancar servidor ── */
 try {
   await aplicarMigraciones(query);
