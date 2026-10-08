@@ -27,18 +27,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-/* ── Rutas API ── */
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api', beaconRouter);
-app.use('/api', telemetriaRoutes);
-app.use('/api', evaluacionRoutes);
-app.use('/api', guardadoRoutes);
-app.use('/api', cuestionarioRoutes);
-app.use('/api/maestro', maestroRoutes);
-app.use('/api/alumno', alumnoRoutes);
-app.use('/api', progresoRoutes);
-
 /* ── Health check ── */
 app.get('/api/health', async (req, res) => {
   try {
@@ -52,11 +40,21 @@ app.get('/api/health', async (req, res) => {
 /* ── Configuración pública (sin secretos) ── */
 app.get('/api/config', (req, res) => {
   res.json({
-    // El Client ID de Google es público: va en el HTML de todas formas.
-    // Exponerlo aquí permite cambiarlo por variable de entorno sin tocar código.
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   });
 });
+
+/* ── Rutas API ── */
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api', beaconRouter);
+app.use('/api', telemetriaRoutes);
+app.use('/api', evaluacionRoutes);
+app.use('/api', guardadoRoutes);
+app.use('/api', cuestionarioRoutes);
+app.use('/api/maestro', maestroRoutes);
+app.use('/api/alumno', alumnoRoutes);
+app.use('/api', progresoRoutes);
 
 /* ── Arrancar servidor ── */
 try {

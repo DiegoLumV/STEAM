@@ -2419,12 +2419,16 @@ function cortarBloque(node, factor) {
 }
 
 /**
- * Crea el menú contextual de clic derecho y el modal de corte.
+ * Crea el menú contextual de clic derecho y el modal de corte con slider visual.
  * Se llama una vez desde init().
  */
 function setupBlockContextMenu() {
   // ── evitar menú nativo del navegador en el canvas ──
   canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  // ── Dimensiones originales de cada tipo de bloque (ancho en metros) ──
+  const ORIG_WIDTH = { block: 1.0, madera: 1.0 };
+  const MIN_FACTOR = 0.05;   // factor mínimo (5 cm para ambos)
 
   // ── menú contextual ──
   const menu = document.createElement('div');
@@ -2449,7 +2453,45 @@ function setupBlockContextMenu() {
   menu.appendChild(cutBtn);
   document.body.appendChild(menu);
 
-  // ── modal de corte ──
+  // ── Inyectar estilos del slider y animaciones ──
+  const cutStyle = document.createElement('style');
+  cutStyle.textContent = `
+    /* Slider track personalizado */
+    #cut-range-slider { -webkit-appearance:none; appearance:none; width:100%; height:10px;
+      border-radius:5px; outline:none; cursor:pointer;
+      background:linear-gradient(90deg, rgba(90,140,255,.6) 0%, rgba(90,140,255,.6) var(--fill,100%), rgba(60,70,100,.4) var(--fill,100%), rgba(60,70,100,.4) 100%);
+      transition:background .05s; }
+    #cut-range-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none;
+      width:22px; height:22px; border-radius:50%; cursor:grab;
+      background:radial-gradient(circle at 35% 35%, #8cb4ff, #4a80e0); border:2px solid rgba(255,255,255,.7);
+      box-shadow:0 2px 8px rgba(0,0,0,.4), 0 0 12px rgba(90,140,255,.5); transition:box-shadow .15s, transform .1s; }
+    #cut-range-slider::-webkit-slider-thumb:hover { box-shadow:0 2px 12px rgba(0,0,0,.5), 0 0 20px rgba(90,140,255,.7); transform:scale(1.12); }
+    #cut-range-slider::-webkit-slider-thumb:active { cursor:grabbing; transform:scale(1.05); }
+    #cut-range-slider::-moz-range-thumb { width:22px; height:22px; border-radius:50%; cursor:grab;
+      background:radial-gradient(circle at 35% 35%, #8cb4ff, #4a80e0); border:2px solid rgba(255,255,255,.7);
+      box-shadow:0 2px 8px rgba(0,0,0,.4), 0 0 12px rgba(90,140,255,.5); }
+    #cut-range-slider::-moz-range-track { height:10px; border-radius:5px; background:rgba(60,70,100,.4); }
+    #cut-range-slider::-moz-range-progress { height:10px; border-radius:5px; background:rgba(90,140,255,.6); }
+
+    /* Zona cortada con patrón de rayas */
+    .cut-zone-discard {
+      background:repeating-linear-gradient(
+        -45deg, rgba(255,80,80,.18), rgba(255,80,80,.18) 4px,
+        rgba(255,60,60,.06) 4px, rgba(255,60,60,.06) 8px);
+      border-left:2px dashed rgba(255,100,100,.5);
+    }
+
+    /* Animación de pulso suave en la zona conservada */
+    @keyframes cut-pulse { 0%,100%{box-shadow:inset 0 0 8px rgba(90,140,255,.15)} 50%{box-shadow:inset 0 0 14px rgba(90,140,255,.3)} }
+    .cut-zone-keep { animation:cut-pulse 2s ease-in-out infinite; }
+
+    /* Alerta de colisión */
+    @keyframes cut-collision-pulse { 0%,100%{border-color:rgba(255,80,80,.5)} 50%{border-color:rgba(255,80,80,.9)} }
+    .cut-collision-alert { animation:cut-collision-pulse .6s ease-in-out infinite; }
+  `;
+  document.head.appendChild(cutStyle);
+
+  // ── modal de corte con slider visual ──
   const overlay = document.createElement('div');
   overlay.id = 'cut-overlay';
   overlay.style.cssText = `
@@ -2460,49 +2502,91 @@ function setupBlockContextMenu() {
   overlay.innerHTML = `
     <div id="cut-modal" style="
       background:rgba(10,18,42,.97); border:1px solid rgba(100,160,255,.40);
-      border-radius:16px; padding:24px 28px 20px; width:340px; max-width:92vw;
+      border-radius:16px; padding:24px 28px 20px; width:380px; max-width:92vw;
       box-shadow:0 12px 48px rgba(0,0,0,.65); color:rgba(220,230,255,.95);
       font-family:inherit; font-size:13px;
     ">
-      <div style="font-size:15px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+      <!-- Título -->
+      <div style="font-size:15px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
         ✂️ Cortar bloque
       </div>
-      <div style="margin-bottom:8px; color:rgba(180,195,225,.8); font-size:12px;">
-        Elige qué porcentaje del ancho quieres conservar:
+      <div style="margin-bottom:14px; color:rgba(180,195,225,.7); font-size:12px;">
+        Desliza para elegir el tamaño del bloque resultante:
       </div>
-      <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;" id="cut-presets"></div>
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-        <input type="range" id="cut-slider" min="5" max="100" value="100" step="1" style="
-          flex:1; accent-color:#5b8cff; cursor:pointer;
-        " />
-        <div style="display:flex; align-items:center; gap:3px;">
-          <input type="number" id="cut-input" min="5" max="100" value="100" step="1" style="
-            width:52px; background:rgba(30,45,80,.8); border:1px solid rgba(100,160,255,.35);
-            border-radius:6px; color:#d0daff; text-align:center; padding:5px 4px;
-            font-size:13px; outline:none;
-          " />
-          <span style="color:rgba(180,195,225,.7);">%</span>
-        </div>
-      </div>
-      <div id="cut-preview" style="
-        height:48px; margin-bottom:14px; display:flex; align-items:center;
-        justify-content:center; position:relative; overflow:hidden;
-        background:rgba(20,30,60,.5); border-radius:8px; border:1px solid rgba(100,160,255,.15);
+
+      <!-- Vista previa animada -->
+      <div id="cut-preview-container" style="
+        height:72px; margin-bottom:12px; display:flex; align-items:center;
+        justify-content:flex-start; position:relative; overflow:hidden;
+        background:rgba(20,30,60,.45); border-radius:10px; border:1px solid rgba(100,160,255,.18);
+        padding:0 12px;
       ">
-        <div id="cut-preview-full" style="
-          position:absolute; width:80%; height:28px; border-radius:4px;
-          background:rgba(100,140,200,.18); border:1px dashed rgba(140,170,220,.3);
+        <!-- Bloque original (fantasma) -->
+        <div id="cut-ghost" style="
+          position:absolute; left:12px; height:40px; border-radius:5px;
+          background:rgba(100,140,200,.10); border:1px dashed rgba(140,170,220,.25);
+          transition:width .08s ease-out;
         "></div>
-        <div id="cut-preview-cut" style="
-          position:absolute; left:10%; height:28px; border-radius:4px;
-          background:rgba(90,140,255,.45); border:1px solid rgba(120,170,255,.5);
-          transition:width .15s;
+        <!-- Zona conservada -->
+        <div id="cut-keep" class="cut-zone-keep" style="
+          position:absolute; left:12px; height:40px; border-radius:5px 0 0 5px;
+          background:rgba(90,140,255,.35); border:1px solid rgba(120,170,255,.45);
+          transition:width .08s ease-out;
         "></div>
-        <span id="cut-preview-label" style="
-          position:relative; z-index:1; font-size:11px; font-weight:600;
-          color:rgba(200,220,255,.9); text-shadow:0 1px 4px rgba(0,0,0,.6);
-        ">100%</span>
+        <!-- Zona descartada -->
+        <div id="cut-discard" class="cut-zone-discard" style="
+          position:absolute; height:40px; border-radius:0 5px 5px 0;
+          transition:left .08s ease-out, width .08s ease-out;
+        "></div>
+        <!-- Línea de corte -->
+        <div id="cut-line" style="
+          position:absolute; width:2px; height:50px;
+          background:rgba(255,200,80,.8); box-shadow:0 0 6px rgba(255,200,80,.5);
+          transition:left .08s ease-out; z-index:2;
+        "></div>
+        <!-- Etiquetas -->
+        <span id="cut-label-keep" style="
+          position:absolute; bottom:4px; left:14px; font-size:10px; font-weight:500;
+          color:rgba(160,200,255,.7); transition:opacity .15s;
+        ">Parte utilizada</span>
+        <span id="cut-label-discard" style="
+          position:absolute; bottom:4px; right:14px; font-size:10px; font-weight:500;
+          color:rgba(255,140,140,.6); transition:opacity .15s;
+        ">Se corta</span>
       </div>
+
+      <!-- Dimensión resultante -->
+      <div id="cut-dimension" style="
+        text-align:center; margin-bottom:14px; font-size:14px; font-weight:600;
+        color:rgba(200,225,255,.95); letter-spacing:.5px;
+      ">
+        Tamaño: <span id="cut-dim-value">1.00</span> m
+      </div>
+
+      <!-- Slider principal -->
+      <div style="margin-bottom:6px; padding:0 2px;">
+        <input type="range" id="cut-range-slider" min="5" max="100" value="100" step="1" style="--fill:100%;" />
+      </div>
+
+      <!-- Marcas del slider -->
+      <div style="display:flex; justify-content:space-between; margin-bottom:14px; padding:0 2px;">
+        <span style="font-size:10px; color:rgba(150,170,210,.5);">0.05 m</span>
+        <span style="font-size:10px; color:rgba(150,170,210,.5);">0.25 m</span>
+        <span style="font-size:10px; color:rgba(150,170,210,.5);">0.50 m</span>
+        <span style="font-size:10px; color:rgba(150,170,210,.5);">0.75 m</span>
+        <span style="font-size:10px; color:rgba(150,170,210,.5);">1.00 m</span>
+      </div>
+
+      <!-- Alerta de colisión -->
+      <div id="cut-collision-msg" style="
+        display:none; margin-bottom:10px; padding:8px 12px; border-radius:8px;
+        background:rgba(255,60,60,.12); border:1px solid rgba(255,80,80,.35);
+        color:rgba(255,170,170,.95); font-size:11px; text-align:center;
+      ">
+        ⚠️ Este tamaño causa colisión con otro bloque
+      </div>
+
+      <!-- Botones -->
       <div style="display:flex; gap:8px; justify-content:flex-end;">
         <button id="cut-cancel" style="
           padding:8px 18px; border-radius:8px; border:1px solid rgba(140,160,200,.3);
@@ -2519,51 +2603,124 @@ function setupBlockContextMenu() {
   `;
   document.body.appendChild(overlay);
 
-  // preset buttons
-  const presetsBox = document.getElementById('cut-presets');
-  [25, 50, 75, 100].forEach(pct => {
-    const btn = document.createElement('button');
-    btn.textContent = pct + '%';
-    btn.dataset.pct = pct;
-    btn.style.cssText = `
-      padding:5px 12px; border-radius:6px; font-size:12px; cursor:pointer;
-      border:1px solid rgba(100,160,255,.35); color:rgba(200,220,255,.9);
-      background:rgba(40,60,110,.5); transition:background .15s, border-color .15s;
-    `;
-    btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(60,110,220,.5)'; });
-    btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(40,60,110,.5)'; });
-    btn.addEventListener('click', () => setCutValue(pct));
-    presetsBox.appendChild(btn);
-  });
-
-  const slider = document.getElementById('cut-slider');
-  const numInput = document.getElementById('cut-input');
-  const previewCut = document.getElementById('cut-preview-cut');
-  const previewLabel = document.getElementById('cut-preview-label');
-
-  function setCutValue(v) {
-    v = Math.max(5, Math.min(100, Math.round(Number(v)) || 100));
-    slider.value = v;
-    numInput.value = v;
-    previewCut.style.width = (v * 0.8) + '%';
-    previewLabel.textContent = v + '%';
-  }
-  slider.addEventListener('input', () => setCutValue(slider.value));
-  numInput.addEventListener('input', () => setCutValue(numInput.value));
-  numInput.addEventListener('blur', () => setCutValue(numInput.value));
+  // ── referencias a elementos del nuevo modal ──
+  const slider      = document.getElementById('cut-range-slider');
+  const dimValue    = document.getElementById('cut-dim-value');
+  const ghostEl     = document.getElementById('cut-ghost');
+  const keepEl      = document.getElementById('cut-keep');
+  const discardEl   = document.getElementById('cut-discard');
+  const cutLineEl   = document.getElementById('cut-line');
+  const lblKeep     = document.getElementById('cut-label-keep');
+  const lblDiscard  = document.getElementById('cut-label-discard');
+  const collisionMsg = document.getElementById('cut-collision-msg');
+  const confirmBtn  = document.getElementById('cut-confirm');
+  const previewBox  = document.getElementById('cut-preview-container');
 
   // ── estado ──
   let ctxTarget = null;
+  let currentOrigWidth = 1.0;   // ancho original del tipo de bloque
+  let hasCollision = false;
 
   function closeCtxMenu() { menu.style.display = 'none'; }
-  function closeCutModal() { overlay.style.display = 'none'; ctxTarget = null; }
+
+  function closeCutModal() {
+    overlay.style.display = 'none';
+    collisionMsg.style.display = 'none';
+    previewBox.classList.remove('cut-collision-alert');
+    confirmBtn.disabled = false;
+    confirmBtn.style.opacity = '';
+    ctxTarget = null;
+  }
+
+  /**
+   * Comprueba si el bloque cortado con el factor dado colisionaría.
+   * Se hace un corte temporal, se comprueba la colisión y se restaura.
+   */
+  function checkCutCollision(node, factor) {
+    const oldFactor = node.userData?.cutFactor ?? 1;
+    // Aplicar el corte temporalmente
+    cortarBloque(node, factor);
+    const collision = findBlockCollision(node);
+    // Restaurar el estado original
+    cortarBloque(node, oldFactor);
+    return !!collision;
+  }
+
+  /**
+   * Actualiza la vista previa animada del corte.
+   * `factor` es un valor entre MIN_FACTOR y 1.
+   */
+  function updatePreview(factor) {
+    const pct = factor * 100;
+    const fullBarW = 80; // porcentaje del contenedor que ocupa el bloque fantasma
+
+    // Actualizar slider fill visual
+    const fillPct = ((pct - 5) / 95) * 100;
+    slider.style.setProperty('--fill', fillPct + '%');
+
+    // Dimensiones en metros
+    const realSize = (currentOrigWidth * factor).toFixed(2);
+    dimValue.textContent = realSize;
+
+    // Zona fantasma (bloque original completo)
+    ghostEl.style.width = fullBarW + '%';
+
+    // Zona conservada
+    const keepW = fullBarW * factor;
+    keepEl.style.width = keepW + '%';
+
+    // Zona descartada
+    const discardW = fullBarW * (1 - factor);
+    discardEl.style.left = (12 / previewBox.offsetWidth * 100 + keepW) + '%';
+    // Calcular left en px para mayor precisión
+    const containerW = previewBox.clientWidth - 24; // restar padding
+    const keepPx = containerW * factor;
+    const discardPx = containerW * (1 - factor);
+    discardEl.style.left = (12 + keepPx) + 'px';
+    discardEl.style.width = discardPx + 'px';
+
+    // Línea de corte
+    cutLineEl.style.left = (12 + keepPx - 1) + 'px';
+
+    // Ocultar etiqueta "Se corta" si el factor es 1
+    lblDiscard.style.opacity = factor >= 0.98 ? '0' : '1';
+
+    // Comprobar colisiones
+    if (ctxTarget) {
+      hasCollision = checkCutCollision(ctxTarget, factor);
+      if (hasCollision) {
+        collisionMsg.style.display = 'block';
+        previewBox.classList.add('cut-collision-alert');
+        confirmBtn.disabled = true;
+        confirmBtn.style.opacity = '0.4';
+        confirmBtn.style.cursor = 'not-allowed';
+      } else {
+        collisionMsg.style.display = 'none';
+        previewBox.classList.remove('cut-collision-alert');
+        confirmBtn.disabled = false;
+        confirmBtn.style.opacity = '';
+        confirmBtn.style.cursor = '';
+      }
+    }
+  }
 
   function openCutModal(node) {
     ctxTarget = node;
+    const type = node.userData?.type || 'block';
+    currentOrigWidth = ORIG_WIDTH[type] || 1.0;
     const current = node.userData?.cutFactor ?? 1;
-    setCutValue(Math.round(current * 100));
+    const pct = Math.round(current * 100);
+    slider.value = pct;
+    // Forzar un repaint para que la transición se vea
+    requestAnimationFrame(() => updatePreview(current));
     overlay.style.display = 'flex';
   }
+
+  // ── eventos del slider ──
+  slider.addEventListener('input', () => {
+    const factor = Math.max(MIN_FACTOR, Math.min(1, Number(slider.value) / 100));
+    updatePreview(factor);
+  });
 
   // ── detectar clic derecho sobre un Block o Madera ──
   canvas.addEventListener('pointerdown', e => {
@@ -2599,13 +2756,15 @@ function setupBlockContextMenu() {
   });
 
   // confirmar corte
-  document.getElementById('cut-confirm').addEventListener('click', () => {
-    if (!ctxTarget) { closeCutModal(); return; }
-    const pct = Math.max(5, Math.min(100, Math.round(Number(numInput.value)) || 100));
-    cortarBloque(ctxTarget, pct / 100);
+  confirmBtn.addEventListener('click', () => {
+    if (!ctxTarget || hasCollision) { return; }
+    const factor = Math.max(MIN_FACTOR, Math.min(1, Number(slider.value) / 100));
+    const pct = Math.round(factor * 100);
+    cortarBloque(ctxTarget, factor);
     selectObject(ctxTarget);
+    const realSize = (currentOrigWidth * factor).toFixed(2);
     const lbl = ctxTarget.userData?.type === 'block' ? 'Block' : 'Madera';
-    setTip(`✂️ <b>${lbl}</b> cortado al ${pct}% de su ancho original`);
+    setTip(`✂️ <b>${lbl}</b> cortado a ${realSize} m (${pct}% del ancho original)`);
     closeCutModal();
   });
 

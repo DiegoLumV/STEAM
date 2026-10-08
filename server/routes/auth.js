@@ -106,8 +106,8 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // Verificar contraseña
-    const validPassword = await bcrypt.compare(password, user.password_hash);
+    // Verificar contraseña (previniendo fallo de bcrypt si password_hash es nulo por ser cuenta de Google)
+    const validPassword = user.password_hash ? await bcrypt.compare(password, user.password_hash) : false;
     if (!validPassword) {
       return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
     }

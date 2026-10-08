@@ -199,6 +199,35 @@
             if (btnReg) btnReg.style.display = 'none';
             // Ocultar también los divisores
             document.querySelectorAll('.auth-divider').forEach(d => d.style.display = 'none');
+        } else {
+            const renderBotones = () => {
+                if (window.google && window.google.accounts) {
+                    window.google.accounts.id.initialize({
+                        client_id: GOOGLE_CLIENT_ID,
+                        callback: (response) => handleGoogleCredential(response.credential),
+                    });
+                    
+                    const renderOpts = { theme: 'outline', size: 'large', type: 'standard', text: 'continue_with' };
+                    
+                    if (btnLogin) {
+                        btnLogin.innerHTML = '';
+                        btnLogin.style.padding = '0';
+                        btnLogin.style.border = 'none';
+                        btnLogin.style.background = 'transparent';
+                        window.google.accounts.id.renderButton(btnLogin, renderOpts);
+                    }
+                    if (btnReg) {
+                        btnReg.innerHTML = '';
+                        btnReg.style.padding = '0';
+                        btnReg.style.border = 'none';
+                        btnReg.style.background = 'transparent';
+                        window.google.accounts.id.renderButton(btnReg, renderOpts);
+                    }
+                } else {
+                    setTimeout(renderBotones, 100);
+                }
+            };
+            renderBotones();
         }
     }
 
@@ -226,45 +255,8 @@
         }
     }
 
-    function iniciarFlujoGoogle(targetErrorEl) {
-        if (!GOOGLE_CLIENT_ID) {
-            showError(targetErrorEl, 'Google no está configurado en este servidor.');
-            return;
-        }
-        if (!(window.google && window.google.accounts)) {
-            showError(targetErrorEl, 'La librería de Google no cargó. Verifica tu conexión.');
-            return;
-        }
-        window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: (response) => handleGoogleCredential(response.credential),
-            cancel_on_tap_outside: true,
-        });
-        window.google.accounts.id.prompt((notification) => {
-            // Si One Tap no está disponible, mostramos aviso
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                showError(targetErrorEl, 'El popup de Google fue bloqueado. Permite ventanas emergentes e intenta de nuevo.');
-            }
-        });
-    }
-
-    // Botón Google en el modal de Login
-    const btnGoogleLogin = $('#btnGoogleLogin');
-    if (btnGoogleLogin) {
-        btnGoogleLogin.addEventListener('click', () => {
-            loginError.hidden = true;
-            iniciarFlujoGoogle(loginError);
-        });
-    }
-
-    // Botón Google en el modal de Registro
-    const btnGoogleRegister = $('#btnGoogleRegister');
-    if (btnGoogleRegister) {
-        btnGoogleRegister.addEventListener('click', () => {
-            regError.hidden = true;
-            iniciarFlujoGoogle(regError);
-        });
-    }
+    // El flujo de Google ahora se maneja automáticamente mediante los botones
+    // renderizados por window.google.accounts.id.renderButton() en aplicarEstadoBotonesGoogle.
 
     // Cargar configuración de Google al inicio (oculta botones si no hay Client ID)
     cargarConfigGoogle();

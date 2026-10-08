@@ -211,7 +211,14 @@ export const MIGRACIONES = [
       `CREATE INDEX IF NOT EXISTS idx_usuarios_google_id ON usuarios (google_id)`,
     ]
   },
-  // ── La próxima migración se agrega aquí, como un objeto nuevo ──
+  {
+    // Permitir que password_hash sea nulo para los usuarios creados exclusivamente
+    // mediante Google Sign-In, resolviendo el error de restricción not-null.
+    id: '009_password_hash_null',
+    sql: [
+      `ALTER TABLE usuarios ALTER COLUMN password_hash DROP NOT NULL`
+    ]
+  }
 ];
 
 export async function aplicarMigraciones(query, log = console.log) {
