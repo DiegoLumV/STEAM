@@ -97,6 +97,7 @@
       style="background:var(--intro-soft);color:var(--intro-accent);border-color:var(--intro-accent);">
       <span class="dot" style="background:var(--intro-accent);"></span>Panel del Maestro
     </button>
+    <a href="proyectos.html" style="all:unset"><button class="nav-btn"><span class="dot"></span>Proyectos</button></a>
     <div style="flex:1;"></div>
     <div class="nav-label">Sesión</div>
     <div class="sidebar-user-info" id="sidebar-user"></div>
@@ -255,10 +256,15 @@
           : `<span class="estado-pill estado-pendiente">Sin entregar</span>`}</td>
           <td>
             ${a.entregado_en
-          ? `<input type="number" min="0" max="100" class="calif-input" id="calif-${a.id}" value="${a.calificacion_final ?? ''}" placeholder="—">`
-          : '—'}
+              ? `<input type="number" min="0" max="100" class="calif-input" id="calif-${a.id}" value="${a.calificacion_final ?? ''}" placeholder="—">`
+              : '—'}
           </td>
-          <td>${a.entregado_en ? `<button class="btn-mini" onclick="guardarCalificacion(${a.id})">Guardar</button>` : ''}</td>
+          <td>
+            ${a.entregado_en ? `
+              <button class="btn-mini" onclick="window.open('sandbox.html?proyecto=${currentCursoId || 1}&alumno=${a.id}', '_blank')">Abrir</button>
+              <button class="btn-mini" style="margin-left:4px" onclick="guardarCalificacion(${a.id})">Guardar</button>
+            ` : ''}
+          </td>
         </tr>
       `).join('');
     }

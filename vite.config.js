@@ -21,7 +21,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main:    'src/index.html',
-        casa:    'src/casa.html',
         learn:   'src/learn.html',
         sandbox: 'src/sandbox.html',
         proyectos: 'src/proyectos.html',

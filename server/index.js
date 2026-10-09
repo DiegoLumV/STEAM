@@ -16,6 +16,7 @@ import cuestionarioRoutes from './routes/cuestionario.js';
 import maestroRoutes from './routes/maestro.js';
 import alumnoRoutes from './routes/alumno.js';
 import progresoRoutes from './routes/progreso.js';
+import proyectosRoutes from './routes/proyectos.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -55,6 +56,7 @@ app.use('/api', cuestionarioRoutes);
 app.use('/api/maestro', maestroRoutes);
 app.use('/api/alumno', alumnoRoutes);
 app.use('/api', progresoRoutes);
+app.use('/api', proyectosRoutes);
 
 /* ── Arrancar servidor ── */
 try {

@@ -140,4 +140,79 @@ router.get('/actividad', async (req, res) => {
   }
 });
 
+/* ───────────────────────────────────────────
+   GET /api/admin/proyectos
+   Lista todos los proyectos
+   ─────────────────────────────────────────── */
+router.get('/proyectos', async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT p.id, p.nombre, p.descripcion, p.url_simulador, p.activo,
+              (SELECT COUNT(*) FROM sesiones_simulacion s WHERE s.proyecto_id = p.id) as usos
+       FROM proyectos p
+       ORDER BY p.id ASC`
+    );
+    res.json({ proyectos: result.rows });
+  } catch (err) {
+    console.error('Error listando proyectos:', err);
+    res.status(500).json({ error: 'Error obteniendo proyectos' });
+  }
+});
+
+/* ───────────────────────────────────────────
+   POST /api/admin/proyectos
+   Crea un nuevo proyecto
+   ─────────────────────────────────────────── */
+router.post('/proyectos', async (req, res) => {
+  try {
+    const { nombre, descripcion, url_simulador, activo } = req.body;
+    if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio' });
+
+    const result = await query(
+      `INSERT INTO proyectos (nombre, descripcion, url_simulador, activo)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [nombre, descripcion || '', url_simulador || '', activo !== false]
+    );
+    res.json({ message: 'Proyecto creado', proyecto: result.rows[0] });
+  } catch (err) {
+    console.error('Error creando proyecto:', err);
+    if (err.code === '23505') {
+      return res.status(400).json({ error: 'Ya existe un proyecto con ese nombre' });
+    }
+    res.status(500).json({ error: 'Error creando proyecto' });
+  }
+});
+
+/* ───────────────────────────────────────────
+   PUT /api/admin/proyectos/:id
+   Modifica un proyecto existente
+   ─────────────────────────────────────────── */
+router.put('/proyectos/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { nombre, descripcion, url_simulador, activo } = req.body;
+    
+    if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio' });
+
+    const result = await query(
+      `UPDATE proyectos
+       SET nombre = $1, descripcion = $2, url_simulador = $3, activo = $4
+       WHERE id = $5 RETURNING *`,
+      [nombre, descripcion || '', url_simulador || '', activo !== false, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    res.json({ message: 'Proyecto actualizado', proyecto: result.rows[0] });
+  } catch (err) {
+    console.error('Error actualizando proyecto:', err);
+    if (err.code === '23505') {
+      return res.status(400).json({ error: 'Ya existe un proyecto con ese nombre' });
+    }
+    res.status(500).json({ error: 'Error actualizando proyecto' });
+  }
+});
+
 export default router;

@@ -218,6 +218,13 @@ export const MIGRACIONES = [
     sql: [
       `ALTER TABLE usuarios ALTER COLUMN password_hash DROP NOT NULL`
     ]
+  },
+  {
+    // Agregar columna para habilitar/deshabilitar proyectos
+    id: '010_proyectos_activo',
+    sql: [
+      `ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT true`
+    ]
   }
 ];
 

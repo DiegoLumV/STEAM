@@ -240,7 +240,7 @@
       <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
     </div>
     <div class="nav-label">Módulos</div>
-    <a href="alumno.html" style="all:unset">
+    <a href="alumno.html" style="all:unset" id="btn-volver-alumno">
       <button class="nav-btn">
         <span class="dot"></span>← Volver al inicio
       </button>
@@ -308,10 +308,14 @@
       } catch (e) { }
     })();
 
+    const pid = parseInt(new URLSearchParams(location.search).get('proyecto') || 1, 10);
+    const linkVolver = document.getElementById('btn-volver-alumno');
+    if (linkVolver) linkVolver.href = 'alumno.html?proyecto=' + pid;
+
     // Defensa extra: si no ha entregado, lo regresamos a la ruta de aprendizaje.
-    fetch('/api/entrega?proyecto_id=1', { headers: authHeaders })
+    fetch('/api/entrega?proyecto_id=' + pid, { headers: authHeaders })
       .then(r => r.json())
-      .then(d => { if (!d.entregado) window.location.href = 'alumno.html'; })
+      .then(d => { if (!d.entregado) window.location.href = 'alumno.html?proyecto=' + pid; })
       .catch(() => { });
 
     function fmt(fecha) {
@@ -319,7 +323,7 @@
     }
 
     async function cargarPreguntas() {
-      const res = await fetch('/api/preguntas?proyecto_id=1', { headers: authHeaders });
+      const res = await fetch('/api/preguntas?proyecto_id=' + pid, { headers: authHeaders });
       const { preguntas } = await res.json();
       const cont = document.getElementById('listaPreguntas');
       if (!preguntas.length) {
@@ -355,7 +359,7 @@
       const titulo = document.getElementById('qTitulo').value.trim();
       const cuerpo = document.getElementById('qCuerpo').value.trim();
       if (!titulo) { alert('Escribe una pregunta antes de publicar.'); return; }
-      const res = await fetch('/api/preguntas', { method: 'POST', headers: authHeaders, body: JSON.stringify({ proyecto_id: 1, titulo, cuerpo }) });
+      const res = await fetch('/api/preguntas', { method: 'POST', headers: authHeaders, body: JSON.stringify({ proyecto_id: pid, titulo, cuerpo }) });
       if (!res.ok) { alert('No se pudo publicar la pregunta.'); return; }
       cerrarFormNueva(e);
       cargarPreguntas();

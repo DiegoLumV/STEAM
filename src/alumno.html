@@ -170,6 +170,14 @@
         // ── Dentro de un proyecto ──
         document.getElementById('navVolverProyecto').style.display = '';
         document.getElementById('subtitulo').style.display = 'none';
+        
+        // Update dashboard links to include project ID
+        document.querySelectorAll('.dash-card').forEach(card => {
+            const url = new URL(card.href, window.location.origin);
+            url.searchParams.set('proyecto', pid);
+            card.href = url.toString();
+        });
+
         Promise.all([get(`/api/alumno/proyectos/${pid}/dashboard`), califs]).then(([d, cs]) => {
           document.getElementById('saludo').textContent = d.proyecto.nombre;
           const propias = cs === null ? null : cs.filter(c => c.ruta === d.proyecto.nombre);
@@ -199,6 +207,7 @@
         }).catch(() => { box.innerHTML = '<p class="dx-empty">No se pudo cargar el dashboard de este proyecto.</p>'; });
       } else {
         // ── Fuera de un proyecto: dashboard general ──
+        document.querySelector('.dash-grid').style.display = 'none';
         Promise.all([get('/api/alumno/dashboard'), califs]).then(([d, cs]) => {
           box.innerHTML = `
             <div class="dx-section"><h2>Progreso general</h2><div class="dx-panel dx-stats">

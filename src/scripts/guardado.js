@@ -12,7 +12,9 @@ let autosaveTimer = null, debounceTimer = null;
 let dirty = false, guardando = false;
 let revision = 0;
 let getSnapshot = null;         // callback que provee casa.js
-let proyectoId = 1, slot = 1;
+let proyectoId = parseInt(new URLSearchParams(window.location.search).get('proyecto') || 1, 10);
+let vistaAlumnoId = new URLSearchParams(window.location.search).get('alumno'); // Si un maestro/admin está viendo
+let slot = 1;
 
 const headers = () => ({
   'Content-Type': 'application/json',
@@ -54,6 +56,7 @@ export function serializarEscena({ objList, objIdCounter, progreso = {} }) {
 
 /* ── API ── */
 export async function guardar(force = false) {
+  if (vistaAlumnoId) return; // Si es maestro viendo alumno, no se guarda!
   if (!getSnapshot || guardando || (!dirty && !force)) return;
   guardando = true;
   document.dispatchEvent(new CustomEvent('guardado:guardando'));
@@ -78,7 +81,9 @@ export async function guardar(force = false) {
 
 export async function cargar() {
   try {
-    const res = await fetch(`${API_BASE}/guardado?proyecto_id=${proyectoId}&slot=${slot}`, { headers: headers() });
+    let url = `${API_BASE}/guardado?proyecto_id=${proyectoId}&slot=${slot}`;
+    if (vistaAlumnoId) url += `&alumno_id=${vistaAlumnoId}`;
+    const res = await fetch(url, { headers: headers() });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(res.status);
     return await res.json();
@@ -112,8 +117,9 @@ export function haySinGuardar() {
 /* ── Arranque ── */
 export function iniciarAutoguardado(snapshotFn, opts = {}) {
   getSnapshot = snapshotFn;
-  proyectoId = opts.proyecto_id ?? 1;
+  proyectoId = opts.proyecto_id ?? parseInt(new URLSearchParams(window.location.search).get('proyecto') || 1, 10);
   slot = opts.slot ?? 1;
+  if (vistaAlumnoId) return; // Sin autoguardado para maestros viendo a alumnos
   autosaveTimer = setInterval(() => guardar(), AUTOSAVE_MS);
 
   // beforeunload + fetch async NO es confiable; sendBeacon sí.
@@ -141,4 +147,32 @@ function flushBeacon() {
 export function detenerAutoguardado() {
   clearInterval(autosaveTimer);
   clearTimeout(debounceTimer);
+  if (syncTimer) clearInterval(syncTimer);
+}
+
+/* ── Sincronización para vista de Maestro (Solo lectura) ── */
+let syncTimer = null;
+let ultimaActualizacion = null;
+
+export async function checkActualizacion() {
+  if (!vistaAlumnoId) return;
+  try {
+    let url = `${API_BASE}/guardado/meta?proyecto_id=${proyectoId}&slot=${slot}&alumno_id=${vistaAlumnoId}`;
+    const res = await fetch(url, { headers: headers() });
+    if (!res.ok) return;
+    const { actualizado_en } = await res.json();
+    
+    if (ultimaActualizacion && actualizado_en !== ultimaActualizacion) {
+      document.dispatchEvent(new CustomEvent('guardado:actualizado_externo'));
+    }
+    ultimaActualizacion = actualizado_en;
+  } catch (err) {
+    // Ignorar errores de red
+  }
+}
+
+export function iniciarSyncMaestro(fechaInicial) {
+  if (!vistaAlumnoId) return;
+  ultimaActualizacion = fechaInicial;
+  syncTimer = setInterval(checkActualizacion, 5000); // Revisar cada 5 segundos
 }

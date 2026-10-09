@@ -21,7 +21,18 @@
     // ─── Abrir / cerrar modales ───
     $('#btnOpenLogin').addEventListener('click', (e) => {
         e.preventDefault();
-        if (authenticated) { window.location.href = 'proyectos.html'; return; }
+        if (authenticated) {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                const r = user.rol || user.rol_nombre;
+                if (r === 'admin') window.location.href = 'PanelAdministrativo.html';
+                else if (r === 'maestro') window.location.href = 'maestro.html';
+                else window.location.href = 'alumno.html';
+            } catch (err) {
+                window.location.href = 'alumno.html';
+            }
+            return;
+        }
         modalLogin.classList.add('visible');
         $('#loginEmail').focus();
     });
@@ -92,8 +103,11 @@
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
-            // Redirigir a proyectos.html (todos los roles)
-            window.location.href = 'proyectos.html';
+            // Redirigir según rol
+            const r = data.user.rol || data.user.rol_nombre;
+            if (r === 'admin') window.location.href = 'PanelAdministrativo.html';
+            else if (r === 'maestro') window.location.href = 'maestro.html';
+            else window.location.href = 'alumno.html';
         } catch (err) {
             showError(loginError, 'Error de conexión. ¿Está corriendo el servidor?');
             setLoading(btn, false);
@@ -128,8 +142,11 @@
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            // Redirigir a proyectos.html para todos los roles
-            window.location.href = 'proyectos.html';
+            // Redirigir según rol
+            const r = data.user.rol || data.user.rol_nombre;
+            if (r === 'admin') window.location.href = 'PanelAdministrativo.html';
+            else if (r === 'maestro') window.location.href = 'maestro.html';
+            else window.location.href = 'alumno.html';
         } catch (err) {
             showError(regError, 'Error de conexión. ¿Está corriendo el servidor?');
             setLoading(btn, false);
@@ -164,10 +181,15 @@
                 const data = await r.json();
                 if (!data.user) return;
                 authenticated = true;
-                $('#btnOpenLogin').textContent = 'Mis proyectos';
+                $('#btnOpenLogin').textContent = 'Mi Dashboard';
                 const enterBtn = document.querySelector('.topbar .btn-main');
-                enterBtn.textContent = 'Mis proyectos →';
-                enterBtn.href = 'proyectos.html';
+                if (enterBtn) {
+                    enterBtn.textContent = 'Mi Dashboard →';
+                    const r = data.user.rol || data.user.rol_nombre;
+                    if (r === 'admin') enterBtn.href = 'PanelAdministrativo.html';
+                    else if (r === 'maestro') enterBtn.href = 'maestro.html';
+                    else enterBtn.href = 'alumno.html';
+                }
             })
             .catch(() => {});
     }
@@ -248,7 +270,10 @@
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            window.location.href = 'proyectos.html';
+            const r = data.user.rol || data.user.rol_nombre;
+            if (r === 'admin') window.location.href = 'PanelAdministrativo.html';
+            else if (r === 'maestro') window.location.href = 'maestro.html';
+            else window.location.href = 'alumno.html';
         } catch (err) {
             const errEl = modalLogin.classList.contains('visible') ? loginError : regError;
             showError(errEl, 'Error de conexión con Google');

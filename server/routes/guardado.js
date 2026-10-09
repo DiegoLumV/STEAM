@@ -69,12 +69,16 @@ router.put('/guardado', async (req, res) => {
 router.get('/guardado', async (req, res) => {
   const proyectoId = parseInt(req.query.proyecto_id || '1');
   const slot = parseInt(req.query.slot || '1');
+  let targetUserId = req.user.id;
+  if (req.query.alumno_id && (req.user.rol_nombre === 'maestro' || req.user.rol_nombre === 'admin')) {
+      targetUserId = parseInt(req.query.alumno_id);
+  }
   try {
     const { rows } = await query(
       `SELECT id, schema_version, estado, progreso, actualizado_en
          FROM proyecto_guardados
         WHERE usuario_id = $1 AND proyecto_id = $2 AND slot = $3`,
-      [req.user.id, proyectoId, slot]
+      [targetUserId, proyectoId, slot]
     );
     if (!rows.length) return res.status(404).json({ error: 'Sin guardado previo' });
 
@@ -89,6 +93,29 @@ router.get('/guardado', async (req, res) => {
   } catch (e) {
     console.error('Error leyendo snapshot:', e);
     res.status(500).json({ error: 'No se pudo cargar el progreso' });
+  }
+});
+
+/* ── GET /api/guardado/meta?proyecto_id=1&slot=1 ── */
+router.get('/guardado/meta', async (req, res) => {
+  const proyectoId = parseInt(req.query.proyecto_id || '1');
+  const slot = parseInt(req.query.slot || '1');
+  let targetUserId = req.user.id;
+  if (req.query.alumno_id && (req.user.rol_nombre === 'maestro' || req.user.rol_nombre === 'admin')) {
+      targetUserId = parseInt(req.query.alumno_id);
+  }
+  try {
+    const { rows } = await query(
+      `SELECT actualizado_en
+         FROM proyecto_guardados
+        WHERE usuario_id = $1 AND proyecto_id = $2 AND slot = $3`,
+      [targetUserId, proyectoId, slot]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Sin guardado previo' });
+    res.json({ actualizado_en: rows[0].actualizado_en });
+  } catch (e) {
+    console.error('Error leyendo meta:', e);
+    res.status(500).json({ error: 'No se pudo cargar metadata' });
   }
 });
 

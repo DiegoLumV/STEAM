@@ -53,19 +53,19 @@
       </button>
     </a>
     <!-- Dashboard del alumno (oculto por defecto) -->
-    <a href="alumno.html?proyecto=1" style="all: unset;" id="link-dash-alumno">
+    <a href="alumno.html" style="all: unset;" id="link-dash-alumno">
       <button class="nav-btn active-quiz" id="btn-dash-alumno" style="display:none;">
         <span class="dot"></span>📋 Mi Dashboard
       </button>
     </a>
     <!-- Opción solo visible para administradores (oculta por defecto) -->
-    <a href="PanelAdministrativo.html?proyecto=1" style="all: unset;" id="link-admin">
+    <a href="PanelAdministrativo.html" style="all: unset;" id="link-admin">
       <button class="nav-btn inactive-admin" id="btn-admin" style="display:none;">
         <span class="dot"></span>Administrador
       </button>
     </a>
     <!-- Opción solo visible para maestros (oculta por defecto) -->
-    <a href="maestro.html?curso=1" style="all: unset;" id="link-maestro">
+    <a href="maestro.html" style="all: unset;" id="link-maestro">
       <button class="nav-btn inactive-admin" id="btn-maestro" style="display:none;">
         <span class="dot"></span>Panel del Maestro
       </button>
@@ -604,8 +604,23 @@
           });
         }
 
+        // Obtener ID del proyecto de la URL
+        const pid = new URLSearchParams(location.search).get('proyecto') || 1;
+        
+        // Actualizar links con el ID del proyecto
+        const linkDash = document.getElementById('link-dash-alumno');
+        if (linkDash) linkDash.href = 'alumno.html?proyecto=' + pid;
+        const linkAdmin = document.getElementById('link-admin');
+        if (linkAdmin) linkAdmin.href = 'PanelAdministrativo.html';
+        const linkMaestro = document.getElementById('link-maestro');
+        if (linkMaestro) linkMaestro.href = 'maestro.html?curso=' + pid;
+        
+        // El boton de examen final también debe llevar el proyecto
+        const btnExamen = document.getElementById('btn-examen');
+        if (btnExamen) btnExamen.parentElement.href = 'sandbox.html?proyecto=' + pid;
+
         // Cuestionario: se desbloquea solo si ya entregaste la casa en el simulador
-        fetch('/api/entrega?proyecto_id=1', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch('/api/entrega?proyecto_id=' + pid, { headers: { 'Authorization': `Bearer ${token}` } })
           .then(r => r.ok ? r.json() : { entregado: false })
           .then(d => {
             const btn = document.getElementById('btn-cuestionario');
@@ -615,7 +630,7 @@
               btn.classList.add('active-quiz');
               btn.innerHTML = '<span class="dot"></span>💬 Cuestionario del Proyecto';
               btn.title = 'Ver y responder preguntas del proyecto';
-              btn.addEventListener('click', () => { window.location.href = 'cuestionario.html'; });
+              btn.addEventListener('click', () => { window.location.href = 'cuestionario.html?proyecto=' + pid; });
             }
           })
           .catch(() => { /* si falla, se queda bloqueado por defecto: no rompe la página */ });
@@ -1744,7 +1759,8 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLesson(); });
 
     document.getElementById('btn-examen').addEventListener('click', () => {
-      window.location.href = 'examen.html';
+      const pid = new URLSearchParams(location.search).get('proyecto') || 1;
+      window.location.href = 'sandbox.html?proyecto=' + pid;
     });
 
     // ── Progreso de módulos: guardar y recuperar (por alumno, vía avance_rutas) ──

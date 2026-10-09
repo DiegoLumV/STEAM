@@ -1,6 +1,7 @@
 // importamos todo lo que vamos a usar de Babylon.js v9
 import { iniciarSesion, cerrarSesion, registrar, setCameraRef } from './telemetria.js';
-import { iniciarAutoguardado, marcarSucio, cargar, serializarEscena, reiniciar, haySinGuardar } from './guardado.js';
+import { checkTutorial, startTutorial } from './tutorial.js';
+import { iniciarAutoguardado, marcarSucio, cargar, serializarEscena, reiniciar, haySinGuardar, iniciarSyncMaestro } from './guardado.js';
 import {
   Engine,
   Scene,
@@ -41,6 +42,9 @@ let objList = [];
 let objIdCounter = 1;
 let catOpen = true;
 let MAT = {};
+
+const vistaAlumnoId = new URLSearchParams(window.location.search).get('alumno');
+window.startTutorial = startTutorial;
 
 // variables del sistema de tormenta, ya no se usa pero se mantiene para compatibilidad
 let rainCtx, rainCanvas, rainParticles = [], stormInterval = null, lightningTimer = null;
@@ -625,6 +629,7 @@ function addObj(type) {
 
 // configura el gizmo de posición y los controles de teclado para cámara y objetos
 function setupGizmos() {
+  if (vistaAlumnoId) return; // Deshabilitado en vista de maestro
   gizmoMgr = new GizmoManager(scene);
   gizmoMgr.usePointerToAttachGizmos = false;
   gizmoMgr.positionGizmoEnabled = true;
@@ -733,6 +738,7 @@ function selectObject(node) {
 
 // detecta qué objeto tocó el usuario con el puntero
 function setupPicking() {
+  if (vistaAlumnoId) return; // Deshabilitado en vista de maestro
   scene.onPointerObservable.add(pointerInfo => {
     if (pointerInfo.type !== PointerEventTypes.POINTERPICK) return;
     const hit = pointerInfo.pickInfo;
@@ -2306,10 +2312,11 @@ async function entregarCasa() {
   if (!confirm('¿Entregar tu casa? Esto desbloqueará el Cuestionario del Proyecto en tu ruta de aprendizaje. Podrás seguir editando después si quieres.')) return;
 
   try {
+    const pid = parseInt(new URLSearchParams(location.search).get('proyecto') || 1, 10);
     const res = await fetch('/api/entrega', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify({ proyecto_id: 1 })
+      body: JSON.stringify({ proyecto_id: pid })
     });
     if (!res.ok) throw new Error((await res.json()).error || res.status);
     btn.classList.add('entregado');
@@ -2323,7 +2330,8 @@ window.entregarCasa = entregarCasa;
 
 (async function chequearEntrega() {
   try {
-    const res = await fetch('/api/entrega?proyecto_id=1', {
+    const pid = parseInt(new URLSearchParams(location.search).get('proyecto') || 1, 10);
+    const res = await fetch('/api/entrega?proyecto_id=' + pid, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
     if (!res.ok) return;
@@ -2956,7 +2964,7 @@ function snapshotActual() {
 
 async function restaurarProgreso() {
   const data = await cargar();
-  if (!data || !data.estado) return;
+  if (!data || !data.estado) return data;
 
   const { estado, progreso } = data;
 
@@ -3235,6 +3243,7 @@ async function restaurarProgreso() {
   // Recalcular desde los objetos ya reconstruidos, no desde el número que
   // se guardó (pudo quedar desactualizado si venía de antes de este fix).
   recalcularObjetivos();
+  return data;
 }
 
 // función principal que arranca la escena, cámara, luces y todo lo demás
@@ -3279,8 +3288,45 @@ const init = () => {
   P(38, 'Materiales…'); buildMaterials();
   P(52, 'Plano…'); buildGround();
 
-  restaurarProgreso().then(() => {
-    iniciarAutoguardado(snapshotActual);
+  restaurarProgreso().then((data) => {
+    const pid = parseInt(new URLSearchParams(location.search).get('proyecto') || 1, 10);
+    iniciarAutoguardado(snapshotActual, { proyecto_id: pid });
+    
+    if (vistaAlumnoId) {
+      // Activar modo solo lectura y sincronización
+      document.getElementById('topbar').style.pointerEvents = 'none';
+      document.getElementById('topbar').style.opacity = '0.5';
+      document.getElementById('btnBack').style.pointerEvents = 'auto'; // Permitir volver
+      document.getElementById('btnBack').style.opacity = '1';
+      document.getElementById('catalog').style.display = 'none';
+      document.getElementById('reset-fab-group').style.display = 'none';
+      if (!data) {
+        document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> El alumno todavía no ha guardado ningún progreso.";
+      } else {
+        document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> Viendo el progreso del alumno.<br>Esta vista se actualizará automáticamente cuando el alumno guarde cambios.";
+      }
+      
+      iniciarSyncMaestro(data ? data.actualizado_en : null);
+      
+      document.addEventListener('guardado:actualizado_externo', async () => {
+         if (gizmoMgr) {
+             gizmoMgr.attachToMesh(null);
+         }
+         selectedMesh = null;
+         objList.forEach(o => { if(o.node) o.node.dispose(); });
+         objList = [];
+         objIdCounter = 1;
+         const res = await restaurarProgreso();
+         
+         if (!res) {
+           document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> El alumno todavía no ha guardado ningún progreso.";
+         } else {
+           document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> Viendo el progreso del alumno.<br>Esta vista se actualizará automáticamente cuando el alumno guarde cambios.";
+         }
+         
+         if (res) iniciarSyncMaestro(res.actualizado_en); // actualizar timestamp
+      });
+    }
   });
 
   P(68, 'Gizmos…');
@@ -3330,6 +3376,9 @@ const init = () => {
   });
 
   setInterval(() => { if (buildPhase >= 4) checkAndUpdateProgramarBtn(); }, 500);
+  
+  // Mostrar tutorial guiado al entrar (solo si es alumno y no lo ha completado)
+  setTimeout(checkTutorial, 1000); // 1s delay to let UI render properly
 };
 
 init();
