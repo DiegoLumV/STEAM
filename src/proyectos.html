@@ -1,228 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Proyectos · STEAM</title>
-  <link rel="stylesheet" href="./Css/styles.css">
-  <style>
-    body {
-      background: var(--bg, #f4f6fb);
-      margin: 0;
-      padding: 60px 24px 100px;
-      font-family: 'Inter', sans-serif;
-    }
-
-    .proyectos-header {
-      max-width: 900px;
-      margin: 0 auto 40px;
-    }
-
-    .proyectos-header h1 {
-      color: #111827;
-      font-size: 28px;
-      margin: 0 0 6px;
-      letter-spacing: -0.01em;
-    }
-
-    .proyectos-header p {
-      color: #6b7280;
-      font-size: 14px;
-      margin: 0;
-    }
-
-    .project-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .project-card {
-      position: relative;
-      height: 260px;
-      border-radius: 18px;
-      overflow: hidden;
-      display: flex;
-      align-items: flex-end;
-      text-decoration: none;
-      background-size: cover;
-      background-position: center;
-
-      background-image: url('');
-      box-shadow: 0 12px 30px rgba(15, 23, 42, .18);
-      transition: transform .2s ease;
-    }
-
-    .project-card:hover {
-      transform: translateY(-3px);
-    }
-
-    .project-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-    }
-
-    .card-orange::before {
-      background: linear-gradient(115deg, rgba(255, 106, 0, .92) 0%, rgba(30, 10, 5, .55) 55%, rgba(10, 8, 12, .75) 100%);
-    }
-
-    .card-blue::before {
-      background: linear-gradient(115deg, rgba(0, 110, 255, .90) 0%, rgba(8, 15, 35, .55) 55%, rgba(10, 8, 12, .75) 100%);
-    }
-
-    .card-green::before {
-      background: linear-gradient(115deg, rgba(20, 190, 110, .90) 0%, rgba(6, 25, 18, .55) 55%, rgba(10, 8, 12, .75) 100%);
-    }
-
-    .card-content {
-      position: relative;
-      z-index: 2;
-      padding: 28px 32px;
-      max-width: 60%;
-    }
-
-    .card-eyebrow {
-      color: rgba(255, 255, 255, .85);
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      margin: 0 0 8px;
-    }
-
-    .card-title {
-      color: #fff;
-      font-size: 30px;
-      font-weight: 800;
-      line-height: 1.05;
-      margin: 0 0 10px;
-      text-shadow: 0 2px 12px rgba(0, 0, 0, .35);
-    }
-
-    .card-desc {
-      color: rgba(255, 255, 255, .85);
-      font-size: 13px;
-      line-height: 1.5;
-      margin: 0 0 16px;
-    }
-
-    .card-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 9px 18px;
-      border-radius: 30px;
-      background: #fff;
-      color: #111;
-      font-size: 12.5px;
-      font-weight: 700;
-    }
-
-    .card-orange .card-cta {
-      color: #b8420a;
-    }
-
-    .card-blue .card-cta {
-      color: #0a4bb8;
-    }
-
-    .card-green .card-cta {
-      color: #0a8a4f;
-    }
-
-    /* Tarjetas todavía sin proyecto asignado */
-    .empty-card {
-      background-image: none;
-      background-color: #ffffff;
-      border: 1.5px dashed #cbd5e1;
-      justify-content: center;
-      align-items: center;
-      cursor: default;
-      box-shadow: none;
-    }
-
-    .empty-card::before {
-      content: none;
-    }
-
-    .empty-card:hover {
-      transform: none;
-    }
-
-    .empty-card .card-content {
-      text-align: center;
-      max-width: 100%;
-      padding: 0;
-    }
-
-    .empty-card .card-title {
-      color: #94a3b8;
-      font-size: 15px;
-      font-weight: 600;
-      text-shadow: none;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mis proyectos · STEAM</title>
+  <link rel="stylesheet" href="./Css/proyectos.css">
 </head>
-
 <body>
-
-  <div class="proyectos-header">
-    <a href="index.html" style="display:inline-block;margin-bottom:20px;color:#314f47;text-decoration:none;">← Inicio STEAM</a>
-    <h1>Selecciona tu proyecto</h1>
-    <p>Elige el simulador con el que quieres trabajar.</p>
-  </div>
-
-  <div style="max-width:900px;margin:-24px auto 24px;">
-    <a id="link-dash-alumno" href="alumno.html" style="display:none;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;">📋 Mi Dashboard</a>
-    <a id="link-dash-maestro" href="maestro.html" style="display:none;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;margin-right:16px;">📋 Panel del Maestro</a>
-    <a id="link-dash-admin" href="PanelAdministrativo.html" style="display:none;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;">📋 Panel Administrativo</a>
-  </div>
-
-  <div class="project-grid">
-
-    <a href="learn.html" class="project-card card-orange"
-      style="background-image: url('https://static.vecteezy.com/system/resources/thumbnails/066/122/288/small/house-construction-site-colored-cartoon-vector.jpg');">
-      <div class="card-content">
-        <p class="card-eyebrow">Proyecto activo</p>
-        <h2 class="card-title">Constructor de Casa</h2>
-        <p class="card-desc">Aprende a modelar y construir una vivienda dentro del simulador 3D.</p>
-        <span class="card-cta">Aprender →</span>
-      </div>
-    </a>
-
-    <!-- ══════════ TARJETA 2 — AZUL (aún sin proyecto) ══════════
-         Cuando tengas el proyecto, cambia el <div> por un <a href="...">
-         igual que la tarjeta de arriba, y pega tu imagen aquí: -->
-    <div class="project-card card-blue empty-card" style="background-image: url('');">
-      <div class="card-content">
-        <h2 class="card-title">Próximamente</h2>
-      </div>
-    </div>
-
-    <!-- ══════════ TARJETA 3 — VERDE (aún sin proyecto) ══════════
-         Pega tu imagen aquí: -->
-    <div class="project-card card-green empty-card" style="background-image: url('');">
-      <div class="card-content">
-        <h2 class="card-title">Próximamente</h2>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    // Mostrar enlaces a los dashboards según el rol
-    try {
-      const p = JSON.parse(atob((localStorage.getItem('token') || '').split('.')[1]));
-      if (p.rol_nombre === 'alumno') document.getElementById('link-dash-alumno').style.display = 'inline-block';
-      if (p.rol_nombre === 'maestro') document.getElementById('link-dash-maestro').style.display = 'inline-block';
-      if (p.rol_nombre === 'admin') document.getElementById('link-dash-admin').style.display = 'inline-block';
-    } catch (e) { /* sin sesión: el enlace queda oculto */ }
-  </script>
+  <header class="topbar">
+    <a class="brand" href="index.html">STEAM<span>Aprender haciendo</span></a>
+    <nav aria-label="Navegación principal"><a id="panel" hidden>Mi progreso</a><a href="index.html">Inicio</a><button id="logout" hidden>Cerrar sesión</button></nav>
+  </header>
+  <main>
+    <section class="welcome">
+      <p class="eyebrow">TU ESPACIO PARA EXPERIMENTAR</p>
+      <h1 id="greeting">¿Qué vamos a construir hoy?</h1>
+      <p>Explora ideas, ponlas a prueba y conviértelas en algo tuyo. Cada proyecto es una nueva forma de aprender STEAM.</p>
+      <div class="disciplines" aria-label="Ciencia, tecnología, ingeniería, arte y matemáticas"><span>Ciencia</span><span>Tecnología</span><span>Ingeniería</span><span>Arte</span><span>Matemáticas</span></div>
+    </section>
+    <section id="resume" class="resume" hidden aria-labelledby="resume-title"><div><p class="eyebrow">DONDE TE QUEDASTE</p><h2 id="resume-title">Continúa tu proyecto</h2><p id="resume-description"></p></div><a id="resume-link" class="button">Continuar proyecto →</a></section>
+    <section aria-labelledby="projects-title">
+      <div class="section-heading"><div><p class="eyebrow">ELIGE TU SIGUIENTE RETO</p><h2 id="projects-title">Explora los proyectos STEAM</h2></div><span id="project-count"></span></div>
+      <p id="message" role="status" aria-live="polite">Cargando tus proyectos…</p><button id="retry" class="secondary" hidden>Volver a intentar</button>
+      <div id="projects" class="project-grid"></div>
+    </section>
+    <aside class="coming"><span aria-hidden="true">＋</span><div><h2>Más formas de aprender, próximamente</h2><p>Este espacio crecerá con nuevos proyectos y retos STEAM.</p></div></aside>
+    <section class="journey" aria-labelledby="journey-title"><h2 id="journey-title">De la idea a tu creación</h2><ol><li><b>01 · Aprende</b><span>Descubre los conceptos del proyecto.</span></li><li><b>02 · Experimenta</b><span>Prueba ideas y aprende de los cambios.</span></li><li><b>03 · Construye</b><span>Aplica lo aprendido en tu creación.</span></li><li><b>04 · Comparte</b><span>Entrega tu trabajo y revisa tus resultados.</span></li></ol></section>
+  </main>
+  <footer>STEAM · Un espacio para aprender, experimentar y construir.</footer>
+  <script type="module" src="./scripts/proyectos.js"></script>
 </body>
-
 </html>
