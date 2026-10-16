@@ -58,6 +58,7 @@
       <div class="cat-item" id="cat-block" onclick="addObjIfAllowed('block')"> <span class="ico">🧱</span>Block </div>
       <div class="cat-item" id="cat-madera" onclick="addObjIfAllowed('madera')"> <span class="ico">🪵</span>Madera
       </div>
+      <div class="cat-item" id="cat-lamina" onclick="addObjIfAllowed('lamina')"> <span class="ico">🛡️</span>Lámina </div>
       <div class="cat-item" id="cat-foco" onclick="addObjIfAllowed('foco')"> <span class="ico">💡</span>Foco </div>
       <div class="cat-item" id="cat-puerta" onclick="addObjIfAllowed('puerta')"> <span class="ico">🚪</span>Puerta
       </div>
@@ -208,6 +209,7 @@
         <div id="wall-tabs">
           <button class="wall-tab active" id="tab-pared" onclick="switchWallTab('pared')">🧱 Pared</button>
           <button class="wall-tab" id="tab-piso" onclick="switchWallTab('piso')">🟫 Piso</button>
+          <button class="wall-tab" id="tab-techo" onclick="switchWallTab('techo')">🏠 Techo</button>
         </div>
 
         <div id="tab-content-pared">
@@ -251,6 +253,7 @@
             <div class="wb-options" id="wb-mat-options">
               <div class="wb-opt selected" data-mat="block" onclick="wbSelectMat(this)">🧱 Block</div>
               <div class="wb-opt" data-mat="madera" onclick="wbSelectMat(this)">🪵 Madera</div>
+              <div class="wb-opt" data-mat="lamina" onclick="wbSelectMat(this)">🛡️ Lámina</div>
             </div>
           </div>
 
@@ -418,6 +421,97 @@
             <button class="btn wb-build-btn" id="wp-build-btn" onclick="buildFloor()">⬇ Construir Piso</button>
           </div>
 
+        </div>
+
+        <div id="tab-content-techo" style="display:none">
+
+          <!-- PASO 1: Forma del techo -->
+          <div class="wb-section">
+            <div class="wb-label">1 · Elige la forma del techo</div>
+            <div class="roof-shape-grid">
+              <div class="roof-shape-card selected" id="roof-shape-plano" onclick="roofSelectShape('plano')">
+                <div class="roof-shape-icon">🟦</div>
+                <div class="roof-shape-name">Techo Plano</div>
+                <div class="roof-shape-desc">Cubierta horizontal uniforme</div>
+              </div>
+              <div class="roof-shape-card" id="roof-shape-dos_aguas" onclick="roofSelectShape('dos_aguas')">
+                <div class="roof-shape-icon">⛺</div>
+                <div class="roof-shape-name">A Dos Aguas</div>
+                <div class="roof-shape-desc">Dos vertientes y cumbrera central</div>
+              </div>
+              <div class="roof-shape-card" id="roof-shape-cuatro_aguas" onclick="roofSelectShape('cuatro_aguas')">
+                <div class="roof-shape-icon">🏛️</div>
+                <div class="roof-shape-name">A Cuatro Aguas</div>
+                <div class="roof-shape-desc">Inclinada a 4 lados</div>
+              </div>
+              <div class="roof-shape-card" id="roof-shape-una_agua" onclick="roofSelectShape('una_agua')">
+                <div class="roof-shape-icon">📐</div>
+                <div class="roof-shape-name">A Una Agua</div>
+                <div class="roof-shape-desc">Plano único inclinado</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PASO 2: Material del techo -->
+          <div class="wb-section">
+            <div class="wb-label">2 · Material de la cubierta</div>
+            <div class="wb-options" id="roof-mat-options">
+              <div class="wb-opt" data-mat="concreto" onclick="roofSelectMat(this)">🪨 Concreto</div>
+              <div class="wb-opt" data-mat="madera" onclick="roofSelectMat(this)">🪵 Madera</div>
+              <div class="wb-opt" data-mat="lamina" onclick="roofSelectMat(this)">🛡️ Lámina</div>
+              <div class="wb-opt selected" data-mat="teja" onclick="roofSelectMat(this)">🧱 Teja</div>
+            </div>
+          </div>
+
+          <!-- PASO 3: Dimensiones del techo -->
+          <div class="wb-section">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div class="wb-label">3 · Dimensiones</div>
+              <button type="button" class="btn" style="padding:4px 9px;font-size:11px;border-radius:8px" onclick="roofAutoFit(true)" title="Calcula automáticamente el tamaño según las paredes colocadas">📐 Ajustar a la casa</button>
+            </div>
+            
+            <div style="margin-top:6px;">
+              <div class="wb-label" style="font-size:10px;margin-bottom:3px">Ancho <span class="wb-range" id="roof-width-range">(3 — 24 m)</span></div>
+              <div class="wb-slider-row">
+                <input type="range" id="roof-width" min="3" max="24" value="10" oninput="roofUpdate()">
+                <span class="wb-num" id="roof-width-val">10 m</span>
+              </div>
+            </div>
+
+            <div style="margin-top:6px;">
+              <div class="wb-label" style="font-size:10px;margin-bottom:3px">Largo / Profundidad <span class="wb-range" id="roof-depth-range">(3 — 24 m)</span></div>
+              <div class="wb-slider-row">
+                <input type="range" id="roof-depth" min="3" max="24" value="10" oninput="roofUpdate()">
+                <span class="wb-num" id="roof-depth-val">10 m</span>
+              </div>
+            </div>
+
+            <div style="margin-top:6px;" id="roof-height-row">
+              <div class="wb-label" style="font-size:10px;margin-bottom:3px">Inclinación / Altura de cumbrera <span class="wb-range">(0.5 — 4.0 m)</span></div>
+              <div class="wb-slider-row">
+                <input type="range" id="roof-height" min="0.5" max="4.0" step="0.1" value="1.8" oninput="roofUpdate()">
+                <span class="wb-num" id="roof-height-val">1.8 m</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- VISTA PREVIA SVG DEL TECHO -->
+          <div class="wb-section">
+            <div class="wb-label">Vista previa de la cubierta</div>
+            <div id="roof-svg-wrap" style="background:rgba(8,20,55,.6);border:1px solid rgba(40,90,200,.25);border-radius:10px;padding:10px;text-align:center">
+              <svg id="roof-svg" viewBox="0 0 200 110" width="200" height="110" style="display:block;margin:0 auto"></svg>
+            </div>
+          </div>
+
+          <!-- Información de la cubierta -->
+          <div id="roof-preview-info" style="background:rgba(8,20,55,.6);border:1px solid rgba(40,90,200,.25);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:5px;">
+            <div class="wb-prev-row"><span>Forma:</span><span id="roof-info-shape">Techo Plano</span></div>
+            <div class="wb-prev-row"><span>Material:</span><span id="roof-info-mat">Teja</span></div>
+            <div class="wb-prev-row"><span>Dimensiones:</span><span id="roof-info-dims">10.0 × 10.0 m</span></div>
+            <div class="wb-prev-row"><span>Superficie cubierta:</span><span id="roof-info-area">100.0 m²</span></div>
+          </div>
+
+          <button class="btn wb-build-btn" id="roof-build-btn" onclick="buildRoof()" style="margin-top:8px">⬆ Construir Techo</button>
         </div>
       </div>
     </div>

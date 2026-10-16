@@ -104,5 +104,99 @@
     </div>
   </div>
 
+  <!-- Estructura del modal para completar registro con Google -->
+  <div id="modalGoogleComplete" class="auth-overlay">
+    <div class="auth-modal auth-modal-expanded">
+      <button class="auth-close" id="btnCloseGoogleComplete">&times;</button>
+      <div class="auth-header">
+        <span class="steam-wordmark">STEAM<span>↗</span></span>
+        <h2>Completa tu registro</h2>
+        <p>Datos vinculados desde tu cuenta de Google</p>
+      </div>
+
+      <!-- Tarjeta de perfil con datos recuperados automáticamente de Google -->
+      <div class="google-profile-card" id="googleProfileCard">
+        <div class="google-profile-header">
+          <img id="googleProfilePhoto" class="google-profile-avatar" src="" alt="Foto de perfil" style="display: none;">
+          <div id="googleProfileAvatarFallback" class="google-profile-avatar-fallback">
+            <svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          </div>
+          <div class="google-profile-info">
+            <div class="google-profile-name" id="googleProfileName">Usuario de Google</div>
+            <div class="google-profile-email" id="googleUserEmail">usuario@ejemplo.com</div>
+          </div>
+        </div>
+        <div class="google-profile-meta">
+          <div class="google-meta-item">
+            <span class="meta-label">Edad:</span>
+            <span class="meta-val" id="googleProfileEdad">No disponible</span>
+          </div>
+          <div class="google-meta-item">
+            <span class="meta-label">Género:</span>
+            <span class="meta-val" id="googleProfileGenero">No disponible</span>
+          </div>
+        </div>
+      </div>
+
+      <form id="formGoogleComplete" class="auth-form">
+        <!-- Único campo manual requerido: Carrera -->
+        <div class="auth-field">
+          <label for="googleRegCarrera">Carrera / Programa académico <span style="color: #b24b32;">*</span></label>
+          <select id="googleRegCarrera" class="auth-select" required>
+            <option value="" disabled selected>Selecciona tu carrera</option>
+            <option value="Ingeniería en Tecnologías de la Información">Ingeniería en Tecnologías de la Información</option>
+            <option value="Ingeniería Mecatrónica">Ingeniería Mecatrónica</option>
+            <option value="Ingeniería en Sistemas Computacionales">Ingeniería en Sistemas Computacionales</option>
+            <option value="Ingeniería Industrial">Ingeniería Industrial</option>
+            <option value="Ingeniería Biomédica">Ingeniería Biomédica</option>
+            <option value="Licenciatura en Administración y Gestión">Licenciatura en Administración y Gestión</option>
+            <option value="otra">Otra carrera (especificar)</option>
+          </select>
+          <input type="text" id="googleRegCarreraOtra" placeholder="Escribe el nombre de tu carrera" style="display: none; margin-top: 8px;">
+          <small class="field-hint">Selecciona tu carrera para personalizar las rutas y retos de aprendizaje.</small>
+        </div>
+
+        <!-- 4. Autorización para compartir información -->
+        <div class="auth-consent-section">
+          <div class="consent-header">
+            <h4>📋 Autorización para compartir información</h4>
+          </div>
+          <div class="consent-info-box">
+            <p><strong>Datos que se recopilan:</strong> Tu nombre, correo de Google, edad, género, carrera académica y métricas de desempeño o telemetría en el simulador STEAM.</p>
+            <p><strong>Finalidad del uso:</strong> Personalizar tu ruta de aprendizaje, dar seguimiento pedagógico a los retos STEAM y evaluar el desarrollo de competencias.</p>
+            <p><strong>Con quién se compartirán:</strong> Exclusivamente con los docentes e instructores de la plataforma para fines académicos y retroalimentación formativa.</p>
+          </div>
+
+          <div class="consent-options-group">
+            <p class="consent-prompt">Selecciona tu decisión de consentimiento:</p>
+            <label class="consent-card" id="cardAutorizar">
+              <input type="radio" name="consentimientoGoogle" value="autorizar">
+              <div class="consent-card-content">
+                <span class="consent-title">✅ Autorizar</span>
+                <span class="consent-desc">Acepto el uso y la compartición de mis datos para seguimiento académico y pedagógico en STEAM.</span>
+              </div>
+            </label>
+
+            <label class="consent-card" id="cardNoAutorizar">
+              <input type="radio" name="consentimientoGoogle" value="no_autorizar">
+              <div class="consent-card-content">
+                <span class="consent-title">🚫 No autorizar</span>
+                <span class="consent-desc">Rechazo compartir mis datos con terceros. Mis datos solo se usarán internamente para el funcionamiento básico de mi cuenta.</span>
+              </div>
+            </label>
+          </div>
+
+          <div id="consentNotice" class="consent-notice" hidden></div>
+        </div>
+
+        <div id="googleRegError" class="auth-error" hidden></div>
+
+        <button type="submit" class="auth-submit" id="btnSubmitGoogleComplete">
+          <span class="auth-submit-text">Completar registro y entrar →</span>
+          <span class="auth-submit-loader" hidden></span>
+        </button>
+      </form>
+    </div>
+  </div>
 
 <script type="module" src="./scripts/autenticacion.js"></script></body></html>

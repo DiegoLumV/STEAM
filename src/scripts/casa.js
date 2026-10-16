@@ -17,10 +17,12 @@ import {
   ShadowGenerator,
   GizmoManager,
   HighlightLayer,
+  Mesh,
   MeshBuilder,
   PBRMaterial,
   StandardMaterial,
   TransformNode,
+  VertexData,
   DefaultRenderingPipeline,
   ImageProcessingConfiguration,
   PointerEventTypes,
@@ -68,7 +70,7 @@ let matematicasValidadas = false;
 let wpMat = 'block';
 
 // tipos que se pueden colorear y referencia al objeto activo en el picker
-const COLORABLE_TYPES = ['block', 'madera', 'puerta', 'vitropiso', 'ventana'];
+const COLORABLE_TYPES = ['block', 'madera', 'puerta', 'vitropiso', 'ventana', 'roof', 'lamina'];
 let colorPickerTarget = null;
 
 // límites de puertas y ventanas
@@ -105,6 +107,8 @@ function buildMaterials() {
   MAT.wallLight = pbr('wallL', [0.32, 0.55, 0.92], 0.70, 0.0);
   MAT.doorMat = pbr('door', [0.08, 0.14, 0.32], 0.55, 0.08);
   MAT.lampBase = pbr('lampB', [0.65, 0.68, 0.75], 0.20, 0.88);
+  MAT.lamina = pbr('lamina', [0.72, 0.76, 0.80], 0.35, 0.70);
+  MAT.teja = pbr('teja', [0.82, 0.34, 0.16], 0.82, 0.02);
 
   MAT.vitropiso = new PBRMaterial('vitropiso', scene);
   MAT.vitropiso.albedoColor = new Color3(0.45, 0.70, 0.98);
@@ -287,6 +291,13 @@ const BUILDERS = {
       box('mad_g' + i, 0.01, 0.2, 0.2, -0.38 + i * 0.25, 0.1, 0, gm).parent = root;
     }
   },
+  lamina(root) {
+    const b = box('lam_body', 1.0, 0.05, 1.0, 0, 0.025, 0, MAT.lamina);
+    b.parent = root;
+    for (let i = -0.4; i <= 0.4; i += 0.2) {
+      box('lam_rib' + i, 0.03, 0.02, 1.0, i, 0.045, 0, MAT.metal).parent = root;
+    }
+  },
   foco(root) {
     cyl('foco_base', 0.14, 0.14, 0.05, 0, 0.025, 0, MAT.lampBase, 14).parent = root;
     cyl('foco_neck', 0.05, 0.05, 0.12, 0, 0.10, 0, MAT.lampBase, 8).parent = root;
@@ -357,9 +368,9 @@ const BUILDERS = {
   },
 };
 
-const LABELS = { block: 'Block', madera: 'Madera', foco: 'Foco', puerta: 'Puerta', barillas: 'Barillas', ventana: 'Ventana', concreto: 'Concreto', vitropiso: 'Vitropiso', lampara: 'Lámpara' };
-const EMOJIS = { block: '🧱', madera: '🪵', foco: '💡', puerta: '🚪', barillas: '⚙', ventana: '🪟', concreto: '🪨', vitropiso: '🔷', lampara: '🔦' };
-const RESISTANCE = { block: 0.9, concreto: 0.95, barillas: 0.85, vitropiso: 0.7, madera: 0.25, puerta: 0.5, ventana: 0.4, foco: 0.3, lampara: 0.4 };
+const LABELS = { block: 'Block', madera: 'Madera', lamina: 'Lámina', teja: 'Teja', roof: 'Techo', foco: 'Foco', puerta: 'Puerta', barillas: 'Barillas', ventana: 'Ventana', concreto: 'Concreto', vitropiso: 'Vitropiso', lampara: 'Lámpara' };
+const EMOJIS = { block: '🧱', madera: '🪵', lamina: '🛡️', teja: '🧱', roof: '🏠', foco: '💡', puerta: '🚪', barillas: '⚙', ventana: '🪟', concreto: '🪨', vitropiso: '🔷', lampara: '🔦' };
+const RESISTANCE = { block: 0.9, concreto: 0.95, barillas: 0.85, vitropiso: 0.7, madera: 0.25, lamina: 0.75, teja: 0.85, puerta: 0.5, ventana: 0.4, foco: 0.3, lampara: 0.4 };
 
 // límites de la zona de construcción y mínimo en Y
 const BUILD_ZONE = 10;
@@ -405,7 +416,7 @@ function clampToZone(root) {
 // = 4 de ancho × 2.8 de alto × 0.5 de grosor), de modo que respeta también las rotaciones
 // de Q/E/R/F/T/G. Dos bloques se consideran superpuestos cuando sus hitbox se penetran más
 // de COLLISION_TOLERANCE (tocarse o apoyarse uno sobre otro sí se permite).
-const COLLISION_TYPES = ['block', 'madera', 'wall_block', 'wall_madera'];
+const COLLISION_TYPES = ['block', 'madera', 'lamina', 'wall_block', 'wall_madera', 'wall_lamina'];
 const COLLISION_TOLERANCE = 0.03; // margen permitido de penetración, en unidades de la escena
 
 // Hitbox del bloque: centro, ejes locales (en mundo) y semi-medidas a lo largo de cada eje.
@@ -567,7 +578,7 @@ function unlockAll() {
   // Desbloquea Programar cuando hay al menos 4 paredes
   buildPhase = 4;
   document.getElementById('btnNight').disabled = false;
-  ['cat-block', 'cat-madera', 'cat-foco', 'cat-puerta', 'cat-ventana', 'cat-vitropiso'].forEach(id => {
+  ['cat-block', 'cat-madera', 'cat-lamina', 'cat-foco', 'cat-puerta', 'cat-ventana', 'cat-vitropiso'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('cat-disabled');
   });
@@ -575,9 +586,9 @@ function unlockAll() {
   if (btnProg) { btnProg.disabled = false; btnProg.style.opacity = ''; btnProg.title = ''; }
   setTip('Programacion desbloqueada! Tienes 4 o mas paredes. Ya puedes programar tu casa.');
 }
-// Cuenta solo paredes reales (wall_block o wall_madera)
+// Cuenta solo paredes reales (wall_block, wall_madera o wall_lamina)
 function countWalls() {
-  return objList.filter(o => o.type === 'wall_block' || o.type === 'wall_madera').length;
+  return objList.filter(o => o.type === 'wall_block' || o.type === 'wall_madera' || o.type === 'wall_lamina').length;
 }
 
 function addObjIfAllowed(type) {
@@ -1608,14 +1619,17 @@ function playAlarm() {
   } catch (e) { }
 }
 
-// cambia entre la pestaña de pared y piso en el modal del constructor
+// cambia entre la pestaña de pared, piso y techo en el modal del constructor
 function switchWallTab(tab) {
-  ['pared', 'piso'].forEach(t => {
-    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
-    document.getElementById('tab-content-' + t).style.display = t === tab ? '' : 'none';
+  ['pared', 'piso', 'techo'].forEach(t => {
+    const tabEl = document.getElementById('tab-' + t);
+    const contentEl = document.getElementById('tab-content-' + t);
+    if (tabEl) tabEl.classList.toggle('active', t === tab);
+    if (contentEl) contentEl.style.display = t === tab ? '' : 'none';
   });
   if (tab === 'pared') wbUpdate();
-  else { wpSelectedW = 20; wpSelectedD = 20; wpUpdate(); }
+  else if (tab === 'piso') { wpSelectedW = 20; wpSelectedD = 20; wpUpdate(); }
+  else if (tab === 'techo') { roofAutoFit(false); roofUpdate(); }
 }
 
 // constructor de pisos con tamaños fijos y validación de cobertura 20×20
@@ -1891,6 +1905,8 @@ function openWallBuilder() {
   document.getElementById('wall-overlay').classList.add('open');
   document.getElementById('tab-pared').style.display = '';
   document.getElementById('tab-piso').style.display = '';
+  const tabTecho = document.getElementById('tab-techo');
+  if (tabTecho) tabTecho.style.display = '';
   switchWallTab('pared');
   // Resetear modo y actualizar contadores al abrir
   wbWallMode = 'simple';
@@ -1922,7 +1938,7 @@ function wbUpdate() {
   document.getElementById('wb-width-val').textContent = w;
   document.getElementById('wb-height-val').textContent = h;
   const bW = 1.0;
-  const bH = wbMat === 'block' ? 0.7 : 0.2;
+  const bH = wbMat === 'block' ? 0.7 : (wbMat === 'madera' ? 0.2 : 0.5);
   const totalW = w * bW;
   const totalH = h * bH;
 
@@ -1968,8 +1984,8 @@ function renderWallPreview(w, h, mat, mode, ventCount) {
   svg.setAttribute('width', svgW);
   svg.setAttribute('height', svgH);
 
-  const blockColor = mat === 'block' ? '#9ca3af' : '#92400e';
-  const blockStroke = mat === 'block' ? '#6b7280' : '#78350f';
+  const blockColor = mat === 'block' ? '#9ca3af' : (mat === 'madera' ? '#92400e' : '#64748b');
+  const blockStroke = mat === 'block' ? '#6b7280' : (mat === 'madera' ? '#78350f' : '#475569');
 
   // Calcular qué celdas son hueco
   const huecos = new Set();
@@ -2067,8 +2083,8 @@ function buildWall() {
   const type = wbMat;
   const mode = wbWallMode;
   const bW = 1.0;
-  const bH = type === 'block' ? 0.7 : 0.2;
-  const bD = type === 'block' ? 0.5 : 0.2;
+  const bH = type === 'block' ? 0.7 : (type === 'madera' ? 0.2 : 0.5);
+  const bD = type === 'block' ? 0.5 : (type === 'madera' ? 0.2 : 0.25);
 
   // Validaciones de modo
   if (mode === 'puerta') {
@@ -2121,9 +2137,12 @@ function buildWall() {
       if (type === 'block') {
         mesh = MeshBuilder.CreateBox('wall_blk_' + id + '_' + row + '_' + col, { width: bW - 0.04, height: bH - 0.04, depth: bD }, scene);
         mesh.material = MAT.block;
-      } else {
+      } else if (type === 'madera') {
         mesh = MeshBuilder.CreateBox('wall_mad_' + id + '_' + row + '_' + col, { width: bW - 0.04, height: bH - 0.02, depth: bD }, scene);
         mesh.material = MAT.madera;
+      } else {
+        mesh = MeshBuilder.CreateBox('wall_lam_' + id + '_' + row + '_' + col, { width: bW - 0.04, height: bH - 0.02, depth: bD }, scene);
+        mesh.material = MAT.lamina;
       }
       mesh.position.set(px, py, 0);
       mesh.receiveShadows = true;
@@ -2199,8 +2218,9 @@ function buildWall() {
   updateOpeningCounters();
 
   const modeTag = mode === 'puerta' ? ' + 🚪 Puerta' : mode === 'ventana' ? ` + 🪟 ${wbVentanasCount} Ventana(s)` : '';
-  const label = `Pared ${type === 'block' ? 'Block' : 'Madera'} ${w}×${h}${modeTag}`;
-  const emoji = type === 'block' ? '🧱' : '🪵';
+  const matName = type === 'block' ? 'Block' : (type === 'madera' ? 'Madera' : 'Lámina');
+  const label = `Pared ${matName} ${w}×${h}${modeTag}`;
+  const emoji = type === 'block' ? '🧱' : (type === 'madera' ? '🪵' : '🛡️');
   root.userData = { id, type: 'wall_' + type, label, emoji, wallMode: mode, w, h };
   objList.push({ id, type: 'wall_' + type, label, emoji, node: root, w, d: h });
 
@@ -2234,6 +2254,699 @@ function buildWall() {
   } catch (e) { }
   marcarSucio();
 }
+
+// ─── CONSTRUCTOR DE TECHOS (MODULAR Y AMPLIABLE) ───────────────────────────
+let roofShapeSelected = 'plano';
+let roofMatSelected = 'teja';
+
+const ROOF_SHAPES = {
+  plano: {
+    id: 'plano',
+    label: 'Techo Plano',
+    desc: 'Cubierta horizontal uniforme con alero perimetral',
+    icon: '🟦',
+    isFlat: true
+  },
+  dos_aguas: {
+    id: 'dos_aguas',
+    label: 'A Dos Aguas',
+    desc: 'Dos vertientes inclinadas unidas en cumbrera central',
+    icon: '⛺',
+    isFlat: false
+  },
+  cuatro_aguas: {
+    id: 'cuatro_aguas',
+    label: 'A Cuatro Aguas',
+    desc: 'Cubierta inclinada hacia los cuatro costados con limatesas',
+    icon: '🏛️',
+    isFlat: false
+  },
+  una_agua: {
+    id: 'una_agua',
+    label: 'A Una Agua',
+    desc: 'Superficie única inclinada para rápido desagüe',
+    icon: '📐',
+    isFlat: false
+  }
+};
+
+const ROOF_MATERIALS = {
+  concreto: { id: 'concreto', label: 'Concreto', icon: '🪨', colorHex: '#9ca3af' },
+  madera: { id: 'madera', label: 'Madera', icon: '🪵', colorHex: '#92400e' },
+  lamina: { id: 'lamina', label: 'Lámina', icon: '🛡️', colorHex: '#64748b' },
+  teja: { id: 'teja', label: 'Teja', icon: '🧱', colorHex: '#ea580c' }
+};
+
+function getRoofMaterial(matKey) {
+  if (matKey === 'concreto') return MAT.concreto;
+  if (matKey === 'madera') return MAT.madera;
+  if (matKey === 'lamina') return MAT.lamina;
+  if (matKey === 'teja') return MAT.teja;
+  return MAT.teja;
+}
+
+function getHouseBounds() {
+  const walls = objList.filter(o => o.type.startsWith('wall_') || o.type === 'block' || o.type === 'madera' || o.type === 'lamina');
+  if (walls.length === 0) {
+    const slab = objList.find(o => o.type === 'concreto_slab_20');
+    if (slab) {
+      return { minX: -10, maxX: 10, minZ: -10, maxZ: 10, maxY: 0.2, centerX: 0, centerZ: 0, w: 20, d: 20, hasWalls: false };
+    }
+    return { minX: -5, maxX: 5, minZ: -5, maxZ: 5, maxY: 0, centerX: 0, centerZ: 0, w: 10, d: 10, hasWalls: false };
+  }
+
+  let minX = Infinity, maxX = -Infinity;
+  let minZ = Infinity, maxZ = -Infinity;
+  let maxY = -Infinity;
+
+  walls.forEach(o => {
+    const meshes = o.node.getChildMeshes();
+    meshes.forEach(m => {
+      m.computeWorldMatrix(true);
+      const bb = m.getBoundingInfo().boundingBox;
+      if (bb.minimumWorld.x < minX) minX = bb.minimumWorld.x;
+      if (bb.maximumWorld.x > maxX) maxX = bb.maximumWorld.x;
+      if (bb.minimumWorld.z < minZ) minZ = bb.minimumWorld.z;
+      if (bb.maximumWorld.z > maxZ) maxZ = bb.maximumWorld.z;
+      if (bb.maximumWorld.y > maxY) maxY = bb.maximumWorld.y;
+    });
+  });
+
+  const w = Math.max(3, Math.min(24, Math.round(maxX - minX + 0.6)));
+  const d = Math.max(3, Math.min(24, Math.round(maxZ - minZ + 0.6)));
+  const centerX = (minX + maxX) / 2;
+  const centerZ = (minZ + maxZ) / 2;
+  return { minX, maxX, minZ, maxZ, maxY: Math.max(0.2, maxY), centerX, centerZ, w, d, hasWalls: true };
+}
+
+function roofSelectShape(shape) {
+  if (!ROOF_SHAPES[shape]) return;
+  roofShapeSelected = shape;
+  document.querySelectorAll('.roof-shape-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('roof-shape-' + shape);
+  if (card) card.classList.add('selected');
+
+  const hRow = document.getElementById('roof-height-row');
+  if (hRow) {
+    hRow.style.display = shape === 'plano' ? 'none' : 'block';
+  }
+
+  roofUpdate();
+}
+
+function roofSelectMat(el) {
+  document.querySelectorAll('#roof-mat-options .wb-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  roofMatSelected = el.dataset.mat;
+  roofUpdate();
+}
+
+function roofAutoFit(force = false) {
+  const bounds = getHouseBounds();
+  const wSlider = document.getElementById('roof-width');
+  const dSlider = document.getElementById('roof-depth');
+  if (wSlider && (force || !wSlider.dataset.userEdited)) {
+    wSlider.value = bounds.w;
+  }
+  if (dSlider && (force || !dSlider.dataset.userEdited)) {
+    dSlider.value = bounds.d;
+  }
+  roofUpdate();
+}
+
+function roofUpdate() {
+  const wEl = document.getElementById('roof-width');
+  const dEl = document.getElementById('roof-depth');
+  const hEl = document.getElementById('roof-height');
+  if (!wEl || !dEl) return;
+
+  const w = parseFloat(wEl.value);
+  const d = parseFloat(dEl.value);
+  const h = roofShapeSelected === 'plano' ? 0.25 : (hEl ? parseFloat(hEl.value) : 1.8);
+
+  const wVal = document.getElementById('roof-width-val');
+  if (wVal) wVal.textContent = w.toFixed(1) + ' m';
+  const dVal = document.getElementById('roof-depth-val');
+  if (dVal) dVal.textContent = d.toFixed(1) + ' m';
+  const hVal = document.getElementById('roof-height-val');
+  if (hVal) hVal.textContent = h.toFixed(1) + ' m';
+
+  const shapeConfig = ROOF_SHAPES[roofShapeSelected] || ROOF_SHAPES.plano;
+  const matConfig = ROOF_MATERIALS[roofMatSelected] || ROOF_MATERIALS.teja;
+
+  let calcArea = w * d;
+  if (roofShapeSelected === 'dos_aguas') {
+    calcArea = 2 * Math.hypot(w / 2, h) * d;
+  } else if (roofShapeSelected === 'cuatro_aguas') {
+    calcArea = 2 * (w / 2 * Math.hypot(d / 2, h)) + 2 * (d / 2 * Math.hypot(w / 2, h));
+  } else if (roofShapeSelected === 'una_agua') {
+    calcArea = Math.hypot(d, h) * w;
+  }
+
+  const infoShape = document.getElementById('roof-info-shape');
+  if (infoShape) infoShape.textContent = shapeConfig.label;
+  const infoMat = document.getElementById('roof-info-mat');
+  if (infoMat) infoMat.textContent = matConfig.label;
+  const infoDims = document.getElementById('roof-info-dims');
+  if (infoDims) infoDims.textContent = `${w.toFixed(1)} × ${d.toFixed(1)} m` + (roofShapeSelected !== 'plano' ? ` · Altura: ${h.toFixed(1)} m` : '');
+  const infoArea = document.getElementById('roof-info-area');
+  if (infoArea) infoArea.textContent = calcArea.toFixed(1) + ' m²';
+
+  renderRoofPreview(w, d, h, roofShapeSelected, roofMatSelected);
+}
+
+function renderRoofPreview(w, d, h, shape, matKey) {
+  const svg = document.getElementById('roof-svg');
+  if (!svg) return;
+  const matConfig = ROOF_MATERIALS[matKey] || ROOF_MATERIALS.teja;
+  const baseColor = matConfig.colorHex;
+
+  svg.setAttribute('viewBox', '0 0 200 110');
+  let svgContent = '';
+
+  if (shape === 'plano') {
+    svgContent = `
+      <defs>
+        <linearGradient id="planoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${baseColor}" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="${baseColor}" stop-opacity="0.65"/>
+        </linearGradient>
+      </defs>
+      <polygon points="100,20 170,45 100,75 30,50" fill="url(#planoGrad)" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"/>
+      <polygon points="30,50 100,75 100,85 30,60" fill="${baseColor}" fill-opacity="0.8" stroke="rgba(0,0,0,0.3)" stroke-width="1"/>
+      <polygon points="100,75 170,45 170,55 100,85" fill="${baseColor}" fill-opacity="0.55" stroke="rgba(0,0,0,0.3)" stroke-width="1"/>
+      ${matKey === 'lamina' ? `
+        <line x1="50" y1="36" x2="120" y2="61" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+        <line x1="75" y1="28" x2="145" y2="53" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+      ` : matKey === 'teja' ? `
+        <line x1="65" y1="62" x2="135" y2="37" stroke="rgba(0,0,0,0.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
+      ` : ''}
+      <text x="100" y="102" fill="rgba(180,215,255,0.9)" font-size="10" text-anchor="middle" font-weight="bold">Plano: ${w.toFixed(1)} × ${d.toFixed(1)} m</text>
+    `;
+  } else if (shape === 'dos_aguas') {
+    svgContent = `
+      <defs>
+        <linearGradient id="slopeLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${baseColor}" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="${baseColor}" stop-opacity="0.7"/>
+        </linearGradient>
+        <linearGradient id="slopeRight" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${baseColor}" stop-opacity="0.75"/>
+          <stop offset="100%" stop-color="${baseColor}" stop-opacity="0.45"/>
+        </linearGradient>
+      </defs>
+      <polygon points="30,70 100,78 100,28" fill="${baseColor}" fill-opacity="0.85" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <polygon points="30,70 100,28 160,20 90,62" fill="url(#slopeLeft)" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"/>
+      <polygon points="100,78 100,28 160,20 160,70" fill="url(#slopeRight)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <line x1="100" y1="28" x2="160" y2="20" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      <text x="100" y="102" fill="rgba(180,215,255,0.9)" font-size="10" text-anchor="middle" font-weight="bold">Dos Aguas: ${w.toFixed(1)} × ${d.toFixed(1)} m · H: ${h.toFixed(1)} m</text>
+    `;
+  } else if (shape === 'cuatro_aguas') {
+    svgContent = `
+      <polygon points="100,26 135,24 165,65 100,75 35,65" fill="${baseColor}" fill-opacity="0.85" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+      <polygon points="100,26 135,24 100,75" fill="${baseColor}" fill-opacity="0.95" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+      <polygon points="35,65 100,75 100,26" fill="${baseColor}" fill-opacity="0.7" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <polygon points="100,75 165,65 135,24" fill="${baseColor}" fill-opacity="0.5" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <line x1="100" y1="26" x2="135" y2="24" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="100" y1="26" x2="35" y2="65" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+      <line x1="100" y1="26" x2="100" y2="75" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+      <line x1="135" y1="24" x2="165" y2="65" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+      <text x="100" y="102" fill="rgba(180,215,255,0.9)" font-size="10" text-anchor="middle" font-weight="bold">Cuatro Aguas: ${w.toFixed(1)} × ${d.toFixed(1)} m</text>
+    `;
+  } else if (shape === 'una_agua') {
+    svgContent = `
+      <polygon points="40,28 150,22 150,55 40,61" fill="${baseColor}" fill-opacity="0.5" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      <polygon points="40,28 40,82 130,82" fill="${baseColor}" fill-opacity="0.75" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <polygon points="40,28 150,22 170,72 60,78" fill="${baseColor}" fill-opacity="0.9" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"/>
+      <polygon points="60,78 170,72 170,82 60,88" fill="${baseColor}" fill-opacity="0.6" stroke="rgba(0,0,0,0.3)" stroke-width="1"/>
+      <text x="100" y="102" fill="rgba(180,215,255,0.9)" font-size="10" text-anchor="middle" font-weight="bold">Una Agua: ${w.toFixed(1)} × ${d.toFixed(1)} m · H: ${h.toFixed(1)} m</text>
+    `;
+  }
+
+  svg.innerHTML = svgContent;
+}
+
+// ── Geometría 3D de Techos ────────────────────────────────────────────────
+function buildRoofGeometry(root, id, shape, matKey, w, d, h) {
+  const mat = getRoofMaterial(matKey);
+  const meshes = [];
+
+  if (shape === 'plano') {
+    const slabT = 0.22;
+    const slab = MeshBuilder.CreateBox('roof_slab_' + id, { width: w, height: slabT, depth: d }, scene);
+    slab.position.set(0, slabT / 2, 0);
+    slab.material = mat;
+    slab.parent = root;
+    meshes.push(slab);
+
+    const fT = 0.12;
+    const fH = slabT + 0.08;
+    const fFront = MeshBuilder.CreateBox('roof_ff_' + id, { width: w + 0.16, height: fH, depth: fT }, scene);
+    fFront.position.set(0, fH / 2 - 0.02, d / 2 + fT / 2);
+    fFront.material = mat;
+    fFront.parent = root;
+    meshes.push(fFront);
+
+    const fBack = MeshBuilder.CreateBox('roof_fb_' + id, { width: w + 0.16, height: fH, depth: fT }, scene);
+    fBack.position.set(0, fH / 2 - 0.02, -d / 2 - fT / 2);
+    fBack.material = mat;
+    fBack.parent = root;
+    meshes.push(fBack);
+
+    const fLeft = MeshBuilder.CreateBox('roof_fl_' + id, { width: fT, height: fH, depth: d }, scene);
+    fLeft.position.set(-w / 2 - fT / 2, fH / 2 - 0.02, 0);
+    fLeft.material = mat;
+    fLeft.parent = root;
+    meshes.push(fLeft);
+
+    const fRight = MeshBuilder.CreateBox('roof_fr_' + id, { width: fT, height: fH, depth: d }, scene);
+    fRight.position.set(w / 2 + fT / 2, fH / 2 - 0.02, 0);
+    fRight.material = mat;
+    fRight.parent = root;
+    meshes.push(fRight);
+
+    if (matKey === 'lamina') {
+      const step = 0.8;
+      for (let x = -w / 2 + step; x < w / 2; x += step) {
+        const rib = MeshBuilder.CreateBox('roof_rib_' + id + '_' + x.toFixed(1), { width: 0.04, height: 0.03, depth: d }, scene);
+        rib.position.set(x, slabT + 0.015, 0);
+        rib.material = MAT.metal;
+        rib.parent = root;
+        meshes.push(rib);
+      }
+    } else if (matKey === 'madera') {
+      const step = 1.2;
+      for (let x = -w / 2 + 0.6; x < w / 2; x += step) {
+        const beam = MeshBuilder.CreateBox('roof_beam_' + id + '_' + x.toFixed(1), { width: 0.14, height: 0.14, depth: d - 0.1 }, scene);
+        beam.position.set(x, -0.07, 0);
+        beam.material = MAT.madera;
+        beam.parent = root;
+        meshes.push(beam);
+      }
+    } else if (matKey === 'teja') {
+      const stepZ = 1.0;
+      for (let z = -d / 2 + stepZ; z < d / 2; z += stepZ) {
+        const tileLine = MeshBuilder.CreateBox('roof_tl_' + id + '_' + z.toFixed(1), { width: w - 0.1, height: 0.03, depth: 0.08 }, scene);
+        tileLine.position.set(0, slabT + 0.015, z);
+        tileLine.material = MAT.teja;
+        tileLine.parent = root;
+        meshes.push(tileLine);
+      }
+    }
+  } else if (shape === 'dos_aguas') {
+    const hw = w / 2;
+    const slopeL = Math.hypot(hw, h);
+    const theta = Math.atan2(h, hw);
+    const slabT = 0.14;
+    const overhang = 0.35;
+
+    const slopeLMesh = MeshBuilder.CreateBox('roof_sl_l_' + id, { width: slopeL + overhang, height: slabT, depth: d + overhang * 2 }, scene);
+    slopeLMesh.position.set(-hw / 2, h / 2, 0);
+    slopeLMesh.rotation.z = -theta;
+    slopeLMesh.material = mat;
+    slopeLMesh.parent = root;
+    meshes.push(slopeLMesh);
+
+    const slopeRMesh = MeshBuilder.CreateBox('roof_sl_r_' + id, { width: slopeL + overhang, height: slabT, depth: d + overhang * 2 }, scene);
+    slopeRMesh.position.set(hw / 2, h / 2, 0);
+    slopeRMesh.rotation.z = theta;
+    slopeRMesh.material = mat;
+    slopeRMesh.parent = root;
+    meshes.push(slopeRMesh);
+
+    const ridgeMat = matKey === 'teja' ? MAT.teja : (matKey === 'lamina' ? MAT.metal : mat);
+    const ridge = MeshBuilder.CreateBox('roof_rd_' + id, { width: 0.32, height: 0.12, depth: d + overhang * 2 + 0.06 }, scene);
+    ridge.position.set(0, h + slabT / 2, 0);
+    ridge.material = ridgeMat;
+    ridge.parent = root;
+    meshes.push(ridge);
+
+    createGableWall(root, id, 'f', hw, h, d / 2, -0.12, mat, meshes);
+    createGableWall(root, id, 'b', hw, h, -d / 2, 0.12, mat, meshes);
+
+    if (matKey === 'lamina') {
+      const step = 0.8;
+      for (let z = -d / 2; z <= d / 2; z += step) {
+        const ribL = MeshBuilder.CreateBox('roof_rbl_' + id + '_' + z.toFixed(1), { width: slopeL, height: 0.03, depth: 0.03 }, scene);
+        ribL.position.set(-hw / 2, h / 2 + 0.08, z);
+        ribL.rotation.z = -theta;
+        ribL.material = MAT.metal;
+        ribL.parent = root;
+        meshes.push(ribL);
+
+        const ribR = MeshBuilder.CreateBox('roof_rbr_' + id + '_' + z.toFixed(1), { width: slopeL, height: 0.03, depth: 0.03 }, scene);
+        ribR.position.set(hw / 2, h / 2 + 0.08, z);
+        ribR.rotation.z = theta;
+        ribR.material = MAT.metal;
+        ribR.parent = root;
+        meshes.push(ribR);
+      }
+    } else if (matKey === 'teja') {
+      const ridgeCyl = MeshBuilder.CreateCylinder('roof_rcyl_' + id, { diameter: 0.28, height: d + overhang * 2 + 0.08, tessellation: 12 }, scene);
+      ridgeCyl.rotation.x = Math.PI / 2;
+      ridgeCyl.position.set(0, h + slabT / 2 + 0.04, 0);
+      ridgeCyl.material = MAT.teja;
+      ridgeCyl.parent = root;
+      meshes.push(ridgeCyl);
+    }
+  } else if (shape === 'cuatro_aguas') {
+    const hw = w / 2;
+    const hd = d / 2;
+    const overhang = 0.3;
+
+    createHipRoofMesh(root, id, hw + overhang, hd + overhang, h, mat, meshes);
+    const baseFascia = createPerimeterFascia(root, id, (hw + overhang) * 2, (hd + overhang) * 2, 0.12, mat);
+    meshes.push(...baseFascia);
+  } else if (shape === 'una_agua') {
+    const hd = d / 2;
+    const hw = w / 2;
+    const slopeL = Math.hypot(d, h);
+    const phi = Math.atan2(h, d);
+    const slabT = 0.14;
+    const overhang = 0.35;
+
+    const slab = MeshBuilder.CreateBox('roof_shed_' + id, { width: w + overhang * 2, height: slabT, depth: slopeL + overhang }, scene);
+    slab.position.set(0, h / 2, 0);
+    slab.rotation.x = phi;
+    slab.material = mat;
+    slab.parent = root;
+    meshes.push(slab);
+
+    const backWall = MeshBuilder.CreateBox('roof_sw_b_' + id, { width: w, height: h, depth: 0.12 }, scene);
+    backWall.position.set(0, h / 2, -hd + 0.06);
+    backWall.material = mat;
+    backWall.parent = root;
+    meshes.push(backWall);
+
+    createShedSideWall(root, id, 'l', -hw + 0.06, hd, h, mat, meshes);
+    createShedSideWall(root, id, 'r', hw - 0.06, hd, h, mat, meshes);
+
+    const topCap = MeshBuilder.CreateBox('roof_sc_' + id, { width: w + overhang * 2 + 0.04, height: 0.08, depth: 0.2 }, scene);
+    topCap.position.set(0, h + slabT / 2, -hd - overhang / 2);
+    topCap.material = matKey === 'lamina' ? MAT.metal : mat;
+    topCap.parent = root;
+    meshes.push(topCap);
+
+    if (matKey === 'lamina') {
+      const step = 0.8;
+      for (let x = -w / 2; x <= w / 2; x += step) {
+        const rib = MeshBuilder.CreateBox('roof_srib_' + id + '_' + x.toFixed(1), { width: 0.03, height: 0.03, depth: slopeL }, scene);
+        rib.position.set(x, h / 2 + 0.08, 0);
+        rib.rotation.x = phi;
+        rib.material = MAT.metal;
+        rib.parent = root;
+        meshes.push(rib);
+      }
+    }
+  }
+
+  meshes.forEach(m => {
+    m.receiveShadows = true;
+    if (shadowGen) shadowGen.addShadowCaster(m, false);
+  });
+
+  return meshes;
+}
+
+function createGableWall(root, id, side, hw, h, zPos, zThick, mat, meshes) {
+  const mesh = new Mesh('roof_gw_' + side + '_' + id, scene);
+  const z1 = zPos;
+  const z2 = zPos + zThick;
+  const positions = [
+    -hw, 0, z1,   hw, 0, z1,   0, h, z1,
+    -hw, 0, z2,   hw, 0, z2,   0, h, z2,
+  ];
+  const indices = [
+    0, 1, 2,  0, 2, 1,
+    3, 5, 4,  3, 4, 5,
+    0, 3, 4,  0, 4, 1,
+    0, 2, 5,  0, 5, 3,
+    1, 4, 5,  1, 5, 2
+  ];
+  const normals = [];
+  VertexData.ComputeNormals(positions, indices, normals);
+  const vd = new VertexData();
+  vd.positions = positions;
+  vd.indices = indices;
+  vd.normals = normals;
+  vd.applyToMesh(mesh);
+  mesh.material = mat;
+  mesh.parent = root;
+  meshes.push(mesh);
+}
+
+function createShedSideWall(root, id, side, xPos, hd, h, mat, meshes) {
+  const mesh = new Mesh('roof_sw_' + side + '_' + id, scene);
+  const x1 = xPos - 0.06;
+  const x2 = xPos + 0.06;
+  const positions = [
+    x1, 0, hd,   x1, 0, -hd,   x1, h, -hd,
+    x2, 0, hd,   x2, 0, -hd,   x2, h, -hd
+  ];
+  const indices = [
+    0, 1, 2,  0, 2, 1,
+    3, 5, 4,  3, 4, 5,
+    0, 3, 4,  0, 4, 1,
+    1, 4, 5,  1, 5, 2,
+    0, 2, 5,  0, 5, 3
+  ];
+  const normals = [];
+  VertexData.ComputeNormals(positions, indices, normals);
+  const vd = new VertexData();
+  vd.positions = positions;
+  vd.indices = indices;
+  vd.normals = normals;
+  vd.applyToMesh(mesh);
+  mesh.material = mat;
+  mesh.parent = root;
+  meshes.push(mesh);
+}
+
+function createHipRoofMesh(root, id, hw, hd, h, mat, meshes) {
+  const mesh = new Mesh('roof_hip_' + id, scene);
+  let positions = [];
+  let indices = [];
+
+  if (hd >= hw) {
+    const rL = Math.max(0.2, (hd - hw) * 1.4);
+    positions = [
+      -hw, 0, -hd,
+       hw, 0, -hd,
+       hw, 0,  hd,
+      -hw, 0,  hd,
+        0, h, -rL / 2,
+        0, h,  rL / 2
+    ];
+    indices = [
+      0, 1, 4,   0, 4, 1,
+      2, 3, 5,   2, 5, 3,
+      3, 0, 4,   3, 4, 0,
+      3, 4, 5,   3, 5, 4,
+      1, 2, 5,   1, 5, 2,
+      1, 5, 4,   1, 4, 5,
+      0, 3, 2,   0, 2, 3,
+      0, 2, 1,   0, 1, 2
+    ];
+  } else {
+    const rL = Math.max(0.2, (hw - hd) * 1.4);
+    positions = [
+      -hw, 0, -hd,
+       hw, 0, -hd,
+       hw, 0,  hd,
+      -hw, 0,  hd,
+      -rL / 2, h, 0,
+       rL / 2, h, 0
+    ];
+    indices = [
+      3, 0, 4,   3, 4, 0,
+      1, 2, 5,   1, 5, 2,
+      0, 1, 5,   0, 5, 1,
+      0, 5, 4,   0, 4, 5,
+      2, 3, 4,   2, 4, 3,
+      2, 4, 5,   2, 5, 4,
+      0, 3, 2,   0, 2, 3,
+      0, 2, 1,   0, 1, 2
+    ];
+  }
+
+  const normals = [];
+  VertexData.ComputeNormals(positions, indices, normals);
+  const vd = new VertexData();
+  vd.positions = positions;
+  vd.indices = indices;
+  vd.normals = normals;
+  vd.applyToMesh(mesh);
+  mesh.material = mat;
+  mesh.parent = root;
+  meshes.push(mesh);
+}
+
+function createPerimeterFascia(root, id, width, depth, height, mat) {
+  const fT = 0.12;
+  const fFront = MeshBuilder.CreateBox('roof_pf_f_' + id, { width: width + fT, height: height, depth: fT }, scene);
+  fFront.position.set(0, height / 2 - 0.02, depth / 2 + fT / 2);
+  fFront.material = mat;
+  fFront.parent = root;
+
+  const fBack = MeshBuilder.CreateBox('roof_pf_b_' + id, { width: width + fT, height: height, depth: fT }, scene);
+  fBack.position.set(0, height / 2 - 0.02, -depth / 2 - fT / 2);
+  fBack.material = mat;
+  fBack.parent = root;
+
+  const fLeft = MeshBuilder.CreateBox('roof_pf_l_' + id, { width: fT, height: height, depth: depth }, scene);
+  fLeft.position.set(-width / 2 - fT / 2, height / 2 - 0.02, 0);
+  fLeft.material = mat;
+  fLeft.parent = root;
+
+  const fRight = MeshBuilder.CreateBox('roof_pf_r_' + id, { width: fT, height: height, depth: depth }, scene);
+  fRight.position.set(width / 2 + fT / 2, height / 2 - 0.02, 0);
+  fRight.material = mat;
+  fRight.parent = root;
+
+  return [fFront, fBack, fLeft, fRight];
+}
+
+function buildRoof() {
+  const wEl = document.getElementById('roof-width');
+  const dEl = document.getElementById('roof-depth');
+  const hEl = document.getElementById('roof-height');
+  const w = wEl ? parseFloat(wEl.value) : 10;
+  const d = dEl ? parseFloat(dEl.value) : 10;
+  const h = roofShapeSelected === 'plano' ? 0.25 : (hEl ? parseFloat(hEl.value) : 1.8);
+  const shape = roofShapeSelected;
+  const matKey = roofMatSelected;
+
+  const bounds = getHouseBounds();
+  const posX = bounds.centerX;
+  const posY = bounds.maxY;
+  const posZ = bounds.centerZ;
+
+  const id = objIdCounter++;
+  const root = new TransformNode('obj_' + id + '_roof', scene);
+  root.position.set(posX, posY, posZ);
+
+  buildRoofGeometry(root, id, shape, matKey, w, d, h);
+
+  const shapeConfig = ROOF_SHAPES[shape] || ROOF_SHAPES.plano;
+  const matConfig = ROOF_MATERIALS[matKey] || ROOF_MATERIALS.teja;
+  const label = `${shapeConfig.label} (${matConfig.label}) ${w.toFixed(1)}×${d.toFixed(1)}`;
+  const emoji = '🏠';
+
+  let calcArea = w * d;
+  if (shape === 'dos_aguas') calcArea = 2 * Math.hypot(w / 2, h) * d;
+  else if (shape === 'cuatro_aguas') calcArea = 2 * (w / 2 * Math.hypot(d / 2, h)) + 2 * (d / 2 * Math.hypot(w / 2, h));
+  else if (shape === 'una_agua') calcArea = Math.hypot(d, h) * w;
+
+  root.userData = {
+    id,
+    type: 'roof',
+    roofShape: shape,
+    roofMat: matKey,
+    label,
+    emoji,
+    w,
+    d,
+    h,
+    area: Math.round(calcArea * 10) / 10
+  };
+
+  objList.push({
+    id,
+    type: 'roof',
+    roofShape: shape,
+    roofMat: matKey,
+    label,
+    emoji,
+    node: root,
+    w,
+    d,
+    h,
+    area: Math.round(calcArea * 10) / 10
+  });
+
+  clampToZone(root);
+  updateObjListUI();
+  selectObject(root);
+  closeWallBuilder();
+
+  showSuccessMessage(`✅ ¡Techo construido!<br>📐 <b>${label}</b> · Cubierta: ${calcArea.toFixed(1)} m²`);
+  setTip(`<b>🏠 ${label}</b> colocada sobre la vivienda · Arrastra flechas para ajustar posición · Q/E rotar · ✕ Eliminar para rehacer`);
+
+  try {
+    registrar('techo_construido', {
+      pos_x: root.position.x, pos_y: root.position.y, pos_z: root.position.z,
+      contexto: { forma: shape, material: matKey, ancho: w, profundidad: d, alto: h, area: calcArea }
+    });
+  } catch (e) { }
+
+  marcarSucio();
+}
+
+function reconstructRoof(o) {
+  const p = o.p || [0, 2.5, 0];
+  const r = o.r || [0, 0, 0];
+  const s = o.s || [1, 1, 1];
+  const shape = o.roofShape || 'plano';
+  const matKey = o.roofMat || 'teja';
+  const w = o.w || 10;
+  const d = o.d || 10;
+  const h = o.roofH != null ? o.roofH : (o.h != null ? o.h : 1.8);
+
+  const root = new TransformNode('obj_' + o.id + '_roof', scene);
+  root.position.set(p[0], p[1], p[2]);
+  root.rotation.set(r[0], r[1], r[2]);
+  root.scaling.set(s[0], s[1], s[2]);
+
+  buildRoofGeometry(root, o.id, shape, matKey, w, d, h);
+
+  if (o.color) {
+    const cr = parseInt(o.color.slice(1, 3), 16) / 255;
+    const cg = parseInt(o.color.slice(3, 5), 16) / 255;
+    const cb = parseInt(o.color.slice(5, 7), 16) / 255;
+    const col = new Color3(cr, cg, cb);
+    root.getChildMeshes().forEach(m => {
+      if (m.material && m.material.albedoColor !== undefined) {
+        const clone = m.material.clone(m.material.name + '_colored_' + o.id);
+        clone.albedoColor = col;
+        m.material = clone;
+      }
+    });
+  }
+
+  const shapeConfig = ROOF_SHAPES[shape] || ROOF_SHAPES.plano;
+  const matConfig = ROOF_MATERIALS[matKey] || ROOF_MATERIALS.teja;
+  const label = `${shapeConfig.label} (${matConfig.label}) ${w}×${d}`;
+  const emoji = '🏠';
+
+  root.userData = {
+    id: o.id,
+    type: 'roof',
+    roofShape: shape,
+    roofMat: matKey,
+    label,
+    emoji,
+    w,
+    d,
+    h,
+    area: o.area
+  };
+  if (o.color) root.userData.color = o.color;
+
+  objList.push({
+    id: o.id,
+    type: 'roof',
+    roofShape: shape,
+    roofMat: matKey,
+    label,
+    emoji,
+    node: root,
+    w,
+    d,
+    h,
+    area: o.area
+  });
+}
+
 
 // muestra un mensaje de función bloqueada como toast
 // ── Reiniciar casa ──────────────────────────────────────────────
@@ -2946,6 +3659,7 @@ Object.assign(window, {
   openColorPicker, closeColorPicker, setSwatchColor, applyColorPicker, confirmColorPicker,
   wbSelectMode, wbSetVentCount, renderWallPreview, updateModeCardStates,
   updateOpeningCounters,
+  roofSelectShape, roofSelectMat, roofAutoFit, roofUpdate, buildRoof,
 });
 
 function snapshotActual() {
@@ -3076,14 +3790,14 @@ async function restaurarProgreso() {
       const label = `Vitropiso ${w}×${d}`;
       root.userData = { id: o.id, type: 'floor_vitropiso', label, emoji: '🔷', color: hex };
       objList.push({ id: o.id, type: 'floor_vitropiso', label, emoji: '🔷', node: root, area: newArea, w, d });
-    } else if (o.type === 'wall_block' || o.type === 'wall_madera') {
-      const matType = o.type === 'wall_block' ? 'block' : 'madera';
+    } else if (o.type === 'wall_block' || o.type === 'wall_madera' || o.type === 'wall_lamina') {
+      const matType = o.type === 'wall_block' ? 'block' : (o.type === 'wall_madera' ? 'madera' : 'lamina');
       const mode = o.wallMode || 'simple';
       const w = o.w || 5;
       const h = o.d || 4;
       const bW = 1.0;
-      const bH = matType === 'block' ? 0.7 : 0.2;
-      const bD = matType === 'block' ? 0.5 : 0.2;
+      const bH = matType === 'block' ? 0.7 : (matType === 'madera' ? 0.2 : 0.5);
+      const bD = matType === 'block' ? 0.5 : (matType === 'madera' ? 0.2 : 0.25);
 
       const root = new TransformNode('obj_' + o.id + '_' + o.type, scene);
       root.position.set(p[0], p[1], p[2]);
@@ -3117,7 +3831,8 @@ async function restaurarProgreso() {
         const cr = parseInt(o.color.slice(1, 3), 16) / 255;
         const cg = parseInt(o.color.slice(3, 5), 16) / 255;
         const cb = parseInt(o.color.slice(5, 7), 16) / 255;
-        customMat = (matType === 'block' ? MAT.block : MAT.madera).clone('wall_colored_' + o.id);
+        const baseM = matType === 'block' ? MAT.block : (matType === 'madera' ? MAT.madera : MAT.lamina);
+        customMat = baseM.clone('wall_colored_' + o.id);
         customMat.albedoColor = new Color3(cr, cg, cb);
       }
 
@@ -3126,11 +3841,12 @@ async function restaurarProgreso() {
           if (huecos.has(`${col},${row}`)) continue;
           const px = startX + col * bW;
           const py = (bH / 2) + row * bH;
+          const defaultM = matType === 'block' ? MAT.block : (matType === 'madera' ? MAT.madera : MAT.lamina);
           const mesh = MeshBuilder.CreateBox(
             'wall_' + matType + '_' + o.id + '_' + row + '_' + col,
             { width: bW - 0.04, height: bH - (matType === 'block' ? 0.04 : 0.02), depth: bD }, scene
           );
-          mesh.material = customMat || (matType === 'block' ? MAT.block : MAT.madera);
+          mesh.material = customMat || defaultM;
           mesh.position.set(px, py, 0);
           mesh.receiveShadows = true;
           if (shadowGen) shadowGen.addShadowCaster(mesh, false);
@@ -3139,8 +3855,9 @@ async function restaurarProgreso() {
       }
 
       const modeTag = mode === 'puerta' ? ' + 🚪 Puerta' : mode === 'ventana' ? ` + 🪟 ${ventCount} Ventana(s)` : '';
-      const label = `Pared ${matType === 'block' ? 'Block' : 'Madera'} ${w}×${h}${modeTag}`;
-      const emoji = matType === 'block' ? '🧱' : '🪵';
+      const matName = matType === 'block' ? 'Block' : (matType === 'madera' ? 'Madera' : 'Lámina');
+      const label = `Pared ${matName} ${w}×${h}${modeTag}`;
+      const emoji = matType === 'block' ? '🧱' : (matType === 'madera' ? '🪵' : '🛡️');
       root.userData = { id: o.id, type: o.type, label, emoji, wallMode: mode, w, h };
       if (o.color) root.userData.color = o.color;
       objList.push({ id: o.id, type: o.type, label, emoji, node: root, w, d: h });
@@ -3179,6 +3896,8 @@ async function restaurarProgreso() {
         if (emb.color) embRoot.userData.color = emb.color;
         objList.push({ id: emb.id, type: emb.type, label: embLabel, emoji: embEmoji, node: embRoot });
       }
+    } else if (o.type === 'roof') {
+      reconstructRoof(o);
     } else if (BUILDERS[o.type]) {
       const root = new TransformNode('obj_' + o.id + '_' + o.type, scene);
       root.position.set(p[0], p[1], p[2]);

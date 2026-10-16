@@ -203,8 +203,8 @@ router.get('/alumnos', async (req, res) => {
     const params = esAdmin(req) ? [] : [req.user.id];
     const { rows } = await query(
       `SELECT u.id, u.nombre_completo, u.email, u.creado_en AS registrado_en,
-              ra.titulo AS curso, av.estado_general,
-              g.entregado_en,
+              ra.id AS curso_id, ra.titulo AS curso, av.estado_general,
+              g.entregado_en, g.actualizado_en AS ultimo_guardado, g.progreso, g.estado,
               c.id AS calificacion_id, c.calificacion_final, c.fecha_realizacion
          FROM avance_rutas av
          JOIN usuarios u ON u.id = av.alumno_id
@@ -220,6 +220,34 @@ router.get('/alumnos', async (req, res) => {
   } catch (err) {
     console.error('Error listando alumnos:', err);
     res.status(500).json({ error: 'Error obteniendo alumnos' });
+  }
+});
+
+/* ───────────────────────────────────────────
+   DELETE /api/maestro/cursos/:ruta_id/alumnos/:alumno_id
+   Desasigna a un alumno de un curso del maestro
+   ─────────────────────────────────────────── */
+router.delete('/cursos/:ruta_id/alumnos/:alumno_id', async (req, res) => {
+  const rutaId = parseInt(req.params.ruta_id, 10);
+  const alumnoId = parseInt(req.params.alumno_id, 10);
+  if (!Number.isInteger(rutaId) || !Number.isInteger(alumnoId)) {
+    return res.status(400).json({ error: 'Parámetros inválidos' });
+  }
+
+  try {
+    if (!esAdmin(req)) {
+      const propio = await query('SELECT id FROM rutas_aprendizaje WHERE id = $1 AND profesor_id = $2', [rutaId, req.user.id]);
+      if (!propio.rows.length) return res.status(403).json({ error: 'Ese curso no te pertenece' });
+    }
+
+    const del = await query('DELETE FROM avance_rutas WHERE ruta_id = $1 AND alumno_id = $2 RETURNING id', [rutaId, alumnoId]);
+    if (!del.rows.length) return res.status(404).json({ error: 'Inscripción no encontrada' });
+
+    res.json({ message: 'Alumno desasignado del curso' });
+    registrarActividad(req.user.id, 'alumno_desasignado_por_maestro', { alumno_id: alumnoId, ruta_id: rutaId });
+  } catch (err) {
+    console.error('Error desasignando alumno:', err);
+    res.status(500).json({ error: 'Error desasignando alumno' });
   }
 });
 

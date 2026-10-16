@@ -5,225 +5,460 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="./Css/styles.css">
+  <link rel="stylesheet" href="./Css/steam-theme.css">
+  <link rel="stylesheet" href="./Css/dashboard-classroom.css">
   <link rel="icon" href="img/icon.png">
-  <title>Mi Dashboard · CasaSTEAM</title>
+  <title>Mi Dashboard · STEAM</title>
   <style>
-    .dash-wrap { max-width: 900px; margin: 0 auto; padding: 36px 24px 80px; }
-    .dash-wrap h1 { font-size: 22px; color: var(--text-dark); margin: 0 0 4px; }
-    .dash-wrap .sub { font-size: 13px; color: var(--text-muted); margin: 0 0 28px; }
-
-    .dash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .dash-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-      padding: 20px; text-decoration: none; display: block; transition: border-color .15s, transform .1s;
+    .dx-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(35, 78, 64, 0.08);
+      font-size: 13px;
+      color: var(--text-dark);
     }
-    .dash-card:hover { border-color: #2563eb; transform: translateY(-1px); }
-    .dash-card .icon { font-size: 26px; margin-bottom: 10px; display: block; }
-    .dash-card h3 { margin: 0 0 4px; font-size: 15px; color: var(--text-dark); }
-    .dash-card p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
-    .dash-card .badge {
-      display: inline-block; margin-top: 10px; font-size: 11px; font-weight: 600;
-      padding: 3px 9px; border-radius: 20px; background: rgba(37,99,235,.10); color: #2563eb;
+    .dx-row:last-child {
+      border-bottom: 0;
     }
-    .dash-card .badge.ok { background: rgba(34,197,94,.12); color: #16a34a; }
-    .dash-card .badge.warn { background: rgba(148,163,184,.15); color: #64748b; }
-    
-    /* Dashboard del alumno: secciones nuevas */
-    .dx-section { margin: 0 0 24px; }
-    .dx-section h2 { font-size: 14px; color: var(--text-dark); margin: 0 0 10px; }
-    .dx-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; }
-    .dx-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .dx-stat b { display: block; font-size: 22px; color: var(--text-dark); }
-    .dx-stat span { font-size: 12px; color: var(--text-muted); }
-    .dx-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-dark); }
-    .dx-row:last-child { border-bottom: 0; }
-    .dx-row small { color: var(--text-muted); font-size: 12px; }
-    .dx-row.ok b { color: #16a34a; }
-    .dx-empty { font-size: 13px; color: var(--text-muted); margin: 0; }
-    .dx-back { display: inline-block; font-size: 12px; margin: 0 0 14px; color: #2563eb; text-decoration: none; }
+    .dx-row.ok b {
+      color: #16a34a;
+    }
+    .card-quick-access {
+      background: #ffffff;
+      border: 1px solid rgba(35, 78, 64, 0.12);
+      border-radius: 18px;
+      padding: 22px;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.18s ease;
+      box-shadow: 0 4px 16px rgba(35, 78, 64, 0.04);
+    }
+    .card-quick-access:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 28px rgba(35, 78, 64, 0.10);
+      border-color: #234e40;
+    }
+    .card-quick-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .card-quick-access h3 {
+      margin: 0 0 6px;
+      font-family: 'Syne', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+    .card-quick-access p {
+      margin: 0 0 16px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
   </style>
 </head>
 
 <body>
-  <aside class="sidebar">
-    <div class="logo-block">
-      <div class="logo-icon"><a href="index.html"><img src="img/icon.png" alt="CasaSTEAM"></a></div>
-      <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
-    </div>
-    <div class="nav-label">Navegación</div>
-    <button class="nav-btn active-quiz"><span class="dot"></span>Mi Dashboard</button>
-    <a href="proyectos.html" style="all:unset"><button class="nav-btn"><span class="dot"></span>Proyectos</button></a>
-    <a href="learn.html" id="navVolverProyecto" style="all:unset;display:none"><button class="nav-btn"><span class="dot"></span>← Volver al proyecto</button></a>
-    <div id="sidebar-user-learn" style="padding:8px 12px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;"></div>
-  </aside>
+  <div class="classroom-layout">
+    <!-- Backdrop móvil -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-  <div class="main">
-    <div class="dash-wrap">
-      <h1 id="saludo">Bienvenido</h1>
-      <p class="sub" id="subtitulo">Aquí están tus cursos, tu examen final y tus calificaciones.</p>
-
-      <div id="dash-extra"></div>
-
-
-      <div class="dash-grid">
-        <a href="learn.html" class="dash-card">
-          <span class="icon">📘</span>
-          <h3>Constructor de Casa</h3>
-          <p>Tu curso activo — sigue los módulos de fundamentos, matemáticas, mezclas, construcción y más.</p>
-        </a>
-
-        <a href="sandbox.html" class="dash-card">
-          <span class="icon">🏗️</span>
-          <h3>Examen Final</h3>
-          <p>Modela y construye tu casa dentro del simulador.</p>
-          <span class="badge" id="badgeEntrega">Cargando…</span>
-        </a>
-
-        <a href="mis-calificaciones.html" class="dash-card">
-          <span class="icon">📊</span>
-          <h3>Mis Calificaciones</h3>
-          <p>Consulta el resultado de tu examen final una vez calificado.</p>
-          <span class="badge" id="badgeCalif">Cargando…</span>
-        </a>
-
-        <a href="cuestionario.html" class="dash-card" id="cardCuestionario">
-          <span class="icon">💬</span>
-          <h3>Preguntas del Proyecto</h3>
-          <p>Publica preguntas sobre tu casa y responde las de tus compañeros.</p>
-          <span class="badge warn" id="badgeCuestionario">Entrega tu casa para desbloquear</span>
+    <!-- SIDEBAR -->
+    <aside class="classroom-sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a class="brand-link" href="index.html" aria-label="STEAM Inicio">
+          <div class="brand-logo-badge">S</div>
+          <div class="brand-text-block">
+            <span class="brand-name">STEAM<span>↗</span></span>
+            <span class="brand-tag">Panel Alumno</span>
+          </div>
         </a>
       </div>
+
+      <div class="sidebar-scroll">
+        <div class="nav-category">
+          <div class="nav-category-title">Mi Espacio</div>
+          <button class="nav-item-btn active" data-tab="tab-inicio" id="nav-inicio">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+            </span>
+            <span>Inicio</span>
+          </button>
+          <button class="nav-item-btn" data-tab="tab-mis-proyectos" id="nav-proyectos">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </span>
+            <span>Mis proyectos</span>
+          </button>
+          <button class="nav-item-btn" data-tab="tab-pendientes" id="nav-pendientes">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            </span>
+            <span>Pendientes</span>
+          </button>
+        </div>
+
+        <div class="nav-category">
+          <div class="nav-category-title">Resultados</div>
+          <button class="nav-item-btn" data-tab="tab-calificaciones" id="nav-calificaciones">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            </span>
+            <span>Mis calificaciones</span>
+          </button>
+          <button class="nav-item-btn" data-tab="tab-perfil" id="nav-perfil">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </span>
+            <span>Mi perfil</span>
+          </button>
+        </div>
+
+        <div class="nav-category">
+          <div class="nav-category-title">Plataforma</div>
+          <a class="nav-item-btn" href="proyectos.html">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </span>
+            <span>Explorar Proyectos</span>
+          </a>
+          <a class="nav-item-btn" href="alumno.html" id="navVolverProyecto" style="display:none;color:#234e40;font-weight:600;">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </span>
+            <span>← Panel General</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Footer Sesión -->
+      <div class="sidebar-footer">
+        <div class="user-profile-card">
+          <div class="user-avatar" id="sidebarAvatar">A</div>
+          <div class="user-details" id="sidebar-user-learn">
+            <strong class="user-name-text">Cargando…</strong>
+            <span class="user-role-label">Alumno STEAM</span>
+          </div>
+        </div>
+        <button id="btn-logout" class="btn-sidebar-logout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          Cerrar sesión
+        </button>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="classroom-main">
+      <!-- TOPBAR SUPERIOR -->
+      <header class="classroom-topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle-btn" id="btnToggleMenu" aria-label="Abrir menú">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="topbar-search-wrapper">
+            <span class="topbar-search-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </span>
+            <input type="text" class="topbar-search-input" id="globalSearchInput" placeholder="Buscar tus proyectos, lecciones o temas...">
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Botón Notificaciones -->
+          <button class="topbar-icon-btn" id="btnNotifications" title="Actividad y notificaciones">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <span class="notification-badge" id="notifBadge"></span>
+          </button>
+
+          <!-- Popover Notificaciones -->
+          <div class="popover-card" id="popoverNotifications">
+            <div class="popover-header">
+              <h4>Actividad reciente</h4>
+              <span style="font-size:11px;color:var(--text-light);cursor:pointer;" id="btnCloseNotif">Cerrar</span>
+            </div>
+            <div class="popover-body" id="notifList">
+              <div style="padding:16px;text-align:center;font-size:12px;color:var(--text-light);">Cargando actividad…</div>
+            </div>
+          </div>
+
+          <!-- Chip Usuario -->
+          <div class="topbar-user-chip" id="topbarUserChip">
+            <div class="topbar-avatar" id="topbarAvatar">A</div>
+            <span class="topbar-user-name" id="topbarUserName">Alumno</span>
+          </div>
+
+          <!-- Botón continuar aprendizaje -->
+          <a class="btn-classroom-dark" href="learn.html">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Ir a Lecciones
+          </a>
+        </div>
+      </header>
+
+      <!-- CONTENIDO PRINCIPAL -->
+      <main class="classroom-content">
+        <!-- VISTA 1: INICIO PERSONAL -->
+        <section class="dash-view active" id="tab-inicio">
+          <div class="classroom-hero-banner">
+            <div class="hero-banner-content">
+              <span class="hero-banner-eyebrow">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                Mi Espacio STEAM
+              </span>
+              <h1 class="hero-banner-title" id="saludo">Bienvenido</h1>
+              <p class="hero-banner-subtitle" id="subtitulo">Aquí están tus cursos activos, tu avance en el simulador 3D y tus calificaciones.</p>
+              <div class="hero-banner-actions">
+                <a class="btn-classroom-primary" href="sandbox.html">
+                  Abrir Simulador 3D →
+                </a>
+                <button class="btn-classroom-ghost" onclick="window.switchTab('tab-mis-proyectos')">
+                  Ver mis proyectos
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPIs métricas del alumno -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon-pill green">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                </div>
+                <span class="kpi-trend">Inscripción</span>
+              </div>
+              <div class="kpi-value" id="statAlumnoProyectos">—</div>
+              <div class="kpi-label">Proyectos activos</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon-pill blue">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                </div>
+                <span class="kpi-trend">Objetivos</span>
+              </div>
+              <div class="kpi-value" id="statAlumnoObjetivos">—</div>
+              <div class="kpi-label">Metas de construcción</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon-pill yellow">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                </div>
+                <span class="kpi-trend">Examen 3D</span>
+              </div>
+              <div class="kpi-value" id="statAlumnoEstadoExamen" style="font-size:22px;">—</div>
+              <div class="kpi-label">Estado de tu entrega</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon-pill purple">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                </div>
+                <span class="kpi-trend">Evaluación</span>
+              </div>
+              <div class="kpi-value" id="statAlumnoCalif">—</div>
+              <div class="kpi-label">Calificación final</div>
+            </div>
+          </div>
+
+          <!-- Gráficas del alumno -->
+          <div class="charts-grid">
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div class="chart-title-block">
+                  <h3>Estado de mis Proyectos</h3>
+                  <p>Distribución de avance general</p>
+                </div>
+              </div>
+              <div class="chart-canvas-container">
+                <canvas id="chartAlumnoEstado"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div class="chart-title-block">
+                  <h3>Objetivos de Construcción</h3>
+                  <p>Paredes, puertas y ventanas colocadas vs requeridas</p>
+                </div>
+              </div>
+              <div class="chart-canvas-container">
+                <canvas id="chartAlumnoObjetivos"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjetas de Acceso Rápido Educativo -->
+          <div style="margin-bottom:32px;">
+            <h3 style="font-family:'Syne',sans-serif;margin:0 0 16px;font-size:18px;">Herramientas del Proyecto Activo</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;">
+              <a href="learn.html" class="card-quick-access">
+                <div>
+                  <span class="card-quick-icon">📘</span>
+                  <h3>Constructor de Casa</h3>
+                  <p>Módulos interactivos de fundamentos, matemáticas, mezclas de concreto y diseño geométrico.</p>
+                </div>
+                <span class="status-pill status-progreso">Curso interactivo →</span>
+              </a>
+
+              <a href="sandbox.html" class="card-quick-access">
+                <div>
+                  <span class="card-quick-icon">🏗️</span>
+                  <h3>Examen Final en 3D</h3>
+                  <p>Modela y construye la vivienda en el simulador 3D con Babylon.js y realiza tu entrega final.</p>
+                </div>
+                <span class="status-pill" id="badgeEntrega">Cargando…</span>
+              </a>
+
+              <a href="mis-calificaciones.html" class="card-quick-access">
+                <div>
+                  <span class="card-quick-icon">📊</span>
+                  <h3>Mis Calificaciones</h3>
+                  <p>Consulta la retroalimentación y la nota asignada por tu docente en cada entrega.</p>
+                </div>
+                <span class="status-pill" id="badgeCalif">Cargando…</span>
+              </a>
+
+              <a href="cuestionario.html" class="card-quick-access" id="cardCuestionario">
+                <div>
+                  <span class="card-quick-icon">💬</span>
+                  <h3>Foro de Preguntas</h3>
+                  <p>Comparte dudas sobre tu diseño arquitectónico y responde las preguntas de tus compañeros.</p>
+                </div>
+                <span class="status-pill" id="badgeCuestionario">Cargando…</span>
+              </a>
+            </div>
+          </div>
+
+          <div id="dash-extra"></div>
+        </section>
+
+        <!-- VISTA 2: MIS PROYECTOS -->
+        <section class="dash-view" id="tab-mis-proyectos">
+          <div class="classroom-table-card">
+            <div class="table-toolbar">
+              <div class="table-title-area">
+                <h2>Mis Proyectos de Aprendizaje</h2>
+                <p>Cursos y simuladores en los que te encuentras inscrito</p>
+              </div>
+            </div>
+            <div class="classroom-cards-grid" id="alumnoProyectosCards" style="padding:24px;">
+              <div class="table-empty" style="grid-column: 1/-1;">Cargando tus proyectos…</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VISTA 3: PENDIENTES & METAS -->
+        <section class="dash-view" id="tab-pendientes">
+          <div class="classroom-table-card" style="padding:28px;">
+            <h2 style="font-family:'Syne',sans-serif;margin-top:0;">Metas y Tareas Pendientes</h2>
+            <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px;">Requerimientos obligatorios para la entrega final del simulador de casa</p>
+            <div id="objetivosListaContainer">
+              <div class="dx-row" style="padding:12px 0;">
+                <div>
+                  <strong style="display:block;font-size:14px;">Muros y Paredes</strong>
+                  <small style="color:var(--text-light);">Construye al menos 5 paredes de concreto o madera en tu escena 3D</small>
+                </div>
+                <span class="status-pill status-progreso">Requerido: 5</span>
+              </div>
+              <div class="dx-row" style="padding:12px 0;">
+                <div>
+                  <strong style="display:block;font-size:14px;">Puertas de Acceso</strong>
+                  <small style="color:var(--text-light);">Instala 2 puertas conectadas a la estructura</small>
+                </div>
+                <span class="status-pill status-progreso">Requerido: 2</span>
+              </div>
+              <div class="dx-row" style="padding:12px 0;">
+                <div>
+                  <strong style="display:block;font-size:14px;">Ventanas</strong>
+                  <small style="color:var(--text-light);">Coloca 3 ventanas para ventilación e iluminación natural</small>
+                </div>
+                <span class="status-pill status-progreso">Requerido: 3</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VISTA 4: MIS CALIFICACIONES -->
+        <section class="dash-view" id="tab-calificaciones">
+          <div class="classroom-table-card">
+            <div class="table-toolbar">
+              <div class="table-title-area">
+                <h2>Historial de Calificaciones</h2>
+                <p>Resultados oficiales registrados por tus docentes</p>
+              </div>
+            </div>
+            <div class="classroom-table-responsive">
+              <table class="classroom-table">
+                <thead>
+                  <tr>
+                    <th>Actividad / Práctica</th>
+                    <th>Curso STEAM</th>
+                    <th>Fecha de entrega</th>
+                    <th>Calificación obtenida</th>
+                  </tr>
+                </thead>
+                <tbody id="calificacionesTableBody">
+                  <tr>
+                    <td colspan="4" class="table-empty">Cargando calificaciones…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Actividad Reciente del Alumno -->
+          <div class="classroom-table-card" style="margin-top:28px;">
+            <div class="table-toolbar">
+              <div class="table-title-area">
+                <h3>Mi Actividad Reciente</h3>
+                <p>Inicios de sesión, guardados en el simulador y entregas</p>
+              </div>
+            </div>
+            <div class="classroom-table-responsive">
+              <table class="classroom-table">
+                <thead>
+                  <tr>
+                    <th>Fecha / Hora</th>
+                    <th>Evento</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="alumnoActividadTableBody">
+                  <tr>
+                    <td colspan="3" class="table-empty">Cargando actividad…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VISTA 5: MI PERFIL -->
+        <section class="dash-view" id="tab-perfil">
+          <div class="classroom-table-card" style="padding:28px;">
+            <h2 style="font-family:'Syne',sans-serif;margin-top:0;">Mi Perfil de Estudiante</h2>
+            <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px;">Información académica registrada en la plataforma</p>
+            <div id="alumnoProfileDetails" style="font-size:13px;color:var(--text-dark);line-height:1.8;">
+              Cargando perfil…
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
-  <script>
-    const token = localStorage.getItem('token');
-    if (!token) window.location.href = 'index.html';
-    const headers = { 'Authorization': `Bearer ${token}` };
-
-    let payload = null;
-    try {
-      payload = JSON.parse(atob(token.split('.')[1]));
-      document.getElementById('saludo').textContent = `Bienvenido, ${payload.nombre_completo.split(' ')[0]}`;
-      document.getElementById('sidebar-user-learn').innerHTML =
-        `<strong style="color:var(--text-dark);display:block">${payload.nombre_completo}</strong>Alumno`;
-    } catch (e) { window.location.href = 'index.html'; }
-
-    // Estado de entrega → habilita/deshabilita el cuestionario y muestra el badge del examen
-    fetch('/api/entrega?proyecto_id=1', { headers })
-      .then(r => r.json())
-      .then(d => {
-        const badgeEntrega = document.getElementById('badgeEntrega');
-        const badgeCuestionario = document.getElementById('badgeCuestionario');
-        if (d.entregado) {
-          badgeEntrega.textContent = 'Entregado';
-          badgeEntrega.classList.add('ok');
-          badgeCuestionario.textContent = 'Disponible';
-          badgeCuestionario.classList.remove('warn');
-          badgeCuestionario.classList.add('ok');
-        } else {
-          badgeEntrega.textContent = 'Sin entregar';
-        }
-      })
-      .catch(() => { document.getElementById('badgeEntrega').textContent = '—'; });
-
-    // Resumen de calificaciones
-    fetch('/api/alumno/calificaciones', { headers })
-      .then(r => r.json())
-      .then(d => {
-        const badge = document.getElementById('badgeCalif');
-        const calif = d.calificaciones || [];
-        const calificada = calif.find(c => c.calificacion_final != null);
-        if (calificada) {
-          badge.textContent = `${parseFloat(calificada.calificacion_final)}/100`;
-          badge.classList.add('ok');
-        } else if (calif.length) {
-          badge.textContent = 'Pendiente de revisión';
-        } else {
-          badge.textContent = 'Sin calificaciones aún';
-        }
-      })
-      .catch(() => { document.getElementById('badgeCalif').textContent = '—'; });
-  </script>
-  
-  <script>
-    // Dashboard del alumno: general (sin ?proyecto) o de un proyecto (?proyecto=ID).
-    (function () {
-      const rol = payload && payload.rol_nombre;
-      if (rol !== 'alumno') return;
-
-      const box = document.getElementById('dash-extra');
-      const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-      const fecha = f => f ? new Date(f).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
-      const EXAMEN = { no_iniciado: 'No iniciado', en_progreso: 'En progreso', entregado: 'Entregado' };
-      const ACCION = { login: 'Inicio de sesión', entrega_casa: 'Entrega del examen', reinicio_casa: 'Reinicio de la casa', pregunta_creada: 'Pregunta publicada' };
-      const lista = (items, vacio) => items.length ? items.join('') : `<p class="dx-empty">${vacio}</p>`;
-      const eventos = ev => lista(ev.map(e => `<div class="dx-row"><span>${esc(ACCION[e.tipo_accion] || e.tipo_accion)}</span><small>${fecha(e.creado_en)}</small></div>`), 'Sin actividad registrada todavía.');
-      const get = url => fetch(url, { headers }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
-      const califs = get('/api/alumno/calificaciones').then(d => d.calificaciones || []).catch(() => null);
-      const califHtml = (cs, vacio) => cs === null ? '<p class="dx-empty">No se pudieron cargar tus calificaciones.</p>'
-        : lista(cs.map(c => `<div class="dx-row"><span>${esc(c.practica)}</span><small>${c.calificacion_final != null ? parseFloat(c.calificacion_final) + '/100' : 'Pendiente de revisión'}</small></div>`), vacio);
-
-      const pid = parseInt(new URLSearchParams(location.search).get('proyecto'), 10);
-
-      if (Number.isInteger(pid)) {
-        // ── Dentro de un proyecto ──
-        document.getElementById('navVolverProyecto').style.display = '';
-        document.getElementById('subtitulo').style.display = 'none';
-        
-        // Update dashboard links to include project ID
-        document.querySelectorAll('.dash-card').forEach(card => {
-            const url = new URL(card.href, window.location.origin);
-            url.searchParams.set('proyecto', pid);
-            card.href = url.toString();
-        });
-
-        Promise.all([get(`/api/alumno/proyectos/${pid}/dashboard`), califs]).then(([d, cs]) => {
-          document.getElementById('saludo').textContent = d.proyecto.nombre;
-          const propias = cs === null ? null : cs.filter(c => c.ruta === d.proyecto.nombre);
-          box.innerHTML = `
-            <div class="dx-section"><h2>Información del proyecto</h2><div class="dx-panel">
-              <div class="dx-row"><span>Estado</span><b>${EXAMEN[d.examen.estado]}</b></div>
-              <div class="dx-row"><span>Inscripción</span><b>${d.proyecto.inscrito ? 'Inscrito' : 'Sin inscripción en un curso'}</b></div>
-              ${d.proyecto.descripcion ? `<p class="dx-empty" style="margin-top:8px">${esc(d.proyecto.descripcion)}</p>` : ''}
-            </div></div>
-            <div class="dx-section"><h2>Mi progreso</h2><div class="dx-panel">
-              <div class="dx-row"><span>Objetivos completos</span><b>${d.progreso.objetivos_completos} de ${d.progreso.objetivos_total}</b></div>
-              <div class="dx-row"><span>Etapa actual</span><b>${esc(d.progreso.etapa || 'Sin avance guardado')}</b></div>
-            </div></div>
-            <div class="dx-section"><h2>Mis objetivos</h2><div class="dx-panel">
-              ${d.objetivos.map(o => `<div class="dx-row ${o.completo ? 'ok' : ''}"><span>${esc(o.label)}</span><b>${o.actual}/${o.requerido}${o.completo ? ' ✓' : ''}</b></div>`).join('')}
-            </div></div>
-            <div class="dx-section"><h2>Mi examen</h2><div class="dx-panel">
-              <div class="dx-row"><span>Estado</span><b>${EXAMEN[d.examen.estado]}</b></div>
-              <div class="dx-row"><span>Entregado</span><small>${fecha(d.examen.entregado_en)}</small></div>
-            </div></div>
-            <div class="dx-section"><h2>Mis calificaciones</h2><div class="dx-panel">${califHtml(propias, 'Aún no tienes calificaciones en este proyecto.')}</div></div>
-            <div class="dx-section"><h2>Mi actividad</h2><div class="dx-panel">
-              <div class="dx-row"><span>Último guardado</span><small>${fecha(d.actividad.ultimo_guardado)}</small></div>
-              <div class="dx-row"><span>Última entrega</span><small>${fecha(d.actividad.ultima_entrega)}</small></div>
-              ${eventos(d.actividad.eventos)}
-            </div></div>`;
-        }).catch(() => { box.innerHTML = '<p class="dx-empty">No se pudo cargar el dashboard de este proyecto.</p>'; });
-      } else {
-        // ── Fuera de un proyecto: dashboard general ──
-        document.querySelector('.dash-grid').style.display = 'none';
-        Promise.all([get('/api/alumno/dashboard'), califs]).then(([d, cs]) => {
-          box.innerHTML = `
-            <div class="dx-section"><h2>Progreso general</h2><div class="dx-panel dx-stats">
-              <div class="dx-stat"><b>${d.resumen.total}</b><span>Proyectos</span></div>
-              <div class="dx-stat"><b>${d.resumen.completados}</b><span>Completados</span></div>
-              <div class="dx-stat"><b>${d.resumen.pendientes}</b><span>Pendientes</span></div>
-            </div></div>
-            <div class="dx-section"><h2>Mis proyectos y exámenes</h2><div class="dx-panel">
-              ${lista(d.proyectos.map(p => `<div class="dx-row"><span><a href="alumno.html?proyecto=${p.id}" style="color:inherit">${esc(p.nombre)}</a><br><small>Objetivos ${p.objetivos_completos}/${p.objetivos_total} · Último guardado ${fecha(p.ultimo_guardado)}</small></span><b>${EXAMEN[p.examen]}</b></div>`), 'Todavía no estás inscrito en ningún proyecto. Elige uno en Proyectos.')}
-            </div></div>
-            <div class="dx-section"><h2>Calificaciones</h2><div class="dx-panel">${califHtml(cs, 'Aún no tienes calificaciones.')}</div></div>
-            <div class="dx-section"><h2>Actividad reciente</h2><div class="dx-panel">${eventos(d.actividad)}</div></div>`;
-        }).catch(() => { box.innerHTML = ''; });
-      }
-    })();
-  </script>
+  <script type="module" src="scripts/alumno.js"></script>
 </body>
 
 </html>

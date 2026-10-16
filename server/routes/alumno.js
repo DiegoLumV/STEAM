@@ -93,19 +93,23 @@ router.get('/dashboard', async (req, res) => {
         };
       });
 
-    const actividad = await query(
-      `SELECT tipo_accion, creado_en FROM registro_actividad
-        WHERE usuario_id = $1 ORDER BY creado_en DESC LIMIT 8`,
-      [req.user.id]
-    );
+    const [actividad, promedioGeneral] = await Promise.all([
+      query(
+        `SELECT tipo_accion, creado_en FROM registro_actividad
+          WHERE usuario_id = $1 ORDER BY creado_en DESC LIMIT 12`,
+        [req.user.id]
+      ),
+      query(`SELECT COALESCE(AVG(calificacion_final), 0) AS promedio FROM calificaciones WHERE calificacion_final IS NOT NULL`)
+    ]);
 
     res.json({
-      alumno: { nombre: req.user.nombre_completo },
+      alumno: { nombre: req.user.nombre_completo, email: req.user.email },
       proyectos,
       resumen: {
         total: proyectos.length,
         completados: proyectos.filter(p => p.examen === 'entregado').length,
         pendientes: proyectos.filter(p => p.examen !== 'entregado').length,
+        promedio_global: parseFloat(parseFloat(promedioGeneral.rows[0]?.promedio || 0).toFixed(1))
       },
       actividad: actividad.rows,
     });

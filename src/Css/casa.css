@@ -2549,3 +2549,55 @@ body.day-mode::after {
   min-height: 80px;
   overflow: hidden;
 }
+
+/* ── TARJETAS Y CONTROLES DEL TECHO ─────────────────────── */
+.roof-shape-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.roof-shape-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  background: rgba(8, 18, 55, .7);
+  border: 1.5px solid rgba(60, 110, 255, .22);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all .18s;
+  user-select: none;
+  text-align: center;
+}
+
+.roof-shape-card:hover {
+  background: rgba(25, 60, 200, .35);
+  border-color: rgba(100, 160, 255, .5);
+  transform: translateY(-2px);
+}
+
+.roof-shape-card.selected {
+  background: rgba(25, 70, 220, .55);
+  border-color: rgba(120, 180, 255, .9);
+  box-shadow: 0 0 16px rgba(60, 130, 255, .3), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.roof-shape-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.roof-shape-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(200, 225, 255, .95);
+}
+
+.roof-shape-desc {
+  font-size: 9.5px;
+  color: rgba(130, 175, 255, .6);
+  line-height: 1.3;
+}

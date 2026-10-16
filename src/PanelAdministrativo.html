@@ -2,194 +2,621 @@
 <html lang="es">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="./Css/styles.css">
-    <link rel="stylesheet" href="./Css/PanelAdministrativo.css">
-    <link rel="icon" href="img/icon.png">
-    <title>Panel Administrativo · CasaSTEAM</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="./Css/styles.css">
+  <link rel="stylesheet" href="./Css/PanelAdministrativo.css">
+  <link rel="stylesheet" href="./Css/steam-theme.css">
+  <link rel="stylesheet" href="./Css/dashboard-classroom.css">
+  <link rel="icon" href="img/icon.png">
+  <title>Panel Administrativo · STEAM</title>
 </head>
 
 <body>
+  <div class="classroom-layout">
+    <!-- Backdrop móvil -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <div class="logo-block">
-            <div class="logo-icon"><a href="index.html"><img src="img/icon.png" alt="CasaSTEAM"></a></div>
-            <div class="logo-text"><a href="index.html">Casa<br>STEAM</a></div>
+    <aside class="classroom-sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a class="brand-link" href="index.html" aria-label="STEAM Inicio">
+          <div class="brand-logo-badge">S</div>
+          <div class="brand-text-block">
+            <span class="brand-name">STEAM<span>↗</span></span>
+            <span class="brand-tag">Administración</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-scroll">
+        <!-- Navegación por categorías -->
+        <div class="nav-category">
+          <div class="nav-category-title">Principal</div>
+          <button class="nav-item-btn active" data-tab="tab-resumen" id="nav-resumen">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+            </span>
+            <span>Inicio</span>
+          </button>
+          <button class="nav-item-btn" data-tab="tab-usuarios" id="nav-usuarios">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </span>
+            <span>Usuarios</span>
+            <span class="nav-badge-pill" id="badgeTotalUsers">—</span>
+          </button>
+          <button class="nav-item-btn" data-tab="tab-proyectos" id="nav-proyectos">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </span>
+            <span>Proyectos</span>
+          </button>
         </div>
 
-        <a href="proyectos.html" style="all:unset;">
-            <button class="nav-btn inactive-intro"><span class="dot"></span>Proyectos</button>
-        </a>
-        <a href="PanelAdministrativo.html" style="all:unset;">
-            <button class="nav-btn active-intro"
-                style="background:var(--intro-soft);color:var(--intro-accent);border-color:var(--intro-accent);">
-                <span class="dot" style="background:var(--intro-accent);"></span>Panel Administrativo
-            </button>
-        </a>
+        <div class="nav-category">
+          <div class="nav-category-title">Supervisión</div>
+          <button class="nav-item-btn" data-tab="tab-estadisticas" id="nav-estadisticas">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </span>
+            <span>Estadísticas</span>
+          </button>
+          <button class="nav-item-btn" data-tab="tab-actividad" id="nav-actividad">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </span>
+            <span>Actividad y Logs</span>
+          </button>
+        </div>
 
-        <div style="flex:1;"></div>
+        <div class="nav-category">
+          <div class="nav-category-title">Plataforma</div>
+          <a class="nav-item-btn" href="proyectos.html">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </span>
+            <span>Catálogo Proyectos</span>
+          </a>
+          <button class="nav-item-btn" data-tab="tab-configuracion" id="nav-configuracion">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </span>
+            <span>Configuración</span>
+          </button>
+        </div>
+      </div>
 
-        <div class="nav-label">Sesión</div>
-        <div class="sidebar-user-info" id="sidebar-user"></div>
-        <button id="btn-logout" class="nav-btn" style="color:var(--math-accent);margin-top:4px;">
-            <span class="dot" style="background:var(--math-accent);"></span>Cerrar sesión
+      <!-- Footer Sesión -->
+      <div class="sidebar-footer">
+        <div class="user-profile-card">
+          <div class="user-avatar" id="sidebarAvatar">A</div>
+          <div class="user-details" id="sidebar-user">
+            <strong class="user-name-text">Cargando…</strong>
+            <span class="user-role-label">Administrador</span>
+          </div>
+        </div>
+        <button id="btn-logout" class="btn-sidebar-logout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          Cerrar sesión
         </button>
+      </div>
     </aside>
 
-    <!-- MAIN -->
-    <main class="admin-main">
-        <div class="admin-topbar">
-            <div class="admin-topbar-left">
-                <h1 id="panelTitle">Panel Administrativo</h1>
-                <p id="topbar-sub">Cargando información…</p>
-            </div>
-            <button class="btn-add" id="btnAddUser">
-                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                    <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
-                </svg>
-                Agregar usuario
-            </button>
+    <!-- MAIN WRAPPER -->
+    <div class="classroom-main">
+      <!-- TOPBAR SUPERIOR -->
+      <header class="classroom-topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle-btn" id="btnToggleMenu" aria-label="Abrir menú">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="topbar-search-wrapper">
+            <span class="topbar-search-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </span>
+            <input type="text" class="topbar-search-input" id="globalSearchInput" placeholder="Buscar usuarios, proyectos o actividad...">
+          </div>
         </div>
 
+        <div class="topbar-right">
+          <!-- Botón Notificaciones -->
+          <button class="topbar-icon-btn" id="btnNotifications" title="Notificaciones del sistema">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <span class="notification-badge" id="notifBadge"></span>
+          </button>
+
+          <!-- Popover Notificaciones -->
+          <div class="popover-card" id="popoverNotifications">
+            <div class="popover-header">
+              <h4>Actividad reciente</h4>
+              <span style="font-size:11px;color:var(--text-light);cursor:pointer;" id="btnCloseNotif">Cerrar</span>
+            </div>
+            <div class="popover-body" id="notifList">
+              <div style="padding:16px;text-align:center;font-size:12px;color:var(--text-light);">Cargando actividad…</div>
+            </div>
+          </div>
+
+          <!-- Chip Usuario -->
+          <div class="topbar-user-chip" id="topbarUserChip">
+            <div class="topbar-avatar" id="topbarAvatar">A</div>
+            <span class="topbar-user-name" id="topbarUserName">Admin</span>
+          </div>
+
+          <!-- Botón primario de acción rápida -->
+          <button class="btn-classroom-dark" id="btnAddUser">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nuevo usuario
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENIDO DE LAS VISTAS -->
+      <main class="classroom-content">
+        <!-- Contenedor de compatibilidad para IDs de vista general y proyecto -->
         <div id="general-section">
-            <div class="stats-grid">
-                <div class="stat-card accent-green">
-                    <div class="stat-label">Total usuarios</div>
-                    <div class="stat-value" id="stat-total">—</div>
+          <!-- VISTA 1: RESUMEN / INICIO -->
+          <section class="dash-view active" id="tab-resumen">
+            <div class="classroom-hero-banner">
+              <div class="hero-banner-content">
+                <span class="hero-banner-eyebrow">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                  Panel de Control Global
+                </span>
+                <h1 class="hero-banner-title" id="panelTitle">Panel Administrativo STEAM</h1>
+                <p class="hero-banner-subtitle" id="topbar-sub">Supervisa alumnos, docentes, proyectos y el rendimiento educativo en tiempo real.</p>
+                <div class="hero-banner-actions">
+                  <button class="btn-classroom-primary" onclick="window.switchTab('tab-usuarios')">
+                    Administrar usuarios →
+                  </button>
+                  <button class="btn-classroom-ghost" onclick="window.switchTab('tab-estadisticas')">
+                    Ver métricas detalladas
+                  </button>
                 </div>
-                <div class="stat-card accent-blue">
-                    <div class="stat-label">Alumnos</div>
-                    <div class="stat-value" id="stat-alumnos">—</div>
-                </div>
-                <div class="stat-card accent-yellow">
-                    <div class="stat-label">Proyectos (Rutas)</div>
-                    <div class="stat-value" id="stat-rutas">—</div>
-                </div>
-                <div class="stat-card accent-purple">
-                    <div class="stat-label">Promedio general</div>
-                    <div class="stat-value" id="stat-avg">—</div>
-                </div>
+              </div>
             </div>
 
-            <div class="table-section">
-                <div class="table-header">
-                    <h2>Usuarios registrados</h2>
-                    <input class="table-search" type="text" id="searchInput" placeholder="Buscar por nombre o correo…">
+            <!-- KPIs principales -->
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <div class="kpi-top">
+                  <div class="kpi-icon-pill green">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  </div>
+                  <span class="kpi-trend">Total</span>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Correo</th>
-                            <th>Rol</th>
-                            <th>Registro</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody">
-                        <tr>
-                            <td colspan="5" class="table-empty">Cargando usuarios…</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="kpi-value" id="stat-total">—</div>
+                <div class="kpi-label">Usuarios registrados</div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-top">
+                  <div class="kpi-icon-pill blue">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                  </div>
+                  <span class="kpi-trend" id="stat-alumnos-pct">Alumnos</span>
+                </div>
+                <div class="kpi-value" id="stat-alumnos">—</div>
+                <div class="kpi-label">Estudiantes activos</div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-top">
+                  <div class="kpi-icon-pill yellow">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                  </div>
+                  <span class="kpi-trend">Docentes</span>
+                </div>
+                <div class="kpi-value" id="stat-maestros">—</div>
+                <div class="kpi-label">Maestros asignados</div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-top">
+                  <div class="kpi-icon-pill purple">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                  </div>
+                  <span class="kpi-trend">Rutas</span>
+                </div>
+                <div class="kpi-value" id="stat-rutas">—</div>
+                <div class="kpi-label">Proyectos y cursos</div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-top">
+                  <div class="kpi-icon-pill green">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                  </div>
+                  <span class="kpi-trend">Calificaciones</span>
+                </div>
+                <div class="kpi-value" id="stat-avg">—</div>
+                <div class="kpi-label">Promedio de evaluaciones</div>
+              </div>
             </div>
+
+            <!-- Gráficas en tiempo real -->
+            <div class="charts-grid">
+              <div class="chart-card">
+                <div class="chart-card-header">
+                  <div class="chart-title-block">
+                    <h3>Distribución de Usuarios</h3>
+                    <p>Proporción de alumnos, docentes y administradores</p>
+                  </div>
+                </div>
+                <div class="chart-canvas-container">
+                  <canvas id="chartRoles"></canvas>
+                </div>
+              </div>
+
+              <div class="chart-card">
+                <div class="chart-card-header">
+                  <div class="chart-title-block">
+                    <h3>Actividad del Sistema (14 días)</h3>
+                    <p>Eventos registrados, accesos y entregas</p>
+                  </div>
+                </div>
+                <div class="chart-canvas-container">
+                  <canvas id="chartActividad"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Accesos rápidos / vista previa de usuarios -->
+            <div class="classroom-table-card">
+              <div class="table-toolbar">
+                <div class="table-title-area">
+                  <h3>Usuarios recientes</h3>
+                  <p>Últimos registros en la plataforma</p>
+                </div>
+                <button class="btn-classroom-primary" onclick="window.switchTab('tab-usuarios')">
+                  Ver todos los usuarios →
+                </button>
+              </div>
+              <div class="classroom-table-responsive">
+                <table class="classroom-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Correo</th>
+                      <th>Rol</th>
+                      <th>Fecha de Registro</th>
+                      <th style="text-align:right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersSummaryTableBody">
+                    <tr><td colspan="5" class="table-empty">Cargando usuarios…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- VISTA 2: GESTIÓN DE USUARIOS -->
+          <section class="dash-view" id="tab-usuarios">
+            <div class="classroom-table-card">
+              <div class="table-toolbar">
+                <div class="table-title-area">
+                  <h2>Directorio de Usuarios</h2>
+                  <p>Administra las cuentas, permisos y roles de la plataforma</p>
+                </div>
+                <div class="table-filters-area">
+                  <input class="table-search-box" type="text" id="searchInput" placeholder="Buscar por nombre o correo…">
+                  <select class="table-select-filter" id="filterUserRole">
+                    <option value="">Todos los roles</option>
+                    <option value="alumno">Alumnos</option>
+                    <option value="maestro">Maestros</option>
+                    <option value="admin">Administradores</option>
+                  </select>
+                </div>
+              </div>
+              <div class="classroom-table-responsive">
+                <table class="classroom-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre completo</th>
+                      <th>Correo electrónico</th>
+                      <th>Rol asignado</th>
+                      <th>Fecha de Registro</th>
+                      <th style="text-align:right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersTableBody">
+                    <tr><td colspan="5" class="table-empty">Cargando usuarios…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="table-pagination-footer">
+                <span id="userPaginationInfo">Mostrando 0 usuarios</span>
+                <div class="pagination-controls">
+                  <button class="btn-page" id="btnPrevUsersPage" disabled>Anterior</button>
+                  <span id="usersCurrentPage">1</span>
+                  <button class="btn-page" id="btnNextUsersPage">Siguiente</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VISTA 3: PROYECTOS -->
+          <section class="dash-view" id="tab-proyectos">
+            <div class="classroom-table-card" style="margin-bottom:28px;">
+              <div class="table-toolbar">
+                <div class="table-title-area">
+                  <h2>Catálogo de Proyectos STEAM</h2>
+                  <p>Proyectos interactivos, simuladores 3D y rutas didácticas</p>
+                </div>
+                <button class="btn-classroom-dark" id="btnCreateProject">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  Nuevo Proyecto
+                </button>
+              </div>
+              <div class="classroom-cards-grid" id="projectsCardsContainer" style="padding:24px;">
+                <div class="table-empty" style="grid-column: 1/-1;">Cargando catálogo de proyectos…</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VISTA 4: ESTADÍSTICAS COMPLETAS -->
+          <section class="dash-view" id="tab-estadisticas">
+            <div class="charts-grid">
+              <div class="chart-card">
+                <div class="chart-card-header">
+                  <div class="chart-title-block">
+                    <h3>Tipos de Actividad en la Plataforma</h3>
+                    <p>Acciones más frecuentes realizadas por los usuarios</p>
+                  </div>
+                </div>
+                <div class="chart-canvas-container">
+                  <canvas id="chartTiposActividad"></canvas>
+                </div>
+              </div>
+
+              <div class="chart-card">
+                <div class="chart-card-header">
+                  <div class="chart-title-block">
+                    <h3>Inscripciones por Proyecto</h3>
+                    <p>Total de alumnos matriculados en cada simulador</p>
+                  </div>
+                </div>
+                <div class="chart-canvas-container">
+                  <canvas id="chartProyectosInscritos"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reportes y exportación -->
+            <div class="classroom-table-card">
+              <div class="table-toolbar">
+                <div class="table-title-area">
+                  <h3>Reporte de Alumnos y Calificaciones</h3>
+                  <p>Listado para control escolar y exportación</p>
+                </div>
+                <button class="btn-classroom-primary" id="btnExportCSV">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Exportar reporte (CSV)
+                </button>
+              </div>
+              <div class="classroom-table-responsive">
+                <table class="classroom-table">
+                  <thead>
+                    <tr>
+                      <th>Alumno</th>
+                      <th>Correo</th>
+                      <th>Curso</th>
+                      <th>Estado</th>
+                      <th>Entrega Casa</th>
+                      <th>Calificación</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportTableBody">
+                    <tr><td colspan="6" class="table-empty">Cargando datos del reporte…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- VISTA 5: ACTIVIDAD Y LOGS -->
+          <section class="dash-view" id="tab-actividad">
+            <div class="classroom-table-card">
+              <div class="table-toolbar">
+                <div class="table-title-area">
+                  <h2>Registro de Actividad del Sistema</h2>
+                  <p>Auditoría en tiempo real de inicios de sesión, entregas y cambios</p>
+                </div>
+                <div class="table-filters-area">
+                  <select class="table-select-filter" id="filterActivityType">
+                    <option value="">Todas las acciones</option>
+                    <option value="login">Inicios de sesión</option>
+                    <option value="entrega_casa">Entregas de examen</option>
+                    <option value="calificacion_asignada">Calificaciones asignadas</option>
+                    <option value="alumno_asignado_por_maestro">Alumnos asignados</option>
+                  </select>
+                </div>
+              </div>
+              <div class="classroom-table-responsive">
+                <table class="classroom-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha / Hora</th>
+                      <th>Usuario</th>
+                      <th>Rol</th>
+                      <th>Acción realizada</th>
+                      <th>Detalles</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activityTableBody">
+                    <tr><td colspan="5" class="table-empty">Cargando registro de actividad…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- VISTA 6: CONFIGURACIÓN -->
+          <section class="dash-view" id="tab-configuracion">
+            <div class="classroom-table-card" style="padding:28px;">
+              <h2 style="font-family:'Syne',sans-serif;margin-top:0;">Configuración del Sistema</h2>
+              <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px;">Parámetros del servidor y entorno educativo STEAM</p>
+              
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+                <div style="background:var(--surface-2);padding:20px;border-radius:14px;border:1px solid rgba(35,78,64,0.1);">
+                  <h4 style="margin:0 0 8px;font-family:'Syne',sans-serif;">Entorno Educativo</h4>
+                  <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 12px;">STEAM Virtual Builder v2.0</p>
+                  <div style="font-size:12px;color:var(--text-dark);">
+                    <div>• <strong>Render 3D:</strong> Babylon.js 9.1</div>
+                    <div>• <strong>Base de datos:</strong> PostgreSQL</div>
+                    <div>• <strong>Autenticación:</strong> JWT + Google Identity</div>
+                  </div>
+                </div>
+
+                <div style="background:var(--surface-2);padding:20px;border-radius:14px;border:1px solid rgba(35,78,64,0.1);">
+                  <h4 style="margin:0 0 8px;font-family:'Syne',sans-serif;">Tu Perfil de Administrador</h4>
+                  <div id="adminProfileDetails" style="font-size:12.5px;color:var(--text-muted);line-height:1.6;">
+                    Cargando perfil…
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
+        <!-- SECCIÓN DE CONTEXTO DE PROYECTO (COMPATIBILIDAD URL ?proyecto=ID) -->
         <div id="project-section" style="display:none;">
-            <div class="table-section">
-                <div class="table-header">
-                    <h2>Alumnos en este proyecto</h2>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Correo</th>
-                            <th>Estado</th>
-                            <th>Examen (Casa)</th>
-                            <th>Calificación</th>
-                        </tr>
-                    </thead>
-                    <tbody id="projectTableBody">
-                        <tr>
-                            <td colspan="5" class="table-empty">Cargando…</td>
-                        </tr>
-                    </tbody>
-                </table>
+          <div class="classroom-hero-banner" style="background:linear-gradient(135deg,#3a6fa8 0%,#204875 100%);">
+            <div class="hero-banner-content">
+              <a href="PanelAdministrativo.html" style="color:rgba(255,255,255,0.9);text-decoration:none;font-size:13px;font-weight:600;display:inline-block;margin-bottom:8px;">← Volver al Panel General</a>
+              <h1 class="hero-banner-title" id="projectContextTitle">Proyecto STEAM</h1>
+              <p class="hero-banner-subtitle">Seguimiento de estudiantes inscritos en esta ruta de aprendizaje.</p>
             </div>
-        </div>
-    </main>
+          </div>
 
-    <!-- Modal: Agregar usuario -->
-    <div class="modal-overlay" id="modalAddUser">
-        <div class="modal-box">
-            <button class="modal-close" id="btnCloseAdd">&times;</button>
-            <div class="modal-title">Agregar usuario</div>
-            <div class="modal-sub">El nuevo usuario podrá iniciar sesión de inmediato.</div>
-            <form id="formAddUser" autocomplete="off">
-                <div class="form-field">
-                    <label>Nombre completo</label>
-                    <input type="text" id="addName" placeholder="Ej. María García" required>
-                </div>
-                <div class="form-field">
-                    <label>Correo electrónico</label>
-                    <input type="email" id="addEmail" placeholder="correo@ejemplo.com" required>
-                </div>
-                <div class="form-field">
-                    <label>Contraseña</label>
-                    <input type="password" id="addPassword" placeholder="Mínimo 6 caracteres" minlength="6" required>
-                </div>
-                <div class="form-error" id="addError"></div>
-                <button type="submit" class="btn-submit" id="btnSubmitAdd">Crear usuario</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Confirmar eliminación -->
-    <div class="modal-overlay" id="modalConfirmDelete">
-        <div class="modal-box">
-            <div class="confirm-body">
-                <div class="confirm-icon">🗑️</div>
-                <h3>¿Eliminar usuario?</h3>
-                <p id="deleteUserName">Esta acción no se puede deshacer.</p>
-                <div class="confirm-actions">
-                    <button class="btn-cancel" id="btnCancelDelete">Cancelar</button>
-                    <button class="btn-confirm-delete" id="btnConfirmDelete">Sí, eliminar</button>
-                </div>
+          <div class="classroom-table-card">
+            <div class="table-toolbar">
+              <div class="table-title-area">
+                <h2>Alumnos en este proyecto</h2>
+                <p>Lista de alumnos con avance y entregas de construcción</p>
+              </div>
             </div>
+            <div class="classroom-table-responsive">
+              <table class="classroom-table">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Estado de Ruta</th>
+                    <th>Examen (Casa)</th>
+                    <th>Calificación</th>
+                  </tr>
+                </thead>
+                <tbody id="projectTableBody">
+                  <tr><td colspan="5" class="table-empty">Cargando…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
+      </main>
     </div>
+  </div>
 
-    <!-- Modal: Cambiar rol -->
-    <div class="modal-overlay" id="modalChangeRole">
-        <div class="modal-box">
-            <button class="modal-close" id="btnCloseRole">&times;</button>
-            <div class="modal-title">Cambiar rol de usuario</div>
-            <div class="modal-sub" id="roleUserName">Selecciona el nuevo rol para el usuario.</div>
-            <form id="formChangeRole" autocomplete="off">
-                <div class="form-field">
-                    <label>Nuevo Rol</label>
-                    <select id="changeRoleSelect" required>
-                        <option value="alumno">Alumno</option>
-                        <option value="maestro">Maestro</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                </div>
-                <div class="form-error" id="roleError"></div>
-                <button type="submit" class="btn-submit" id="btnSubmitRole">Actualizar rol</button>
-            </form>
+  <!-- MODAL: AGREGAR USUARIO -->
+  <div class="modal-overlay" id="modalAddUser">
+    <div class="modal-box">
+      <button class="modal-close" id="btnCloseAdd">&times;</button>
+      <div class="modal-title">Agregar usuario</div>
+      <div class="modal-sub">El nuevo usuario podrá iniciar sesión de inmediato con su correo y contraseña.</div>
+      <form id="formAddUser" autocomplete="off">
+        <div class="form-field">
+          <label>Nombre completo</label>
+          <input type="text" id="addName" placeholder="Ej. María García" required>
         </div>
+        <div class="form-field">
+          <label>Correo electrónico</label>
+          <input type="email" id="addEmail" placeholder="correo@ejemplo.com" required>
+        </div>
+        <div class="form-field">
+          <label>Contraseña</label>
+          <input type="password" id="addPassword" placeholder="Mínimo 6 caracteres" minlength="6" required>
+        </div>
+        <div class="form-error" id="addError"></div>
+        <button type="submit" class="btn-submit" id="btnSubmitAdd">Crear usuario</button>
+      </form>
     </div>
+  </div>
 
-    <!-- Toast -->
-    <div class="toast" id="toast">
-        <span class="toast-dot green" id="toastDot"></span>
-        <span id="toastMsg">Acción completada</span>
+  <!-- MODAL: CREAR/EDITAR PROYECTO -->
+  <div class="modal-overlay" id="modalProjectForm">
+    <div class="modal-box">
+      <button class="modal-close" id="btnCloseProjectModal">&times;</button>
+      <div class="modal-title" id="projectModalTitle">Nuevo Proyecto</div>
+      <div class="modal-sub">Configura las propiedades del proyecto y simulador.</div>
+      <form id="formProject" autocomplete="off">
+        <input type="hidden" id="editProjectId" value="">
+        <div class="form-field">
+          <label>Nombre del proyecto</label>
+          <input type="text" id="projectNombre" placeholder="Ej. Puente de Madera" required>
+        </div>
+        <div class="form-field">
+          <label>Descripción educativa</label>
+          <input type="text" id="projectDescripcion" placeholder="Objetivos y conceptos abordados...">
+        </div>
+        <div class="form-field">
+          <label>URL o ruta del simulador</label>
+          <input type="text" id="projectUrl" placeholder="/sandbox.html">
+        </div>
+        <div class="form-field" style="flex-direction:row;align-items:center;gap:10px;margin-top:4px;">
+          <input type="checkbox" id="projectActivo" checked style="width:auto;">
+          <label for="projectActivo" style="margin:0;cursor:pointer;">Proyecto activo y visible para alumnos</label>
+        </div>
+        <div class="form-error" id="projectError"></div>
+        <button type="submit" class="btn-submit" id="btnSubmitProject">Guardar Proyecto</button>
+      </form>
     </div>
+  </div>
 
-    <script type="module" src="scripts/administracion.js"></script>
+  <!-- MODAL: CONFIRMAR ELIMINACIÓN -->
+  <div class="modal-overlay" id="modalConfirmDelete">
+    <div class="modal-box">
+      <div class="confirm-body">
+        <div class="confirm-icon">🗑️</div>
+        <h3>¿Eliminar usuario?</h3>
+        <p id="deleteUserName">Esta acción no se puede deshacer.</p>
+        <div class="confirm-actions">
+          <button class="btn-cancel" id="btnCancelDelete">Cancelar</button>
+          <button class="btn-confirm-delete" id="btnConfirmDelete">Sí, eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CAMBIAR ROL -->
+  <div class="modal-overlay" id="modalChangeRole">
+    <div class="modal-box">
+      <button class="modal-close" id="btnCloseRole">&times;</button>
+      <div class="modal-title">Cambiar rol de usuario</div>
+      <div class="modal-sub" id="roleUserName">Selecciona el nuevo rol para el usuario.</div>
+      <form id="formChangeRole" autocomplete="off">
+        <div class="form-field">
+          <label>Nuevo Rol</label>
+          <select id="changeRoleSelect" class="form-select" style="padding:10px;border-radius:8px;border:1px solid rgba(35,78,64,0.18);" required>
+            <option value="alumno">Alumno</option>
+            <option value="maestro">Maestro</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div class="form-error" id="roleError"></div>
+        <button type="submit" class="btn-submit" id="btnSubmitRole">Actualizar rol</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICACIÓN -->
+  <div class="toast" id="toast">
+    <span class="toast-dot green" id="toastDot"></span>
+    <span id="toastMsg">Acción completada</span>
+  </div>
+
+  <script type="module" src="scripts/administracion.js"></script>
 </body>
 
 </html>

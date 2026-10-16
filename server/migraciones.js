@@ -225,6 +225,30 @@ export const MIGRACIONES = [
     sql: [
       `ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT true`
     ]
+  },
+  {
+    // Datos adicionales de perfil (edad, género, carrera) y consentimiento informado
+    // para usuarios registrados con Google o en la plataforma.
+    id: '011_google_registro_datos',
+    sql: [
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS edad INTEGER`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS genero VARCHAR(50)`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS carrera VARCHAR(150)`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS autoriza_compartir_datos BOOLEAN`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_consentimiento TIMESTAMPTZ`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS alcance_consentimiento TEXT`
+    ]
+  },
+  {
+    // Columnas adicionales para datos obtenidos automáticamente de Google People API:
+    // - foto_perfil: URL de la fotografía de perfil del usuario en Google
+    // - fecha_nacimiento: fecha exacta (DATE) obtenida de la API de Google, complementa
+    //   la columna "edad" existente que se calculará automáticamente cuando haya fecha.
+    id: '012_google_perfil_extendido',
+    sql: [
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil TEXT`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE`
+    ]
   }
 ];
 

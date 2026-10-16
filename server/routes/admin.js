@@ -32,18 +32,47 @@ router.get('/users', async (req, res) => {
    ─────────────────────────────────────────── */
 router.get('/stats', async (req, res) => {
   try {
-    const [totalUsers, totalAlumnos, totalRutas, avgCalif] = await Promise.all([
+    const [
+      totalUsers,
+      totalAlumnos,
+      totalMaestros,
+      totalAdmins,
+      totalRutas,
+      totalProyectos,
+      proyectosActivos,
+      avgCalif,
+      totalEntregas,
+      actividadPorTipo,
+      actividadReciente
+    ] = await Promise.all([
       query('SELECT COUNT(*) AS total FROM usuarios'),
       query("SELECT COUNT(*) AS total FROM usuarios u JOIN roles r ON r.id = u.rol_id WHERE r.nombre = 'alumno'"),
+      query("SELECT COUNT(*) AS total FROM usuarios u JOIN roles r ON r.id = u.rol_id WHERE r.nombre = 'maestro'"),
+      query("SELECT COUNT(*) AS total FROM usuarios u JOIN roles r ON r.id = u.rol_id WHERE r.nombre = 'admin'"),
       query('SELECT COUNT(*) AS total FROM rutas_aprendizaje'),
+      query('SELECT COUNT(*) AS total FROM proyectos'),
+      query('SELECT COUNT(*) AS total FROM proyectos WHERE activo = true'),
       query('SELECT COALESCE(AVG(calificacion_final), 0) AS promedio FROM calificaciones'),
+      query('SELECT COUNT(*) AS total FROM proyecto_guardados WHERE entregado_en IS NOT NULL'),
+      query(`SELECT tipo_accion, COUNT(*) as cantidad FROM registro_actividad GROUP BY tipo_accion ORDER BY cantidad DESC LIMIT 6`),
+      query(`SELECT DATE_TRUNC('day', creado_en) as dia, COUNT(*) as total 
+             FROM registro_actividad 
+             WHERE creado_en >= NOW() - INTERVAL '14 days' 
+             GROUP BY dia ORDER BY dia ASC`)
     ]);
 
     res.json({
       total_usuarios:   parseInt(totalUsers.rows[0].total),
       total_alumnos:    parseInt(totalAlumnos.rows[0].total),
+      total_maestros:   parseInt(totalMaestros.rows[0].total),
+      total_admins:     parseInt(totalAdmins.rows[0].total),
       total_rutas:      parseInt(totalRutas.rows[0].total),
+      total_proyectos:  parseInt(totalProyectos.rows[0].total),
+      proyectos_activos: parseInt(proyectosActivos.rows[0].total),
       promedio_general: parseFloat(parseFloat(avgCalif.rows[0].promedio).toFixed(2)),
+      total_entregas:   parseInt(totalEntregas.rows[0].total),
+      actividad_por_tipo: actividadPorTipo.rows,
+      actividad_reciente: actividadReciente.rows,
     });
   } catch (err) {
     console.error('Error en stats:', err);

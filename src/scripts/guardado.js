@@ -39,9 +39,13 @@ export function serializarObjeto(o) {
   if (ud.cutFactor != null && ud.cutFactor < 1) e.cutFactor = ud.cutFactor;
   if (ud.wallMode) e.wallMode = ud.wallMode;
   if (ud.embeddedInWall) e.embeddedInWall = ud.embeddedInWall;
+  if (ud.roofShape) e.roofShape = ud.roofShape;
+  if (ud.roofMat) e.roofMat = ud.roofMat;
+  if (ud.roofH != null) e.roofH = ud.roofH;
   if (o.area != null) e.area = o.area;
   if (o.w != null) e.w = o.w;
   if (o.d != null) e.d = o.d;
+  if (o.h != null) e.h = o.h;
   return e;
 }
 

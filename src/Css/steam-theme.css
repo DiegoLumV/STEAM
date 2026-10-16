@@ -1,0 +1,1192 @@
+/* ═══════════════════════════════════════════════════════════════
+   STEAM UNIFIED THEME  –  Identidad visual de la portada
+   Aplicado a TODAS las páginas EXCEPTO index.html (body.steam-home)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Variables globales alineadas a la portada ── */
+:root {
+  /* Fondos */
+  --bg:          #f6f5ef;
+  --bg-alt:      #eef0e8;
+  --sidebar-bg:  #f9f8f4;
+  --surface:     #ffffff;
+  --surface-2:   #f4f3ec;
+
+  /* Bordes */
+  --border:      rgba(35, 78, 64, 0.10);
+  --border-mid:  rgba(35, 78, 64, 0.18);
+
+  /* Textos */
+  --text-dark:   #203e35;
+  --text-muted:  #53665e;
+  --text-light:  #8a9d93;
+
+  /* Acentos adaptados a la paleta de la portada */
+  --science-accent: #234e40;
+  --science-soft:   rgba(35, 78, 64, 0.12);
+  --science-bg:     rgba(35, 78, 64, 0.04);
+  --science-glow:   rgba(35, 78, 64, 0.20);
+
+  --math-accent:    #b24b32;
+  --math-soft:      rgba(178, 75, 50, 0.12);
+  --math-bg:        rgba(178, 75, 50, 0.04);
+  --math-glow:      rgba(178, 75, 50, 0.20);
+
+  --intro-accent:   #c29540;
+  --intro-soft:     rgba(194, 149, 64, 0.12);
+  --intro-bg:       rgba(194, 149, 64, 0.04);
+  --intro-glow:     rgba(194, 149, 64, 0.20);
+
+  --eng-accent:     #63637a;
+  --eng-soft:       rgba(99, 99, 122, 0.12);
+  --eng-bg:         rgba(99, 99, 122, 0.04);
+  --eng-glow:       rgba(99, 99, 122, 0.20);
+
+  --tech-accent:    #3a6fa8;
+  --tech-soft:      rgba(58, 111, 168, 0.12);
+  --tech-bg:        rgba(58, 111, 168, 0.04);
+  --tech-glow:      rgba(58, 111, 168, 0.20);
+
+  --arts-accent:    #7a5a96;
+  --arts-soft:      rgba(122, 90, 150, 0.12);
+  --arts-bg:        rgba(122, 90, 150, 0.04);
+  --arts-glow:      rgba(122, 90, 150, 0.20);
+}
+
+/* ── 2. Body & base ── */
+body {
+  background: var(--bg);
+  color: var(--text-dark);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── 3. Sidebar: warm cream look ── */
+.sidebar {
+  background: var(--sidebar-bg);
+  border-right: 1px solid #d6ddd2;
+}
+
+.logo-block {
+  border-bottom: 1px solid #d6ddd2;
+}
+
+.logo-text {
+  color: var(--text-dark);
+}
+
+.logo-text a {
+  color: var(--text-dark);
+}
+
+/* ── Sidebar wordmark (new STEAM↗ identity) ── */
+.sidebar .logo-block {
+  padding: 0 4px 16px;
+}
+
+.sidebar .logo-block .steam-wordmark {
+  font: 800 22px 'Syne', Arial, sans-serif;
+  letter-spacing: -0.5px;
+  text-decoration: none;
+  color: var(--text-dark);
+  display: inline-block;
+  line-height: 1;
+}
+
+.sidebar .logo-block .steam-wordmark > span {
+  color: var(--math-accent);
+  margin-left: 4px;
+  font-size: 18px;
+}
+
+.nav-label {
+  color: var(--text-light);
+}
+
+.nav-btn {
+  color: var(--text-muted);
+  border-color: transparent;
+}
+
+.nav-btn:hover {
+  background: rgba(35, 78, 64, 0.06);
+  color: var(--text-dark);
+}
+
+.nav-btn .dot {
+  background: var(--text-light);
+}
+
+/* Active nav states – override to use portada green tones */
+.nav-btn.active-intro {
+  background: var(--intro-soft);
+  border-color: var(--intro-accent);
+  color: var(--intro-accent);
+}
+.nav-btn.active-intro .dot { background: var(--intro-accent); }
+
+.nav-btn.active-quiz {
+  background: var(--science-soft);
+  border-color: var(--science-accent);
+  color: var(--science-accent);
+}
+.nav-btn.active-quiz .dot { background: var(--science-accent); }
+
+.nav-btn.active-math {
+  background: var(--math-soft);
+  border-color: var(--math-accent);
+  color: var(--math-accent);
+}
+.nav-btn.active-math .dot { background: var(--math-accent); }
+
+.nav-btn.active-science {
+  background: var(--science-soft);
+  border-color: var(--science-accent);
+  color: var(--science-accent);
+}
+.nav-btn.active-science .dot { background: var(--science-accent); }
+
+.nav-btn.active-eng {
+  background: var(--eng-soft);
+  border-color: var(--eng-accent);
+  color: var(--eng-accent);
+}
+.nav-btn.active-eng .dot { background: var(--eng-accent); }
+
+.nav-btn.active-tech {
+  background: var(--tech-soft);
+  border-color: var(--tech-accent);
+  color: var(--tech-accent);
+}
+.nav-btn.active-tech .dot { background: var(--tech-accent); }
+
+.nav-btn.active-arts {
+  background: var(--arts-soft);
+  border-color: var(--arts-accent);
+  color: var(--arts-accent);
+}
+.nav-btn.active-arts .dot { background: var(--arts-accent); }
+
+/* ── 4. Topbar & learn topbar ── */
+.topbar,
+.learn-topbar {
+  background: rgba(246, 245, 239, 0.88);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid #d6ddd2;
+}
+
+.topbar-icon h2 {
+  color: var(--text-dark);
+}
+
+.user-chip {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+}
+
+.user-name {
+  color: var(--text-muted);
+}
+
+/* ── 5. Main content area ── */
+.main {
+  background: var(--bg);
+}
+
+/* ── 6. Module sections ── */
+.module-title {
+  font-family: 'Syne', sans-serif;
+}
+
+.module-badge {
+  background: var(--surface);
+  border: 1px solid #d6ddd2;
+  color: var(--text-light);
+}
+
+.progress-chip {
+  background: var(--surface);
+  border: 1px solid #d6ddd2;
+  color: var(--text-muted);
+}
+
+/* ── 7. Lesson nodes ── */
+.lesson-cube {
+  background: #ffffff;
+  box-shadow: 0 5px 0px rgba(35, 78, 64, 0.15);
+}
+
+.lesson-cube.locked {
+  background: #eae9e3;
+  border-color: #d6ddd2;
+  box-shadow: 0 4px 0px #cccbc4;
+}
+
+.lesson-cube.locked .lesson-num {
+  color: #a9b9a8;
+}
+
+/* ── 8. Modal overlays ── */
+.modal-overlay {
+  background: rgba(32, 62, 53, 0.55);
+  backdrop-filter: blur(8px);
+}
+
+.modal-content {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  box-shadow: 0 40px 100px rgba(32, 62, 53, 0.25);
+  border-radius: 20px;
+}
+
+.close-modal {
+  background: var(--surface-2);
+  border: 1px solid #d6ddd2;
+  color: var(--text-muted);
+}
+
+.close-modal:hover {
+  background: #e8ecdf;
+  color: var(--text-dark);
+}
+
+/* ── 9. Lesson content styling ── */
+.lesson-step {
+  background: var(--surface-2);
+  border: 1px solid rgba(35, 78, 64, 0.12);
+  border-radius: 16px;
+}
+
+.lesson-step:hover {
+  border-color: rgba(35, 78, 64, 0.22);
+}
+
+.step-body {
+  color: var(--text-muted);
+}
+
+.step-body strong {
+  color: var(--text-dark);
+}
+
+.concept-card {
+  background: var(--surface-2);
+  border: 1px solid #d6ddd2;
+}
+
+.concept-card p {
+  color: var(--text-muted);
+}
+
+/* ── 10. Buttons ── */
+.btn-main {
+  background: #234e40;
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 0 #163a2e, 0 0 16px rgba(35, 78, 64, 0.18);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.btn-main:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #163a2e;
+}
+
+.btn-primary {
+  background: #234e40;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #163a2e;
+  opacity: 1;
+}
+
+.btn-secondary {
+  border-color: #d6ddd2;
+  color: var(--text-muted);
+}
+
+.btn-secondary:hover {
+  border-color: #234e40;
+  color: var(--text-dark);
+}
+
+/* ── 11. Auth modals – align to portada tones ── */
+.auth-modal {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  box-shadow:
+    0 24px 80px rgba(32, 62, 53, 0.15),
+    0 0 0 1px rgba(35, 78, 64, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.auth-field input {
+  background: var(--bg);
+  border: 1.5px solid #d6ddd2;
+  color: var(--text-dark);
+}
+
+.auth-field input:focus {
+  border-color: #234e40;
+  box-shadow: 0 0 0 3px rgba(35, 78, 64, 0.10);
+  background: #ffffff;
+}
+
+.auth-select {
+  background: var(--bg);
+  border: 1.5px solid #d6ddd2;
+  color: var(--text-dark);
+}
+
+.auth-select:focus {
+  border-color: #234e40;
+  box-shadow: 0 0 0 3px rgba(35, 78, 64, 0.10);
+}
+
+.role-option {
+  border: 1.5px solid #d6ddd2;
+  background: var(--bg);
+  color: var(--text-muted);
+}
+
+.role-option:hover {
+  border-color: #234e40;
+}
+
+.role-option.selected {
+  border-color: #234e40;
+  background: rgba(35, 78, 64, 0.08);
+  color: var(--text-dark);
+}
+
+.auth-submit {
+  background: #234e40;
+  box-shadow: 0 4px 0 #163a2e, 0 0 16px rgba(35, 78, 64, 0.18);
+}
+
+.auth-submit:active {
+  box-shadow: 0 1px 0 #163a2e;
+}
+
+.auth-switch {
+  color: #234e40;
+}
+
+.auth-switch:hover {
+  color: #3d7a5e;
+}
+
+.auth-error {
+  background: rgba(178, 75, 50, 0.08);
+  border: 1px solid rgba(178, 75, 50, 0.25);
+  color: #b24b32;
+}
+
+.consent-card.selected {
+  border-color: #234e40;
+  background: rgba(35, 78, 64, 0.06);
+  box-shadow: 0 0 0 1px #234e40;
+}
+
+.consent-notice-approved {
+  background: rgba(35, 78, 64, 0.10);
+  border: 1px solid rgba(35, 78, 64, 0.30);
+  color: #1d3e30;
+}
+
+/* ── 12. Toast ── */
+.unlock-toast {
+  background: var(--surface);
+  border: 1px solid #d6ddd2;
+  box-shadow: 0 8px 32px rgba(32, 62, 53, 0.18);
+  color: var(--text-dark);
+}
+
+/* ── 13. Section dividers ── */
+.section-divider {
+  background: linear-gradient(90deg, transparent, #d6ddd2 30%, #d6ddd2 70%, transparent);
+}
+
+/* ── 14. Scrollbar ── */
+.main::-webkit-scrollbar-thumb {
+  background: rgba(35, 78, 64, 0.12);
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(35, 78, 64, 0.12);
+}
+
+/* ══════════════════════════════════════════
+   DASHBOARD PAGES (alumno, maestro, admin)
+   ══════════════════════════════════════════ */
+
+/* ── Dashboard alumno ── */
+.dash-wrap h1 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.dash-wrap .sub {
+  color: var(--text-muted);
+}
+
+.dash-card {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  border-radius: 16px;
+  transition: border-color 0.18s, transform 0.12s, box-shadow 0.18s;
+}
+
+.dash-card:hover {
+  border-color: #234e40;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(35, 78, 64, 0.10);
+}
+
+.dash-card h3 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+}
+
+.dash-card p {
+  color: var(--text-muted);
+}
+
+.dash-card .badge {
+  background: rgba(35, 78, 64, 0.10);
+  color: #234e40;
+}
+
+.dash-card .badge.ok {
+  background: rgba(35, 78, 64, 0.12);
+  color: #1d5a3a;
+}
+
+.dash-card .badge.warn {
+  background: rgba(178, 75, 50, 0.10);
+  color: #b24b32;
+}
+
+/* ── Dashboard extra panels (dx-*) ── */
+.dx-section h2 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.dx-panel {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  border-radius: 16px;
+}
+
+.dx-stat b {
+  color: var(--text-dark);
+}
+
+.dx-stat span {
+  color: var(--text-muted);
+}
+
+.dx-row {
+  border-bottom-color: #e8ecdf;
+  color: var(--text-dark);
+}
+
+.dx-row small {
+  color: var(--text-muted);
+}
+
+.dx-row.ok b {
+  color: #234e40;
+}
+
+.dx-empty {
+  color: var(--text-muted);
+}
+
+.dx-back {
+  color: #234e40;
+}
+
+/* ══════════════════════════════════════════
+   ADMIN & TEACHER PANELS
+   ══════════════════════════════════════════ */
+
+/* ── Admin main ── */
+.admin-main {
+  background: var(--bg);
+}
+
+.admin-topbar-left h1 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+}
+
+.admin-topbar-left p {
+  color: var(--text-muted);
+}
+
+/* ── Stat cards ── */
+.stat-card {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  border-radius: 14px;
+}
+
+.stat-card:hover {
+  border-color: rgba(35, 78, 64, 0.25);
+}
+
+.stat-card .num,
+.stat-value {
+  color: var(--text-dark);
+}
+
+.stat-card .label,
+.stat-label {
+  color: var(--text-light);
+}
+
+/* Accent tops – softened */
+.accent-green  { border-top: 2px solid #234e40; }
+.accent-blue   { border-top: 2px solid #3a6fa8; }
+.accent-yellow { border-top: 2px solid #c29540; }
+.accent-purple { border-top: 2px solid #7a5a96; }
+
+/* ── Tables ── */
+.table-section {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  border-radius: 16px;
+}
+
+.table-header {
+  border-bottom: 1px solid #e8ecdf;
+}
+
+.table-header h2 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+}
+
+.table-search {
+  background: var(--surface-2);
+  border: 1px solid #d6ddd2;
+  color: var(--text-dark);
+}
+
+.table-search::placeholder {
+  color: var(--text-light);
+}
+
+.table-search:focus {
+  border-color: #234e40;
+  box-shadow: 0 0 0 2px rgba(35, 78, 64, 0.08);
+}
+
+thead th {
+  color: var(--text-light);
+  border-bottom: 1px solid #e8ecdf;
+  background: #faf9f4;
+}
+
+tbody tr {
+  border-bottom: 1px solid #eef0e8;
+}
+
+tbody tr:hover {
+  background: #f4f3ec;
+}
+
+tbody td {
+  color: var(--text-dark);
+}
+
+.table-empty {
+  color: var(--text-muted);
+}
+
+/* ── Badges ── */
+.badge-admin {
+  background: rgba(194, 149, 64, 0.12);
+  color: #a07828;
+  border: 1px solid rgba(194, 149, 64, 0.22);
+}
+
+.badge-alumno {
+  background: rgba(35, 78, 64, 0.10);
+  color: #234e40;
+  border: 1px solid rgba(35, 78, 64, 0.20);
+}
+
+.badge-maestro {
+  background: rgba(58, 111, 168, 0.10);
+  color: #3a6fa8;
+  border: 1px solid rgba(58, 111, 168, 0.20);
+}
+
+/* ── Action buttons ── */
+.btn-add {
+  background: #234e40;
+  color: #fff;
+  border-radius: 8px;
+}
+
+.btn-add:hover {
+  background: #163a2e;
+  opacity: 1;
+}
+
+.btn-submit {
+  background: #234e40;
+  color: #fff;
+}
+
+.btn-submit:hover {
+  background: #163a2e;
+  opacity: 1;
+}
+
+.btn-delete {
+  border-color: rgba(178, 75, 50, 0.30);
+  color: #b24b32;
+}
+
+.btn-delete:hover {
+  background: rgba(178, 75, 50, 0.08);
+  border-color: #b24b32;
+}
+
+.btn-edit {
+  border-color: rgba(58, 111, 168, 0.30);
+  color: #3a6fa8;
+}
+
+.btn-edit:hover {
+  background: rgba(58, 111, 168, 0.08);
+  border-color: #3a6fa8;
+}
+
+.btn-confirm-delete {
+  background: #b24b32;
+}
+
+/* Teacher specific */
+.btn-mini {
+  background: #234e40;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+}
+
+.btn-mini:hover {
+  background: #163a2e;
+}
+
+.estado-pill.estado-entregado {
+  background: rgba(35, 78, 64, 0.10);
+  color: #234e40;
+}
+
+.estado-pill.estado-pendiente {
+  background: rgba(178, 75, 50, 0.08);
+  color: #a34731;
+}
+
+.curso-card {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  border-radius: 14px;
+}
+
+.curso-card h3 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+}
+
+.curso-card .curso-count {
+  color: var(--text-muted);
+}
+
+.curso-pill {
+  color: var(--text-muted);
+  background: rgba(35, 78, 64, 0.08);
+}
+
+/* ── Modals (admin panel) ── */
+.modal-box {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(32, 62, 53, 0.20);
+}
+
+.modal-close {
+  color: var(--text-muted);
+}
+
+.modal-close:hover {
+  color: var(--text-dark);
+}
+
+.modal-title {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+}
+
+.modal-sub {
+  color: var(--text-muted);
+}
+
+.form-field label {
+  color: var(--text-muted);
+}
+
+.form-field input {
+  background: var(--surface-2);
+  border: 1px solid #d6ddd2;
+  color: var(--text-dark);
+}
+
+.form-field input:focus {
+  border-color: #234e40;
+  box-shadow: 0 0 0 2px rgba(35, 78, 64, 0.08);
+}
+
+.form-error {
+  color: #b24b32;
+}
+
+/* ── Toast (admin / teacher) ── */
+.toast {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  color: var(--text-dark);
+  box-shadow: 0 8px 32px rgba(32, 62, 53, 0.16);
+}
+
+.toast-dot.green {
+  background: #234e40;
+}
+
+.toast-dot.red {
+  background: #b24b32;
+}
+
+/* ── Sidebar user info ── */
+.sidebar-user-info {
+  color: var(--text-muted);
+}
+
+.sidebar-user-info strong {
+  color: var(--text-dark);
+}
+
+/* ══════════════════════════════════════════
+   CALIFICACIONES PAGE
+   ══════════════════════════════════════════ */
+
+.calif-wrap h1 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+}
+
+.calif-card {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  border-radius: 14px;
+}
+
+.calif-card .info h3 {
+  color: var(--text-dark);
+}
+
+.calif-card .info .meta {
+  color: var(--text-light);
+}
+
+.calif-score {
+  color: #234e40;
+  font-weight: 700;
+}
+
+.calif-score.pendiente {
+  color: var(--text-muted);
+}
+
+.calif-empty {
+  color: var(--text-muted);
+}
+
+/* ══════════════════════════════════════════
+   CUESTIONARIO PAGE
+   ══════════════════════════════════════════ */
+
+.quiz-header h1 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+}
+
+.quiz-header p {
+  color: var(--text-muted);
+}
+
+.new-q-box {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  color: var(--text-muted);
+}
+
+.new-q-box:hover {
+  border-color: #234e40;
+}
+
+.q-form input,
+.q-form textarea {
+  border: 1px solid #d6ddd2;
+  color: var(--text-dark);
+  background: var(--surface-2);
+}
+
+.q-form input:focus,
+.q-form textarea:focus {
+  border-color: #234e40;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(35, 78, 64, 0.08);
+}
+
+.q-btn.primary {
+  background: #234e40;
+  color: #fff;
+}
+
+.q-btn.primary:hover {
+  background: #163a2e;
+}
+
+.q-btn.ghost {
+  color: var(--text-muted);
+}
+
+.q-card {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  border-radius: 14px;
+}
+
+.q-card:hover {
+  border-color: #234e40;
+}
+
+.q-card h3 {
+  color: var(--text-dark);
+}
+
+.q-card .meta {
+  color: var(--text-light);
+}
+
+.q-card .body-preview {
+  color: var(--text-muted);
+}
+
+.q-empty {
+  color: var(--text-muted);
+}
+
+/* Cuestionario modal */
+.modal-overlay-q {
+  background: rgba(32, 62, 53, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.modal-box-q {
+  background: #ffffff;
+  box-shadow: 0 24px 80px rgba(32, 62, 53, 0.22);
+  border: 1px solid #d6ddd2;
+  border-radius: 16px;
+}
+
+.modal-box-q .mq-head {
+  border-bottom: 1px solid #e8ecdf;
+}
+
+.modal-box-q .mq-head h2 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+}
+
+.modal-box-q .mq-head .meta {
+  color: var(--text-light);
+}
+
+.modal-box-q .mq-body {
+  color: var(--text-muted);
+}
+
+.mq-r-item {
+  border-top: 1px solid #e8ecdf;
+  color: var(--text-dark);
+}
+
+.mq-r-item .meta {
+  color: var(--text-light);
+}
+
+.mq-footer {
+  border-top: 1px solid #e8ecdf;
+}
+
+.mq-footer input {
+  border: 1px solid #d6ddd2;
+  color: var(--text-dark);
+  background: var(--surface-2);
+}
+
+.mq-footer input:focus {
+  border-color: #234e40;
+  outline: none;
+}
+
+.mq-close {
+  color: var(--text-light);
+}
+
+.mq-close:hover {
+  color: var(--text-dark);
+}
+
+/* ══════════════════════════════════════════
+   PROYECTOS PAGE
+   ══════════════════════════════════════════ */
+
+.proyectos-header h1 {
+  color: var(--text-dark);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.proyectos-header p {
+  color: var(--text-muted);
+}
+
+/* Empty cards */
+.empty-card {
+  background-color: #faf9f4;
+  border: 1.5px dashed #d6ddd2;
+}
+
+.empty-card .card-title {
+  color: #a9b9a8;
+}
+
+/* ══════════════════════════════════════════
+   LEARN PAGE – lesson hero backgrounds
+   ══════════════════════════════════════════ */
+
+.lesson-hero {
+  border-radius: 16px;
+}
+
+.hero-badge {
+  border-radius: 50px;
+}
+
+.lesson-nav-footer {
+  border-top: 1px solid #d6ddd2;
+}
+
+.tip-box {
+  border-radius: 12px;
+}
+
+.progress-bar-wrap {
+  background: var(--surface-2);
+}
+
+/* Module complete banner */
+.module-complete-banner {
+  background: rgba(35, 78, 64, 0.08);
+  border: 1px solid rgba(35, 78, 64, 0.18);
+  color: #234e40;
+}
+
+/* ── Locked lesson tooltip ── */
+.lesson-cube.locked::after {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid #d6ddd2;
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE REFINEMENTS
+   ══════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .stats-row,
+  .dx-stats {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .cursos-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+/* ══════════════════════════════════════════
+   SUBTLE TRANSITIONS (micro-animations)
+   ══════════════════════════════════════════ */
+
+.dash-card,
+.stat-card,
+.calif-card,
+.q-card,
+.curso-card,
+.dx-panel {
+  transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+/* Focus-visible consistency */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #b24b32;
+  outline-offset: 3px;
+}
+
+/* ══════════════════════════════════════════
+   GOOGLE PROFILE CARD (auth modals)
+   ══════════════════════════════════════════ */
+
+.google-profile-card {
+  background: #ffffff;
+  border: 1.5px solid rgba(35, 78, 64, 0.18);
+  box-shadow: 0 4px 16px rgba(32, 62, 53, 0.06);
+}
+
+.google-profile-header {
+  border-bottom: 1px solid #e8ecdf;
+}
+
+.google-profile-name {
+  color: var(--text-dark);
+}
+
+.google-profile-email {
+  color: var(--text-muted);
+}
+
+.google-meta-item {
+  background: var(--bg);
+  border: 1px solid #d6ddd2;
+}
+
+.google-meta-item .meta-label {
+  color: var(--text-muted);
+}
+
+.google-meta-item .meta-val {
+  color: var(--text-dark);
+}
+
+/* ══════════════════════════════════════════
+   CONSENT SECTION
+   ══════════════════════════════════════════ */
+
+.auth-consent-section {
+  background: var(--bg);
+  border: 1.5px solid rgba(35, 78, 64, 0.15);
+}
+
+.consent-info-box {
+  background: #ffffff;
+  border: 1px solid #d6ddd2;
+  color: var(--text-muted);
+}
+
+.consent-info-box strong {
+  color: var(--text-dark);
+}
+
+.consent-card {
+  background: #ffffff;
+  border: 1.5px solid #d6ddd2;
+}
+
+.consent-card:hover {
+  border-color: rgba(35, 78, 64, 0.30);
+  background: rgba(35, 78, 64, 0.02);
+}
+
+.consent-title {
+  color: var(--text-dark);
+}
+
+.consent-desc {
+  color: var(--text-muted);
+}
+
+/* ── select styling for admin modals ── */
+select#changeRoleSelect {
+  background: var(--surface-2);
+  border: 1px solid #d6ddd2;
+  color: var(--text-dark);
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.83rem;
+}
+
+select#changeRoleSelect:focus {
+  border-color: #234e40;
+  outline: none;
+}
+
+select.form-select {
+  background: var(--surface-2);
+  border: 1px solid #d6ddd2;
+  color: var(--text-dark);
+}
+
+select.form-select:focus {
+  border-color: #234e40;
+  outline: none;
+}
+
+/* ── calificacion input in teacher panel ── */
+.calif-input {
+  border: 1px solid #d6ddd2;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text-dark);
+}
+
+.calif-input:focus {
+  border-color: #234e40;
+  outline: none;
+}

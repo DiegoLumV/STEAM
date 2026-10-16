@@ -8,26 +8,31 @@
   <link rel="stylesheet" href="./Css/styles.css">
   <style>
     body {
-      background: var(--bg, #f4f6fb);
+      background: #f6f5ef;
       margin: 0;
       padding: 60px 24px 100px;
       font-family: 'Inter', sans-serif;
+      color: #203e35;
     }
 
     .proyectos-header {
       max-width: 900px;
       margin: 0 auto 40px;
+      display: flex;
+      flex-direction: column;
     }
 
     .proyectos-header h1 {
-      color: #111827;
+      color: #203e35;
+      font-family: 'Syne', sans-serif;
       font-size: 28px;
+      font-weight: 700;
       margin: 0 0 6px;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
     }
 
     .proyectos-header p {
-      color: #6b7280;
+      color: #53665e;
       font-size: 14px;
       margin: 0;
     }
@@ -50,14 +55,13 @@
       text-decoration: none;
       background-size: cover;
       background-position: center;
-
-      background-image: url('');
-      box-shadow: 0 12px 30px rgba(15, 23, 42, .18);
-      transition: transform .2s ease;
+      box-shadow: 0 12px 30px rgba(32, 62, 53, .15);
+      transition: transform .2s ease, box-shadow .2s ease;
     }
 
     .project-card:hover {
       transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(32, 62, 53, .22);
     }
 
     .project-card::before {
@@ -68,15 +72,15 @@
     }
 
     .card-orange::before {
-      background: linear-gradient(115deg, rgba(255, 106, 0, .92) 0%, rgba(30, 10, 5, .55) 55%, rgba(10, 8, 12, .75) 100%);
+      background: linear-gradient(115deg, rgba(178, 75, 50, .90) 0%, rgba(30, 10, 5, .55) 55%, rgba(10, 8, 12, .75) 100%);
     }
 
     .card-blue::before {
-      background: linear-gradient(115deg, rgba(0, 110, 255, .90) 0%, rgba(8, 15, 35, .55) 55%, rgba(10, 8, 12, .75) 100%);
+      background: linear-gradient(115deg, rgba(58, 111, 168, .88) 0%, rgba(8, 15, 35, .55) 55%, rgba(10, 8, 12, .75) 100%);
     }
 
     .card-green::before {
-      background: linear-gradient(115deg, rgba(20, 190, 110, .90) 0%, rgba(6, 25, 18, .55) 55%, rgba(10, 8, 12, .75) 100%);
+      background: linear-gradient(115deg, rgba(35, 78, 64, .90) 0%, rgba(6, 25, 18, .55) 55%, rgba(10, 8, 12, .75) 100%);
     }
 
     .card-content {
@@ -97,6 +101,7 @@
 
     .card-title {
       color: #fff;
+      font-family: 'Syne', sans-serif;
       font-size: 30px;
       font-weight: 800;
       line-height: 1.05;
@@ -118,28 +123,28 @@
       padding: 9px 18px;
       border-radius: 30px;
       background: #fff;
-      color: #111;
+      color: #203e35;
       font-size: 12.5px;
       font-weight: 700;
     }
 
     .card-orange .card-cta {
-      color: #b8420a;
+      color: #a34731;
     }
 
     .card-blue .card-cta {
-      color: #0a4bb8;
+      color: #2a5b8a;
     }
 
     .card-green .card-cta {
-      color: #0a8a4f;
+      color: #234e40;
     }
 
     /* Tarjetas todavía sin proyecto asignado */
     .empty-card {
       background-image: none;
-      background-color: #ffffff;
-      border: 1.5px dashed #cbd5e1;
+      background-color: #faf9f4;
+      border: 1.5px dashed #d6ddd2;
       justify-content: center;
       align-items: center;
       cursor: default;
@@ -152,6 +157,7 @@
 
     .empty-card:hover {
       transform: none;
+      box-shadow: none;
     }
 
     .empty-card .card-content {
@@ -161,12 +167,13 @@
     }
 
     .empty-card .card-title {
-      color: #94a3b8;
+      color: #a9b9a8;
       font-size: 15px;
       font-weight: 600;
       text-shadow: none;
     }
   </style>
+  <link rel="stylesheet" href="./Css/steam-theme.css">
 </head>
 
 <body>
@@ -175,12 +182,12 @@
     <a href="index.html" style="display:inline-block;margin-bottom:20px;color:#314f47;text-decoration:none;">← Inicio STEAM</a>
     <h1>Selecciona tu proyecto</h1>
     <p>Elige el simulador con el que quieres trabajar.</p>
+    <a id="link-dash-admin" href="PanelAdministrativo.html" style="display:none;font-size:13px;font-weight:600;color:#234e40;text-decoration:none;margin-top:auto;align-self:flex-start;">📋 Panel Administrativo</a>
   </div>
 
   <div style="max-width:900px;margin:-24px auto 24px;">
-    <a id="link-dash-alumno" href="alumno.html" style="display:none;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;">📋 Mi Dashboard</a>
-    <a id="link-dash-maestro" href="maestro.html" style="display:none;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;margin-right:16px;">📋 Panel del Maestro</a>
-    <a id="link-dash-admin" href="PanelAdministrativo.html" style="display:none;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;">📋 Panel Administrativo</a>
+    <a id="link-dash-alumno" href="alumno.html" style="display:none;font-size:13px;font-weight:600;color:#234e40;text-decoration:none;">📋 Mi Dashboard</a>
+    <a id="link-dash-maestro" href="maestro.html" style="display:none;font-size:13px;font-weight:600;color:#234e40;text-decoration:none;margin-right:16px;">📋 Panel del Maestro</a>
   </div>
 
   <div class="project-grid">
