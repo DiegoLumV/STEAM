@@ -110,6 +110,14 @@ function buildMaterials() {
   MAT.lamina = pbr('lamina', [0.72, 0.76, 0.80], 0.35, 0.70);
   MAT.teja = pbr('teja', [0.82, 0.34, 0.16], 0.82, 0.02);
 
+  // Materiales de excavación y preparación del terreno
+  MAT.excFloor = pbr('exc_floor', [0.26, 0.17, 0.09], 0.95, 0.0);
+  MAT.excWall = pbr('exc_wall', [0.36, 0.22, 0.12], 0.90, 0.0);
+  MAT.excWallStratum = pbr('exc_wall_stratum', [0.20, 0.12, 0.06], 0.92, 0.0);
+  MAT.excSoilPile = pbr('exc_pile', [0.32, 0.20, 0.10], 0.96, 0.0);
+  MAT.excMarker = pbr('exc_marker', [0.92, 0.42, 0.08], 0.50, 0.0);
+  MAT.excStake = pbr('exc_stake', [0.42, 0.28, 0.14], 0.75, 0.0);
+
   MAT.vitropiso = new PBRMaterial('vitropiso', scene);
   MAT.vitropiso.albedoColor = new Color3(0.45, 0.70, 0.98);
   MAT.vitropiso.alpha = 0.82;
@@ -755,9 +763,16 @@ function setupPicking() {
     const hit = pointerInfo.pickInfo;
     if (!hit.hit || !hit.pickedMesh) { selectObject(null); return; }
     const mesh = hit.pickedMesh;
-    if (mesh.name === 'ground' || mesh.name.startsWith('grid') || mesh.name.startsWith('zone') || mesh.name.startsWith('arrow')) { selectObject(null); return; }
+    if (mesh.name === 'ground' || mesh.name.startsWith('ground_seg') || mesh.name.startsWith('grid') || mesh.name.startsWith('zone') || mesh.name.startsWith('arrow')) { selectObject(null); return; }
     let node = mesh;
     while (node && !node.userData?.type) node = node.parent;
+    if (mesh.name.startsWith('exc_') || node?.userData?.type === 'excavacion') {
+      selectObject(null);
+      if (excavacionData && excavacionData.activa) {
+        setTip(`⛏️ <b>Excavación:</b> ${excavacionData.largo.toFixed(1)}×${excavacionData.ancho.toFixed(1)}×${excavacionData.profundidad.toFixed(1)} m · Volumen: <b>${excavacionData.volumen.toFixed(1)} m³</b> · Clic en el botón ⛏️ Excavación para ver o ajustar.`);
+      }
+      return;
+    }
     if (node && node.userData?.type) {
       selectObject(node);
       const baseType = (node.userData.type || '').replace('wall_', '').replace('floor_', '');
@@ -2673,15 +2688,15 @@ function createGableWall(root, id, side, hw, h, zPos, zThick, mat, meshes) {
   const z1 = zPos;
   const z2 = zPos + zThick;
   const positions = [
-    -hw, 0, z1,   hw, 0, z1,   0, h, z1,
-    -hw, 0, z2,   hw, 0, z2,   0, h, z2,
+    -hw, 0, z1, hw, 0, z1, 0, h, z1,
+    -hw, 0, z2, hw, 0, z2, 0, h, z2,
   ];
   const indices = [
-    0, 1, 2,  0, 2, 1,
-    3, 5, 4,  3, 4, 5,
-    0, 3, 4,  0, 4, 1,
-    0, 2, 5,  0, 5, 3,
-    1, 4, 5,  1, 5, 2
+    0, 1, 2, 0, 2, 1,
+    3, 5, 4, 3, 4, 5,
+    0, 3, 4, 0, 4, 1,
+    0, 2, 5, 0, 5, 3,
+    1, 4, 5, 1, 5, 2
   ];
   const normals = [];
   VertexData.ComputeNormals(positions, indices, normals);
@@ -2700,15 +2715,15 @@ function createShedSideWall(root, id, side, xPos, hd, h, mat, meshes) {
   const x1 = xPos - 0.06;
   const x2 = xPos + 0.06;
   const positions = [
-    x1, 0, hd,   x1, 0, -hd,   x1, h, -hd,
-    x2, 0, hd,   x2, 0, -hd,   x2, h, -hd
+    x1, 0, hd, x1, 0, -hd, x1, h, -hd,
+    x2, 0, hd, x2, 0, -hd, x2, h, -hd
   ];
   const indices = [
-    0, 1, 2,  0, 2, 1,
-    3, 5, 4,  3, 4, 5,
-    0, 3, 4,  0, 4, 1,
-    1, 4, 5,  1, 5, 2,
-    0, 2, 5,  0, 5, 3
+    0, 1, 2, 0, 2, 1,
+    3, 5, 4, 3, 4, 5,
+    0, 3, 4, 0, 4, 1,
+    1, 4, 5, 1, 5, 2,
+    0, 2, 5, 0, 5, 3
   ];
   const normals = [];
   VertexData.ComputeNormals(positions, indices, normals);
@@ -2731,41 +2746,41 @@ function createHipRoofMesh(root, id, hw, hd, h, mat, meshes) {
     const rL = Math.max(0.2, (hd - hw) * 1.4);
     positions = [
       -hw, 0, -hd,
-       hw, 0, -hd,
-       hw, 0,  hd,
-      -hw, 0,  hd,
-        0, h, -rL / 2,
-        0, h,  rL / 2
+      hw, 0, -hd,
+      hw, 0, hd,
+      -hw, 0, hd,
+      0, h, -rL / 2,
+      0, h, rL / 2
     ];
     indices = [
-      0, 1, 4,   0, 4, 1,
-      2, 3, 5,   2, 5, 3,
-      3, 0, 4,   3, 4, 0,
-      3, 4, 5,   3, 5, 4,
-      1, 2, 5,   1, 5, 2,
-      1, 5, 4,   1, 4, 5,
-      0, 3, 2,   0, 2, 3,
-      0, 2, 1,   0, 1, 2
+      0, 1, 4, 0, 4, 1,
+      2, 3, 5, 2, 5, 3,
+      3, 0, 4, 3, 4, 0,
+      3, 4, 5, 3, 5, 4,
+      1, 2, 5, 1, 5, 2,
+      1, 5, 4, 1, 4, 5,
+      0, 3, 2, 0, 2, 3,
+      0, 2, 1, 0, 1, 2
     ];
   } else {
     const rL = Math.max(0.2, (hw - hd) * 1.4);
     positions = [
       -hw, 0, -hd,
-       hw, 0, -hd,
-       hw, 0,  hd,
-      -hw, 0,  hd,
+      hw, 0, -hd,
+      hw, 0, hd,
+      -hw, 0, hd,
       -rL / 2, h, 0,
-       rL / 2, h, 0
+      rL / 2, h, 0
     ];
     indices = [
-      3, 0, 4,   3, 4, 0,
-      1, 2, 5,   1, 5, 2,
-      0, 1, 5,   0, 5, 1,
-      0, 5, 4,   0, 4, 5,
-      2, 3, 4,   2, 4, 3,
-      2, 4, 5,   2, 5, 4,
-      0, 3, 2,   0, 2, 3,
-      0, 2, 1,   0, 1, 2
+      3, 0, 4, 3, 4, 0,
+      1, 2, 5, 1, 5, 2,
+      0, 1, 5, 0, 5, 1,
+      0, 5, 4, 0, 4, 5,
+      2, 3, 4, 2, 4, 3,
+      2, 4, 5, 2, 5, 4,
+      0, 3, 2, 0, 2, 3,
+      0, 2, 1, 0, 1, 2
     ];
   }
 
@@ -3325,17 +3340,17 @@ function setupBlockContextMenu() {
   document.body.appendChild(overlay);
 
   // ── referencias a elementos del nuevo modal ──
-  const slider      = document.getElementById('cut-range-slider');
-  const dimValue    = document.getElementById('cut-dim-value');
-  const ghostEl     = document.getElementById('cut-ghost');
-  const keepEl      = document.getElementById('cut-keep');
-  const discardEl   = document.getElementById('cut-discard');
-  const cutLineEl   = document.getElementById('cut-line');
-  const lblKeep     = document.getElementById('cut-label-keep');
-  const lblDiscard  = document.getElementById('cut-label-discard');
+  const slider = document.getElementById('cut-range-slider');
+  const dimValue = document.getElementById('cut-dim-value');
+  const ghostEl = document.getElementById('cut-ghost');
+  const keepEl = document.getElementById('cut-keep');
+  const discardEl = document.getElementById('cut-discard');
+  const cutLineEl = document.getElementById('cut-line');
+  const lblKeep = document.getElementById('cut-label-keep');
+  const lblDiscard = document.getElementById('cut-label-discard');
   const collisionMsg = document.getElementById('cut-collision-msg');
-  const confirmBtn  = document.getElementById('cut-confirm');
-  const previewBox  = document.getElementById('cut-preview-container');
+  const confirmBtn = document.getElementById('cut-confirm');
+  const previewBox = document.getElementById('cut-preview-container');
 
   // ── estado ──
   let ctxTarget = null;
@@ -3644,6 +3659,509 @@ function openMatematicasModalGuarded() {
   openMatematicasModal();
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ── MÓDULO ETAPA 1: EXCAVACIÓN INTERACTIVA DEL TERRENO ────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+let excavacionData = null; // { largo, ancho, profundidad, volumen, activa }
+let groundHoleSegments = [];
+let excavacionRootNode = null;
+
+// Límites técnicos de la herramienta (no son medidas objetivo: el alumno elige libremente)
+const EXC_LIMITES = {
+  largo: { max: 18, etiqueta: 'largo' },
+  ancho: { max: 18, etiqueta: 'ancho' },
+  profundidad: { max: 5, etiqueta: 'profundidad' }
+};
+const EXC_DECIMALES = 100; // precisión de 0.01 m para evitar ruido de punto flotante
+
+// Redondea a 0.01 m (corrige errores como 0.1 + 0.2 = 0.30000000000000004)
+const excRedondear = n => Math.round(n * EXC_DECIMALES) / EXC_DECIMALES;
+
+// Valida dimensiones: solo datos inválidos o fuera de los límites técnicos
+function validarDimensionesExcavacion(largo, ancho, profundidad) {
+  const errores = [];
+  const revisar = (valor, clave) => {
+    const { max, etiqueta } = EXC_LIMITES[clave];
+    if (typeof valor !== 'number' || !isFinite(valor) || valor <= 0)
+      errores.push(`El <b>${etiqueta}</b> debe ser un número positivo mayor a 0 m.`);
+    else if (valor > max)
+      errores.push(`El <b>${etiqueta}</b> no puede exceder ${max} m (límite de la herramienta).`);
+  };
+  revisar(largo, 'largo');
+  revisar(ancho, 'ancho');
+  revisar(profundidad, 'profundidad');
+  return errores;
+}
+
+// Lee los campos del modal como números (campo vacío o texto => NaN)
+function leerDimensionesExcavacion() {
+  const leer = id => {
+    const v = document.getElementById(id)?.value;
+    if (v === undefined || String(v).trim() === '') return NaN;
+    const n = Number(v);
+    return isFinite(n) ? excRedondear(n) : NaN;
+  };
+  return { largo: leer('exc-largo'), ancho: leer('exc-ancho'), profundidad: leer('exc-profundidad') };
+}
+
+function setGroundHole(xMin, xMax, zMin, zMax) {
+  clearGroundHole();
+  const groundOriginal = scene.getMeshByName('ground');
+  const zoneFillOriginal = scene.getMeshByName('zone_fill');
+  if (groundOriginal) groundOriginal.isVisible = false;
+  if (zoneFillOriginal) zoneFillOriginal.isVisible = false;
+
+  const HALF = 13;
+  const ZONE = 10;
+  const Y_GROUND = 0;
+  const Y_ZONE = 0.001;
+
+  // Segmentos de terreno exterior ground (-13 a 13)
+  const gNorth = MeshBuilder.CreateGround('ground_seg_n', { width: HALF * 2, height: HALF - zMax, subdivisions: 1 }, scene);
+  gNorth.position.set(0, Y_GROUND, (zMax + HALF) / 2);
+  gNorth.material = MAT.ground; gNorth.receiveShadows = true; gNorth.isPickable = false;
+
+  const gSouth = MeshBuilder.CreateGround('ground_seg_s', { width: HALF * 2, height: zMin - (-HALF), subdivisions: 1 }, scene);
+  gSouth.position.set(0, Y_GROUND, (-HALF + zMin) / 2);
+  gSouth.material = MAT.ground; gSouth.receiveShadows = true; gSouth.isPickable = false;
+
+  const gWest = MeshBuilder.CreateGround('ground_seg_w', { width: xMin - (-HALF), height: zMax - zMin, subdivisions: 1 }, scene);
+  gWest.position.set((-HALF + xMin) / 2, Y_GROUND, (zMin + zMax) / 2);
+  gWest.material = MAT.ground; gWest.receiveShadows = true; gWest.isPickable = false;
+
+  const gEast = MeshBuilder.CreateGround('ground_seg_e', { width: HALF - xMax, height: zMax - zMin, subdivisions: 1 }, scene);
+  gEast.position.set((xMax + HALF) / 2, Y_GROUND, (zMin + zMax) / 2);
+  gEast.material = MAT.ground; gEast.receiveShadows = true; gEast.isPickable = false;
+
+  // Segmentos de zona verde zone_fill (-10 a 10)
+  const zxMin = Math.max(-ZONE, xMin);
+  const zxMax = Math.min(ZONE, xMax);
+  const zzMin = Math.max(-ZONE, zMin);
+  const zzMax = Math.min(ZONE, zMax);
+  const fm = zoneFillOriginal?.material || MAT.ground;
+
+  const zNorth = MeshBuilder.CreateGround('zone_seg_n', { width: ZONE * 2, height: ZONE - zzMax, subdivisions: 1 }, scene);
+  zNorth.position.set(0, Y_ZONE, (zzMax + ZONE) / 2);
+  zNorth.material = fm; zNorth.receiveShadows = true; zNorth.isPickable = false;
+
+  const zSouth = MeshBuilder.CreateGround('zone_seg_s', { width: ZONE * 2, height: zzMin - (-ZONE), subdivisions: 1 }, scene);
+  zSouth.position.set(0, Y_ZONE, (-ZONE + zzMin) / 2);
+  zSouth.material = fm; zSouth.receiveShadows = true; zSouth.isPickable = false;
+
+  const zWest = MeshBuilder.CreateGround('zone_seg_w', { width: zxMin - (-ZONE), height: zzMax - zzMin, subdivisions: 1 }, scene);
+  zWest.position.set((-ZONE + zxMin) / 2, Y_ZONE, (zzMin + zzMax) / 2);
+  zWest.material = fm; zWest.receiveShadows = true; zWest.isPickable = false;
+
+  const zEast = MeshBuilder.CreateGround('zone_seg_e', { width: ZONE - zxMax, height: zzMax - zzMin, subdivisions: 1 }, scene);
+  zEast.position.set((zxMax + ZONE) / 2, Y_ZONE, (zzMin + zzMax) / 2);
+  zEast.material = fm; zEast.receiveShadows = true; zEast.isPickable = false;
+
+  groundHoleSegments = [gNorth, gSouth, gWest, gEast, zNorth, zSouth, zWest, zEast];
+}
+
+function clearGroundHole() {
+  groundHoleSegments.forEach(m => {
+    try { m.dispose(); } catch (e) { }
+  });
+  groundHoleSegments = [];
+  const groundOriginal = scene?.getMeshByName('ground');
+  const zoneFillOriginal = scene?.getMeshByName('zone_fill');
+  if (groundOriginal) groundOriginal.isVisible = true;
+  if (zoneFillOriginal) zoneFillOriginal.isVisible = true;
+}
+
+function crearGeometriaExcavacion(largo, ancho, profundidad, conFeedback = true) {
+  eliminarGeometriaExcavacion(false);
+
+  const W = ancho;
+  const L = largo;
+  const D = profundidad;
+  const Xc = 0;
+  const Zc = 0;
+
+  // 1. Abrir cavidad en el terreno
+  setGroundHole(Xc - W / 2, Xc + W / 2, Zc - L / 2, Zc + L / 2);
+
+  // 2. Nodo contenedor raíz
+  excavacionRootNode = new TransformNode('excavacion_root', scene);
+  excavacionRootNode.userData = { type: 'excavacion', largo: L, ancho: W, profundidad: D };
+
+  // 3. Fondo de la excavación en Y = -D
+  const floor = MeshBuilder.CreateGround('exc_floor', { width: W, height: L, subdivisions: 1 }, scene);
+  floor.position.set(Xc, -D, Zc);
+  floor.material = MAT.excFloor;
+  floor.receiveShadows = true;
+  floor.parent = excavacionRootNode;
+
+  // Cuadrícula métrica en el fondo de la fosa (1 cuadro = 1m)
+  const floorLines = [], floorColors = [];
+  const lineCol = new Color4(0.85, 0.72, 0.50, 0.35);
+  for (let x = -W / 2; x <= W / 2; x += 1) {
+    floorLines.push([new Vector3(x, -D + 0.005, -L / 2), new Vector3(x, -D + 0.005, L / 2)]);
+    floorColors.push([lineCol, lineCol]);
+  }
+  for (let z = -L / 2; z <= L / 2; z += 1) {
+    floorLines.push([new Vector3(-W / 2, -D + 0.005, z), new Vector3(W / 2, -D + 0.005, z)]);
+    floorColors.push([lineCol, lineCol]);
+  }
+  if (floorLines.length > 0) {
+    const floorGrid = MeshBuilder.CreateLineSystem('exc_floor_grid', { lines: floorLines, colors: floorColors }, scene);
+    floorGrid.isPickable = false;
+    floorGrid.parent = excavacionRootNode;
+  }
+
+  // 4. Paredes interiores estratificadas
+  const topH = Math.min(0.35, D * 0.3); // Capa vegetal superior
+  const botH = D - topH;                // Estrato arcilloso/rocoso inferior
+  const wallThick = 0.06;
+
+  const addWallSegment = (name, w, h, d, px, py, pz, mat) => {
+    const wall = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene);
+    wall.position.set(px, py, pz);
+    wall.material = mat;
+    wall.receiveShadows = true;
+    wall.parent = excavacionRootNode;
+    if (shadowGen) shadowGen.addShadowCaster(wall, false);
+    return wall;
+  };
+
+  // Norte (Z = Zc + L/2)
+  addWallSegment('exc_w_n_top', W, topH, wallThick, Xc, -topH / 2, Zc + L / 2, MAT.excWallStratum);
+  addWallSegment('exc_w_n_bot', W, botH, wallThick, Xc, -topH - botH / 2, Zc + L / 2, MAT.excWall);
+
+  // Sur (Z = Zc - L/2)
+  addWallSegment('exc_w_s_top', W, topH, wallThick, Xc, -topH / 2, Zc - L / 2, MAT.excWallStratum);
+  addWallSegment('exc_w_s_bot', W, botH, wallThick, Xc, -topH - botH / 2, Zc - L / 2, MAT.excWall);
+
+  // Este (X = Xc + W/2)
+  addWallSegment('exc_w_e_top', wallThick, topH, L, Xc + W / 2, -topH / 2, Zc, MAT.excWallStratum);
+  addWallSegment('exc_w_e_bot', wallThick, botH, L, Xc + W / 2, -topH - botH / 2, Zc, MAT.excWall);
+
+  // Oeste (X = Xc - W/2)
+  addWallSegment('exc_w_w_top', wallThick, topH, L, Xc - W / 2, -topH / 2, Zc, MAT.excWallStratum);
+  addWallSegment('exc_w_w_bot', wallThick, botH, L, Xc - W / 2, -topH - botH / 2, Zc, MAT.excWall);
+
+  // 5. Estacas de replanteo y cinta de seguridad perimetral
+  const corners = [
+    [-W / 2, -L / 2],
+    [W / 2, -L / 2],
+    [W / 2, L / 2],
+    [-W / 2, L / 2]
+  ];
+  corners.forEach(([cx, cz], idx) => {
+    const stake = MeshBuilder.CreateCylinder('exc_stake_' + idx, { diameter: 0.08, height: 0.65 }, scene);
+    stake.position.set(cx, 0.22, cz);
+    stake.material = MAT.excStake;
+    stake.parent = excavacionRootNode;
+    if (shadowGen) shadowGen.addShadowCaster(stake, false);
+
+    const cap = MeshBuilder.CreateCylinder('exc_cap_' + idx, { diameter: 0.10, height: 0.18 }, scene);
+    cap.position.set(cx, 0.40, cz);
+    cap.material = MAT.excMarker;
+    cap.parent = excavacionRootNode;
+  });
+
+  const ribbonLines = [
+    [new Vector3(-W / 2, 0.35, -L / 2), new Vector3(W / 2, 0.35, -L / 2)],
+    [new Vector3(W / 2, 0.35, -L / 2), new Vector3(W / 2, 0.35, L / 2)],
+    [new Vector3(W / 2, 0.35, L / 2), new Vector3(-W / 2, 0.35, L / 2)],
+    [new Vector3(-W / 2, 0.35, L / 2), new Vector3(-W / 2, 0.35, -L / 2)],
+  ];
+  const ribbonCol = new Color4(0.95, 0.45, 0.08, 0.95);
+  const ribbon = MeshBuilder.CreateLineSystem('exc_ribbon', { lines: ribbonLines, colors: ribbonLines.map(() => [ribbonCol, ribbonCol]) }, scene);
+  ribbon.isPickable = false;
+  ribbon.parent = excavacionRootNode;
+
+  // 6. Mira de nivelación en una esquina
+  const rodX = -W / 2 + 0.12;
+  const rodZ = -L / 2 + 0.12;
+  const rod = MeshBuilder.CreateBox('exc_depth_rod', { width: 0.08, height: D + 0.4, depth: 0.08 }, scene);
+  rod.position.set(rodX, -D / 2 + 0.2, rodZ);
+  rod.material = MAT.trim;
+  rod.parent = excavacionRootNode;
+  for (let y = -D + 0.25; y <= 0.2; y += 0.5) {
+    const mark = MeshBuilder.CreateBox('exc_rod_mark_' + y.toFixed(1), { width: 0.09, height: 0.20, depth: 0.09 }, scene);
+    mark.position.set(rodX, y, rodZ);
+    mark.material = MAT.excMarker;
+    mark.parent = excavacionRootNode;
+  }
+
+  // 7. Montículo de acopio de tierra extraída al costado
+  const vol = Math.round(L * W * D * 1000) / 1000;
+  const pileRadius = Math.min(2.8, Math.max(1.2, Math.cbrt(vol) * 0.42));
+  const pileHeight = Math.min(1.9, Math.max(0.6, Math.cbrt(vol) * 0.28));
+  const pileX = Math.min(9.5 - pileRadius, W / 2 + 1.2 + pileRadius);
+  const pileZ = 0;
+
+  const pile = MeshBuilder.CreateCylinder('exc_pile', {
+    diameterTop: 0.3,
+    diameterBottom: pileRadius * 2,
+    height: pileHeight,
+    tessellation: 18
+  }, scene);
+  pile.position.set(pileX, pileHeight / 2, pileZ);
+  pile.material = MAT.excSoilPile;
+  pile.receiveShadows = true;
+  pile.parent = excavacionRootNode;
+  if (shadowGen) shadowGen.addShadowCaster(pile, false);
+
+  excavacionData = {
+    largo: L,
+    ancho: W,
+    profundidad: D,
+    volumen: vol,
+    activa: true
+  };
+
+  const btnExc = document.getElementById('btnExcavacion');
+  if (btnExc) {
+    btnExc.classList.add('completed');
+    btnExc.innerHTML = '⛏️ Excavación ✓';
+    btnExc.title = `Excavación activa: ${L.toFixed(1)}×${W.toFixed(1)}×${D.toFixed(1)} m (${vol.toFixed(1)} m³)`;
+  }
+
+  if (conFeedback) {
+    showSuccessMessage(
+      `⛏️ <b>¡Excavación realizada con éxito!</b><br>` +
+      `Dimensiones: <b>${L.toFixed(2)} × ${W.toFixed(2)} × ${D.toFixed(2)} m</b> · Volumen retirado: <b>${vol.toFixed(2)} m³</b>`
+    );
+    setTip(`⛏️ Excavación completada · Volumen: <b>${vol.toFixed(1)} m³</b> · Tierra retirada apilada a un costado.`);
+    try {
+      registrar('excavacion_realizada', {
+        contexto: { largo: L, ancho: W, profundidad: D, volumen: vol }
+      });
+    } catch (e) { }
+  }
+
+  marcarSucio();
+}
+
+function eliminarGeometriaExcavacion(notificar = true) {
+  if (excavacionRootNode) {
+    excavacionRootNode.getChildMeshes().forEach(m => {
+      if (shadowGen) try { shadowGen.removeShadowCaster(m); } catch (e) { }
+      m.dispose();
+    });
+    excavacionRootNode.dispose();
+    excavacionRootNode = null;
+  }
+  clearGroundHole();
+  excavacionData = null;
+
+  const btnExc = document.getElementById('btnExcavacion');
+  if (btnExc) {
+    btnExc.classList.remove('completed');
+    btnExc.innerHTML = '⛏️ Excavación';
+    btnExc.title = 'Etapa 1: Excavación y preparación del terreno';
+  }
+
+  if (notificar) {
+    showSuccessMessage('Terreno rellenado. La excavación ha sido eliminada.');
+    setTip('Terreno restaurado a su estado original.');
+    try { registrar('excavacion_eliminada', {}); } catch (e) { }
+    marcarSucio();
+  }
+}
+
+// ── Controladores de la interfaz modal de excavación ──
+
+function openExcavacionModal() {
+  try { registrar('modal_abierto', { contexto: { modal: 'excavacion' } }); } catch (e) { }
+  const overlay = document.getElementById('excavacion-overlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+
+  const largo = excavacionData ? excavacionData.largo : 12.0;
+  const ancho = excavacionData ? excavacionData.ancho : 10.0;
+  const prof = excavacionData ? excavacionData.profundidad : 1.5;
+
+  setExcavacionInputValues(largo, ancho, prof);
+  excActualizarVista();
+
+  const btnDel = document.getElementById('btn-eliminar-excavacion');
+  const btnInit = document.getElementById('btn-iniciar-excavacion');
+  if (btnDel) btnDel.style.display = excavacionData?.activa ? 'block' : 'none';
+  if (btnInit) btnInit.textContent = excavacionData?.activa ? '🔄 Actualizar Excavación' : '⛏️ Iniciar Excavación';
+}
+
+function closeExcavacionModal(e) {
+  if (e && e.target !== e.currentTarget && e.target.tagName !== 'BUTTON') return;
+  try { registrar('modal_cerrado', { contexto: { modal: 'excavacion' } }); } catch (e) { }
+  const overlay = document.getElementById('excavacion-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function setExcavacionInputValues(largo, ancho, prof) {
+  const lInp = document.getElementById('exc-largo');
+  const lRng = document.getElementById('exc-largo-range');
+  const aInp = document.getElementById('exc-ancho');
+  const aRng = document.getElementById('exc-ancho-range');
+  const pInp = document.getElementById('exc-profundidad');
+  const pRng = document.getElementById('exc-profundidad-range');
+
+  if (lInp) lInp.value = largo;
+  if (lRng) lRng.value = largo;
+  if (aInp) aInp.value = ancho;
+  if (aRng) aRng.value = ancho;
+  if (pInp) pInp.value = prof;
+  if (pRng) pRng.value = prof;
+}
+
+function excOnInputChange(dim) {
+  const inp = document.getElementById('exc-' + dim);
+  const rng = document.getElementById('exc-' + dim + '-range');
+  if (inp && rng) rng.value = inp.value;
+  excActualizarVista();
+}
+
+function excOnSliderChange(dim) {
+  const inp = document.getElementById('exc-' + dim);
+  const rng = document.getElementById('exc-' + dim + '-range');
+  if (inp && rng) inp.value = rng.value;
+  excActualizarVista();
+}
+
+function excActualizarVista() {
+  const { largo: lVal, ancho: aVal, profundidad: pVal } = leerDimensionesExcavacion();
+
+  const errEl = document.getElementById('exc-error');
+  const evalBox = document.getElementById('exc-eval-box');
+
+  // Validaciones técnicas (solo datos inválidos o fuera de límites)
+  const errores = validarDimensionesExcavacion(lVal, aVal, pVal);
+  const btnInit = document.getElementById('btn-iniciar-excavacion');
+  if (btnInit) btnInit.disabled = errores.length > 0;
+
+  if (errores.length > 0) {
+    if (errEl) {
+      errEl.style.display = 'block';
+      errEl.innerHTML = errores.join('<br>');
+    }
+    if (evalBox) evalBox.style.display = 'none';
+    return;
+  }
+
+  if (errEl) errEl.style.display = 'none';
+  if (evalBox) evalBox.style.display = 'none';
+
+  const area = excRedondear(lVal * aVal);
+  const vol = Math.round(lVal * aVal * pVal * 1000) / 1000;
+
+  const statArea = document.getElementById('exc-stat-area');
+  const statVol = document.getElementById('exc-stat-vol');
+  const statDims = document.getElementById('exc-stat-dims');
+  if (statArea) statArea.textContent = area.toFixed(2) + ' m²';
+  if (statVol) statVol.textContent = vol.toFixed(2) + ' m³';
+  if (statDims) statDims.textContent = `${lVal.toFixed(2)} × ${aVal.toFixed(2)} × ${pVal.toFixed(2)} m`;
+
+  renderExcavacionSVG(lVal, aVal, pVal);
+}
+
+function renderExcavacionSVG(largo, ancho, profundidad) {
+  const svg = document.getElementById('exc-svg');
+  if (!svg) return;
+
+  const maxD = Math.max(largo, ancho, 14);
+  const scale = 58 / maxD;
+  const w = ancho * scale;
+  const l = largo * scale;
+  const d = Math.max(10, Math.min(32, profundidad * 14));
+
+  const cx = 95, cy = 40;
+  // Puntos superiores del prisma (isométrico suave)
+  const p0 = { x: cx, y: cy - l * 0.35 };                    // Trasero
+  const p1 = { x: cx + w * 0.7, y: cy };                     // Derecho
+  const p2 = { x: cx, y: cy + l * 0.35 };                    // Frontal
+  const p3 = { x: cx - w * 0.7, y: cy };                     // Izquierdo
+
+  // Puntos inferiores del fondo excavado
+  const b0 = { x: p0.x, y: p0.y + d };
+  const b1 = { x: p1.x, y: p1.y + d };
+  const b2 = { x: p2.x, y: p2.y + d };
+  const b3 = { x: p3.x, y: p3.y + d };
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="soilFront" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#4a2e18" />
+        <stop offset="35%" stop-color="#6b4423" />
+        <stop offset="100%" stop-color="#3b2311" />
+      </linearGradient>
+      <linearGradient id="soilRight" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3d2513" />
+        <stop offset="35%" stop-color="#55361b" />
+        <stop offset="100%" stop-color="#2c1a0c" />
+      </linearGradient>
+      <linearGradient id="soilBottom" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#241409" />
+        <stop offset="100%" stop-color="#38210f" />
+      </linearGradient>
+    </defs>
+
+    <!-- Terreno circundante -->
+    <ellipse cx="95" cy="65" rx="88" ry="52" fill="rgba(15, 30, 24, 0.55)" stroke="rgba(40, 180, 110, 0.4)" stroke-dasharray="3,3" />
+
+    <!-- Fondo de la excavación -->
+    <polygon points="${b0.x},${b0.y} ${b1.x},${b1.y} ${b2.x},${b2.y} ${b3.x},${b3.y}" fill="url(#soilBottom)" stroke="rgba(180, 140, 90, 0.4)" stroke-width="0.7" />
+
+    <!-- Pared interior norte/trasera -->
+    <polygon points="${p0.x},${p0.y} ${p1.x},${p1.y} ${b1.x},${b1.y} ${b0.x},${b0.y}" fill="url(#soilRight)" opacity="0.9" />
+
+    <!-- Pared interior oeste -->
+    <polygon points="${p0.x},${p0.y} ${p3.x},${p3.y} ${b3.x},${b3.y} ${b0.x},${b0.y}" fill="url(#soilFront)" opacity="0.85" />
+
+    <!-- Pared frontal -->
+    <polygon points="${p3.x},${p3.y} ${p2.x},${p2.y} ${b2.x},${b2.y} ${b3.x},${b3.y}" fill="url(#soilFront)" />
+
+    <!-- Pared derecha -->
+    <polygon points="${p1.x},${p1.y} ${p2.x},${p2.y} ${b2.x},${b2.y} ${b1.x},${b1.y}" fill="url(#soilRight)" />
+
+    <!-- Borde superior de replanteo con cinta naranja -->
+    <polygon points="${p0.x},${p0.y} ${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y}" fill="none" stroke="#ff7a18" stroke-width="1.8" />
+
+    <!-- Estacas en las esquinas -->
+    <circle cx="${p0.x}" cy="${p0.y}" r="2" fill="#ffaa44" />
+    <circle cx="${p1.x}" cy="${p1.y}" r="2" fill="#ffaa44" />
+    <circle cx="${p2.x}" cy="${p2.y}" r="2" fill="#ffaa44" />
+    <circle cx="${p3.x}" cy="${p3.y}" r="2" fill="#ffaa44" />
+
+    <!-- Acopio de tierra extraída adyacente -->
+    <ellipse cx="162" cy="78" rx="18" ry="10" fill="#50321a" stroke="#8c582c" stroke-width="1" />
+    <path d="M 146 78 Q 162 62 178 78 Z" fill="#6d4524" />
+    <text x="162" y="94" font-size="7.5" fill="#e8c28e" text-anchor="middle" font-weight="bold">Acopio</text>
+
+    <!-- Cotas y etiquetas de dimensiones -->
+    <text x="${p1.x + 4}" y="${p1.y + d * 0.5 + 3}" font-size="8" fill="#6fe5ff" font-weight="bold">${profundidad.toFixed(1)} m</text>
+    <text x="${(p2.x + p1.x) / 2 + 6}" y="${(p2.y + p1.y) / 2 + 10}" font-size="8" fill="#88bbff" font-weight="bold">A: ${ancho.toFixed(1)} m</text>
+    <text x="${(p2.x + p3.x) / 2 - 12}" y="${(p2.y + p3.y) / 2 + 10}" font-size="8" fill="#88bbff" font-weight="bold">L: ${largo.toFixed(1)} m</text>
+  `;
+}
+
+function confirmarExcavacion() {
+  const { largo: lVal, ancho: aVal, profundidad: pVal } = leerDimensionesExcavacion();
+
+  const errEl = document.getElementById('exc-error');
+  const errores = validarDimensionesExcavacion(lVal, aVal, pVal);
+  if (errores.length > 0) {
+    if (errEl) {
+      errEl.style.display = 'block';
+      errEl.innerHTML = errores.join('<br>');
+    }
+    return;
+  }
+
+  crearGeometriaExcavacion(lVal, aVal, pVal, true);
+  closeExcavacionModal();
+}
+
+function eliminarExcavacion() {
+  if (!excavacionData) return;
+  if (!confirm('¿Deseas rellenar la excavación y restaurar el terreno original?')) return;
+  eliminarGeometriaExcavacion(true);
+  closeExcavacionModal();
+}
+
 // expone las funciones al scope global para que el HTML pueda llamarlas
 window.deleteConcreto = deleteConcreto;
 Object.assign(window, {
@@ -3660,6 +4178,9 @@ Object.assign(window, {
   wbSelectMode, wbSetVentCount, renderWallPreview, updateModeCardStates,
   updateOpeningCounters,
   roofSelectShape, roofSelectMat, roofAutoFit, roofUpdate, buildRoof,
+  openExcavacionModal, closeExcavacionModal, excActualizarVista,
+  excOnInputChange, excOnSliderChange,
+  confirmarExcavacion, eliminarExcavacion,
 });
 
 function snapshotActual() {
@@ -3671,6 +4192,13 @@ function snapshotActual() {
     ventanas_colocadas,
     progSequence,
     focoState,
+    excavacion: excavacionData ? {
+      largo: excavacionData.largo,
+      ancho: excavacionData.ancho,
+      profundidad: excavacionData.profundidad,
+      volumen: excavacionData.volumen,
+      activa: excavacionData.activa
+    } : null
   };
   const estado = serializarEscena({ objList, objIdCounter, progreso });
   return { estado, progreso };
@@ -3699,6 +4227,16 @@ async function restaurarProgreso() {
     if (faseGuardada >= 2 || concretoUnlocked) unlockPhase2();
     if (faseGuardada >= 4) unlockAll();
     updateOpeningCounters();
+
+    if (progreso.excavacion && progreso.excavacion.activa &&
+      validarDimensionesExcavacion(progreso.excavacion.largo, progreso.excavacion.ancho, progreso.excavacion.profundidad).length === 0) {
+      crearGeometriaExcavacion(
+        progreso.excavacion.largo,
+        progreso.excavacion.ancho,
+        progreso.excavacion.profundidad,
+        false
+      );
+    }
   }
 
   if (estado.contador) {
@@ -4010,7 +4548,7 @@ const init = () => {
   restaurarProgreso().then((data) => {
     const pid = parseInt(new URLSearchParams(location.search).get('proyecto') || 1, 10);
     iniciarAutoguardado(snapshotActual, { proyecto_id: pid });
-    
+
     if (vistaAlumnoId) {
       // Activar modo solo lectura y sincronización
       document.getElementById('topbar').style.pointerEvents = 'none';
@@ -4024,26 +4562,26 @@ const init = () => {
       } else {
         document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> Viendo el progreso del alumno.<br>Esta vista se actualizará automáticamente cuando el alumno guarde cambios.";
       }
-      
+
       iniciarSyncMaestro(data ? data.actualizado_en : null);
-      
+
       document.addEventListener('guardado:actualizado_externo', async () => {
-         if (gizmoMgr) {
-             gizmoMgr.attachToMesh(null);
-         }
-         selectedMesh = null;
-         objList.forEach(o => { if(o.node) o.node.dispose(); });
-         objList = [];
-         objIdCounter = 1;
-         const res = await restaurarProgreso();
-         
-         if (!res) {
-           document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> El alumno todavía no ha guardado ningún progreso.";
-         } else {
-           document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> Viendo el progreso del alumno.<br>Esta vista se actualizará automáticamente cuando el alumno guarde cambios.";
-         }
-         
-         if (res) iniciarSyncMaestro(res.actualizado_en); // actualizar timestamp
+        if (gizmoMgr) {
+          gizmoMgr.attachToMesh(null);
+        }
+        selectedMesh = null;
+        objList.forEach(o => { if (o.node) o.node.dispose(); });
+        objList = [];
+        objIdCounter = 1;
+        const res = await restaurarProgreso();
+
+        if (!res) {
+          document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> El alumno todavía no ha guardado ningún progreso.";
+        } else {
+          document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> Viendo el progreso del alumno.<br>Esta vista se actualizará automáticamente cuando el alumno guarde cambios.";
+        }
+
+        if (res) iniciarSyncMaestro(res.actualizado_en); // actualizar timestamp
       });
     }
   });
@@ -4095,7 +4633,7 @@ const init = () => {
   });
 
   setInterval(() => { if (buildPhase >= 4) checkAndUpdateProgramarBtn(); }, 500);
-  
+
   // Mostrar tutorial guiado al entrar (solo si es alumno y no lo ha completado)
   setTimeout(checkTutorial, 1000); // 1s delay to let UI render properly
 };

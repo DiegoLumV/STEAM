@@ -7,6 +7,10 @@
   <title>Constructor de Casa · STEAM</title>
   <link rel="stylesheet" href="./Css/casa.css">
   <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('token')) {
+      localStorage.setItem('token', urlParams.get('token'));
+    }
     if (!localStorage.getItem('token')) {
       window.location.href = 'index.html';
     }
@@ -38,6 +42,8 @@
     <button class="btn danger" id="btnDel" onclick="deleteSelected()" style="display:none">✕ Eliminar</button>
     <div class="sep"></div>
     <button class="btn" onclick="openMatematicasModalGuarded()" id="btnMatematicas">📐 Calcular Área</button>
+    <button class="btn" onclick="openExcavacionModal()" id="btnExcavacion"
+      title="Etapa 1: Excavación y preparación del terreno">⛏️ Excavación</button>
     <button class="btn" onclick="openConcretoModal()" id="btnStorm" disabled style="opacity:0.45"
       title="Completa primero Calcular Área">🪨 Crear Concreto</button>
     <button class="btn" onclick="openWallBuilder()" id="btnWall" disabled style="opacity:0.45"
@@ -47,7 +53,8 @@
     <span id="wall-counter-badge" style="font-size:10px;color:rgba(150,200,255,.7);white-space:nowrap"></span>
     <div class="sep"></div>
     <button class="btn" id="btnNight" onclick="toggleNight()">🌙 Noche</button>
-    <button class="btn" id="btnTutorial" onclick="window.startTutorial && window.startTutorial()" title="Ver tutorial interactivo">ℹ️ Ayuda</button>
+    <button class="btn" id="btnTutorial" onclick="window.startTutorial && window.startTutorial()"
+      title="Ver tutorial interactivo">ℹ️ Ayuda</button>
   </div>
 
   <div id="catalog">
@@ -55,10 +62,13 @@
       <span>+ Materiales</span><span id="cat-arrow">▼</span>
     </div>
     <div id="cat-list">
+      <div class="cat-item" id="cat-excavacion" onclick="openExcavacionModal()"> <span class="ico">⛏️</span>Excavación
+      </div>
       <div class="cat-item" id="cat-block" onclick="addObjIfAllowed('block')"> <span class="ico">🧱</span>Block </div>
       <div class="cat-item" id="cat-madera" onclick="addObjIfAllowed('madera')"> <span class="ico">🪵</span>Madera
       </div>
-      <div class="cat-item" id="cat-lamina" onclick="addObjIfAllowed('lamina')"> <span class="ico">🛡️</span>Lámina </div>
+      <div class="cat-item" id="cat-lamina" onclick="addObjIfAllowed('lamina')"> <span class="ico">🛡️</span>Lámina
+      </div>
       <div class="cat-item" id="cat-foco" onclick="addObjIfAllowed('foco')"> <span class="ico">💡</span>Foco </div>
       <div class="cat-item" id="cat-puerta" onclick="addObjIfAllowed('puerta')"> <span class="ico">🚪</span>Puerta
       </div>
@@ -82,7 +92,8 @@
 
   <div id="tip">
     Empieza calculando el área con el botón 📐 Calcular Área para desbloquear los siguientes pasos<br>
-    <span style="opacity:.5">Scroll = zoom · Mantén ← → ↑ ↓ para girar · Shift = más rápido · C = centrar en objeto · Q/E = rotar objeto seleccionado</span>
+    <span style="opacity:.5">Scroll = zoom · Mantén ← → ↑ ↓ para girar · Shift = más rápido · C = centrar en objeto ·
+      Q/E = rotar objeto seleccionado</span>
   </div>
 
   <canvas id="rain-canvas"></canvas>
@@ -467,11 +478,14 @@
           <div class="wb-section">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div class="wb-label">3 · Dimensiones</div>
-              <button type="button" class="btn" style="padding:4px 9px;font-size:11px;border-radius:8px" onclick="roofAutoFit(true)" title="Calcula automáticamente el tamaño según las paredes colocadas">📐 Ajustar a la casa</button>
+              <button type="button" class="btn" style="padding:4px 9px;font-size:11px;border-radius:8px"
+                onclick="roofAutoFit(true)" title="Calcula automáticamente el tamaño según las paredes colocadas">📐
+                Ajustar a la casa</button>
             </div>
-            
+
             <div style="margin-top:6px;">
-              <div class="wb-label" style="font-size:10px;margin-bottom:3px">Ancho <span class="wb-range" id="roof-width-range">(3 — 24 m)</span></div>
+              <div class="wb-label" style="font-size:10px;margin-bottom:3px">Ancho <span class="wb-range"
+                  id="roof-width-range">(3 — 24 m)</span></div>
               <div class="wb-slider-row">
                 <input type="range" id="roof-width" min="3" max="24" value="10" oninput="roofUpdate()">
                 <span class="wb-num" id="roof-width-val">10 m</span>
@@ -479,7 +493,8 @@
             </div>
 
             <div style="margin-top:6px;">
-              <div class="wb-label" style="font-size:10px;margin-bottom:3px">Largo / Profundidad <span class="wb-range" id="roof-depth-range">(3 — 24 m)</span></div>
+              <div class="wb-label" style="font-size:10px;margin-bottom:3px">Largo / Profundidad <span class="wb-range"
+                  id="roof-depth-range">(3 — 24 m)</span></div>
               <div class="wb-slider-row">
                 <input type="range" id="roof-depth" min="3" max="24" value="10" oninput="roofUpdate()">
                 <span class="wb-num" id="roof-depth-val">10 m</span>
@@ -487,7 +502,8 @@
             </div>
 
             <div style="margin-top:6px;" id="roof-height-row">
-              <div class="wb-label" style="font-size:10px;margin-bottom:3px">Inclinación / Altura de cumbrera <span class="wb-range">(0.5 — 4.0 m)</span></div>
+              <div class="wb-label" style="font-size:10px;margin-bottom:3px">Inclinación / Altura de cumbrera <span
+                  class="wb-range">(0.5 — 4.0 m)</span></div>
               <div class="wb-slider-row">
                 <input type="range" id="roof-height" min="0.5" max="4.0" step="0.1" value="1.8" oninput="roofUpdate()">
                 <span class="wb-num" id="roof-height-val">1.8 m</span>
@@ -498,20 +514,24 @@
           <!-- VISTA PREVIA SVG DEL TECHO -->
           <div class="wb-section">
             <div class="wb-label">Vista previa de la cubierta</div>
-            <div id="roof-svg-wrap" style="background:rgba(8,20,55,.6);border:1px solid rgba(40,90,200,.25);border-radius:10px;padding:10px;text-align:center">
-              <svg id="roof-svg" viewBox="0 0 200 110" width="200" height="110" style="display:block;margin:0 auto"></svg>
+            <div id="roof-svg-wrap"
+              style="background:rgba(8,20,55,.6);border:1px solid rgba(40,90,200,.25);border-radius:10px;padding:10px;text-align:center">
+              <svg id="roof-svg" viewBox="0 0 200 110" width="200" height="110"
+                style="display:block;margin:0 auto"></svg>
             </div>
           </div>
 
           <!-- Información de la cubierta -->
-          <div id="roof-preview-info" style="background:rgba(8,20,55,.6);border:1px solid rgba(40,90,200,.25);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:5px;">
+          <div id="roof-preview-info"
+            style="background:rgba(8,20,55,.6);border:1px solid rgba(40,90,200,.25);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:5px;">
             <div class="wb-prev-row"><span>Forma:</span><span id="roof-info-shape">Techo Plano</span></div>
             <div class="wb-prev-row"><span>Material:</span><span id="roof-info-mat">Teja</span></div>
             <div class="wb-prev-row"><span>Dimensiones:</span><span id="roof-info-dims">10.0 × 10.0 m</span></div>
             <div class="wb-prev-row"><span>Superficie cubierta:</span><span id="roof-info-area">100.0 m²</span></div>
           </div>
 
-          <button class="btn wb-build-btn" id="roof-build-btn" onclick="buildRoof()" style="margin-top:8px">⬆ Construir Techo</button>
+          <button class="btn wb-build-btn" id="roof-build-btn" onclick="buildRoof()" style="margin-top:8px">⬆ Construir
+            Techo</button>
         </div>
       </div>
     </div>
@@ -687,6 +707,133 @@
           <div id="mat-error" class="mat-error" style="display:none"></div>
           <button class="btn wb-build-btn" id="btn-validar-mat" onclick="validarMatematicas()">✅ Validar
             respuestas</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Excavación 3D -->
+  <div id="excavacion-overlay" onclick="closeExcavacionModal(event)">
+    <div id="excavacion-modal">
+      <div id="excavacion-header">
+        <span>⛏️ Etapa 1 · Excavación del Terreno</span>
+        <button class="btn" onclick="closeExcavacionModal()">✕</button>
+      </div>
+      <div id="excavacion-body">
+        <!-- Panel izquierdo: Instrucciones pedagógicas y Objetivo -->
+        <div id="exc-instrucciones">
+          <div class="ci-title">📋 Excavación libre</div>
+
+          <div class="ci-note"
+            style="margin-bottom:12px; border-color:rgba(255,180,80,.35); background:rgba(80,50,15,.25); color:rgba(255,220,160,.95);">
+            🏗️ <b>Preparación del Terreno:</b><br>
+            Elige libremente el largo, ancho y profundidad de la fosa. Tú decides las medidas.
+          </div>
+
+          <div class="ci-note" style="margin-top:10px; font-size:11px; line-height:1.6;">
+            📐 <b>Fórmula geométrica:</b><br>
+            <code>V = Largo × Ancho × Profundidad</code><br>
+            <span style="opacity:0.8; font-size:10px;">Límites de la herramienta: largo y ancho hasta 18 m, profundidad
+              hasta 5 m.</span>
+          </div>
+
+          <div class="ci-note"
+            style="margin-top:10px; font-size:10px; border-color:rgba(80,200,255,.25); background:rgba(20,80,120,.2); color:rgba(180,230,255,.85); line-height:1.5;">
+            💡 <b>Nota técnica:</b> El cálculo corresponde al volumen geométrico en banco (terreno in situ). La tierra
+            extraída se acumula a un costado.
+          </div>
+        </div>
+
+        <!-- Panel derecho: Controles, Vista previa SVG y Comprobación -->
+        <div id="exc-panel">
+          <div class="ci-title">📐 Configuración de Dimensiones</div>
+
+          <!-- Inputs numéricos y sliders sincronizados -->
+          <div class="exc-inputs-grid">
+            <div class="exc-field">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label class="mat-label" for="exc-largo">Largo (m) — Eje Longitudinal Z</label>
+              </div>
+              <div class="exc-input-slider-row">
+                <input type="number" id="exc-largo" class="mat-input exc-num-inp" min="1" max="18" step="0.1"
+                  value="12.0" oninput="excOnInputChange('largo')">
+                <input type="range" id="exc-largo-range" min="1" max="18" step="0.1" value="12.0"
+                  oninput="excOnSliderChange('largo')">
+                <span class="exc-unit-badge">m</span>
+              </div>
+            </div>
+
+            <div class="exc-field">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label class="mat-label" for="exc-ancho">Ancho (m) — Eje Transversal X</label>
+              </div>
+              <div class="exc-input-slider-row">
+                <input type="number" id="exc-ancho" class="mat-input exc-num-inp" min="1" max="18" step="0.1"
+                  value="10.0" oninput="excOnInputChange('ancho')">
+                <input type="range" id="exc-ancho-range" min="1" max="18" step="0.1" value="10.0"
+                  oninput="excOnSliderChange('ancho')">
+                <span class="exc-unit-badge">m</span>
+              </div>
+            </div>
+
+            <div class="exc-field">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label class="mat-label" for="exc-profundidad">Profundidad (m) — Cota bajo rasante Y</label>
+              </div>
+              <div class="exc-input-slider-row">
+                <input type="number" id="exc-profundidad" class="mat-input exc-num-inp" min="0.2" max="5.0" step="0.1"
+                  value="1.5" oninput="excOnInputChange('profundidad')">
+                <input type="range" id="exc-profundidad-range" min="0.2" max="5.0" step="0.1" value="1.5"
+                  oninput="excOnSliderChange('profundidad')">
+                <span class="exc-unit-badge">m</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Previsualización gráfica SVG y cálculo -->
+          <div class="exc-preview-card">
+            <div class="wb-label" style="margin-bottom:6px">Vista previa de la fosa y cálculo en tiempo real</div>
+            <div style="display:flex; gap:16px; align-items:center; justify-content:center; flex-wrap:wrap;">
+              <div id="exc-svg-wrap">
+                <svg id="exc-svg" viewBox="0 0 200 130" width="200" height="130"
+                  style="display:block;margin:0 auto"></svg>
+              </div>
+              <div class="exc-stats-grid">
+                <div class="exc-stat-item">
+                  <span class="exc-stat-label">Área de desplante:</span>
+                  <span class="exc-stat-val" id="exc-stat-area">120.0 m²</span>
+                </div>
+                <div class="exc-stat-item highlight">
+                  <span class="exc-stat-label">Volumen extraído (V):</span>
+                  <span class="exc-stat-val" id="exc-stat-vol">180.0 m³</span>
+                </div>
+                <div class="exc-stat-item">
+                  <span class="exc-stat-label">Dimensiones (L × A × P):</span>
+                  <span class="exc-stat-val" id="exc-stat-dims">12.0 × 10.0 × 1.5 m</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Caja de comprobación educativa del resultado -->
+          <div id="exc-eval-box" class="exc-eval-box">
+            <!-- Rellenado dinámicamente con la evaluación detallada -->
+          </div>
+
+          <!-- Mensaje de error de validación -->
+          <div id="exc-error" class="mat-error" style="display:none"></div>
+
+          <!-- Botones de acción -->
+          <div style="display:flex; gap:10px; margin-top:8px;">
+            <button class="btn wb-build-btn" id="btn-iniciar-excavacion" onclick="confirmarExcavacion()"
+              style="flex:1;">
+              ⛏️ Iniciar Excavación
+            </button>
+            <button class="btn danger" id="btn-eliminar-excavacion" onclick="eliminarExcavacion()"
+              style="display:none; padding:10px 16px;">
+              🗑 Rellenar / Eliminar
+            </button>
+          </div>
         </div>
       </div>
     </div>
