@@ -50,6 +50,8 @@
       title="Crea el concreto primero">🧱 Construir</button>
     <button class="btn" onclick="openProgramar()" id="btnProgramar" disabled style="opacity:0.45"
       title="Construye al menos 4 paredes primero">🔧 Programar</button>
+    <button class="btn" onclick="toggleModoLibre()" id="btnLibre" style="display:none"
+      title="Activa o desactiva el modo de construcción libre (solo esta sesión)">🔒 Construcción libre: OFF</button>
     <span id="wall-counter-badge" style="font-size:10px;color:rgba(150,200,255,.7);white-space:nowrap"></span>
     <div class="sep"></div>
     <button class="btn" id="btnNight" onclick="toggleNight()">🌙 Noche</button>
@@ -116,14 +118,14 @@
         <!-- INSTRUCCIONES izquierda -->
         <div id="concreto-instrucciones">
           <div class="ci-title">📋 Instrucciones</div>
-          <div class="ci-note"
+          <div class="ci-note" id="concreto-nota-volumen"
             style="margin-bottom:14px; border-color:rgba(80,200,255,.3); background:rgba(20,80,120,.2);">
             📐 <b>Volumen total necesario:</b><br>
             <span style="color:rgba(100,220,255,.9); font-size:20px; font-weight:700;">6,000 m³</span><br>
             <span style="font-size:10px; opacity:.7;">Calculado por ti en el módulo anterior</span>
           </div>
-          <div class="ci-subtitle">¿Cómo se divide el volumen?</div>
-          <div class="ci-note" style="font-size:11px; line-height:1.9;">
+          <div class="ci-subtitle" id="concreto-sub-division">¿Cómo se divide el volumen?</div>
+          <div class="ci-note" id="concreto-nota-division" style="font-size:11px; line-height:1.9;">
             La mezcla usa proporciones <b>1 : 2 : 3</b><br>
             — eso son <b>6 partes</b> en total —<br><br>
             Divide 6000 ÷ 6 = <b>1000 m³</b> por parte<br><br>
@@ -184,7 +186,7 @@
 
           <!-- Barra de progreso visual del total -->
           <div id="cmat-total-bar-wrap">
-            <div id="cmat-total-label">Total ingresado: <span id="cmat-total-val">0</span> / 6,600 m³</div>
+            <div id="cmat-total-label">Total ingresado: <span id="cmat-total-val">0</span><span id="cmat-total-ref"> / 6,600 m³</span></div>
             <div id="cmat-bar-track">
               <div id="cmat-bar-cemento" class="cmat-bar-seg cmat-bar-cem"></div>
               <div id="cmat-bar-arena" class="cmat-bar-seg cmat-bar-are"></div>
@@ -199,8 +201,9 @@
             </div>
           </div>
 
+          <div id="cmat-aviso" style="display:none; margin:8px 0; padding:8px 10px; border:1px solid rgba(255,200,80,.25); border-radius:8px; background:rgba(80,60,10,.2); color:rgba(240,210,120,.9); font-size:11px; line-height:1.5;"></div>
           <div id="cmat-error" class="mat-error" style="display:none"></div>
-          <button class="btn wb-build-btn" id="btn-mezclar" onclick="concretoMezclar()">🔀 Validar y Mezclar
+          <button class="btn wb-build-btn" id="btn-mezclar" onclick="event.stopPropagation(); concretoMezclar()">🔀 Validar y Mezclar
             Concreto</button>
         </div>
       </div>

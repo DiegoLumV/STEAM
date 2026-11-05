@@ -45,7 +45,8 @@ test('autoguardado conserva cambios durante una petición y ante beacon sin conf
   let resolve;
   const ctx = vm.createContext({
     console, Blob, CustomEvent: class {},
-    document: { dispatchEvent() {}, addEventListener() {} }, window: { addEventListener() {} },
+    URLSearchParams,
+    document: { dispatchEvent() {}, addEventListener() {} }, window: { addEventListener() {}, location: { search: '' } },
     localStorage: { getItem: () => 'token' }, navigator: { sendBeacon: () => false },
     setTimeout() {}, clearTimeout() {}, setInterval() {}, clearInterval() {},
     fetch: () => new Promise(r => { resolve = r; }),
@@ -85,6 +86,7 @@ test('cámara continua, Shift, parada al perder foco y rotaciones conservan auto
     gizmoMgr: null, selectedMesh: null, camera, clampToZone() {}, marcarSucio() { dirty++; },
     engine: { getDeltaTime: () => 1000 / 60 },
     scene: { registerBeforeRender(fn) { callbacks.push(fn); } },
+    vistaAlumnoId: null,
     document: { activeElement: null, addEventListener() {} },
     window: { addEventListener(n, fn) { events[n] = fn; } },
   });

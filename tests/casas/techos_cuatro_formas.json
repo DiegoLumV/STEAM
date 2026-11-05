@@ -1,0 +1,108 @@
+{
+  "descripcion": "Techo plano, a dos aguas, a cuatro aguas y a una agua",
+  "estado": {
+    "v": 1,
+    "objetos": [
+      {
+        "id": 1,
+        "type": "roof",
+        "p": [
+          -6,
+          2.8,
+          0
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "roofShape": "plano",
+        "roofMat": "concreto",
+        "w": 4,
+        "d": 4,
+        "roofH": 0.3,
+        "area": 16
+      },
+      {
+        "id": 2,
+        "type": "roof",
+        "p": [
+          -2,
+          2.8,
+          0
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "roofShape": "dos_aguas",
+        "roofMat": "teja",
+        "w": 4,
+        "d": 4,
+        "roofH": 1.6,
+        "area": 16
+      },
+      {
+        "id": 3,
+        "type": "roof",
+        "p": [
+          2,
+          2.8,
+          0
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "roofShape": "cuatro_aguas",
+        "roofMat": "lamina",
+        "w": 4,
+        "d": 4,
+        "roofH": 1.4,
+        "area": 16
+      },
+      {
+        "id": 4,
+        "type": "roof",
+        "p": [
+          6,
+          2.8,
+          0
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "roofShape": "una_agua",
+        "roofMat": "madera",
+        "w": 4,
+        "d": 4,
+        "roofH": 1.2,
+        "area": 16,
+        "color": "#775533"
+      }
+    ],
+    "contador": 5,
+    "progreso": {
+      "buildPhase": 4,
+      "concretoUnlocked": true,
+      "matematicasValidadas": true,
+      "puertas_colocadas": 0,
+      "ventanas_colocadas": 0,
+      "progSequence": [],
+      "focoState": "off"
+    }
+  },
+  "progreso": {
+    "buildPhase": 4,
+    "concretoUnlocked": true,
+    "matematicasValidadas": true,
+    "puertas_colocadas": 0,
+    "ventanas_colocadas": 0,
+    "progSequence": [],
+    "focoState": "off"
+  }
+}

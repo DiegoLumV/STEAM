@@ -1,0 +1,90 @@
+{
+  "descripcion": "Fosa guardada junto con muros, bloque y piso",
+  "estado": {
+    "v": 1,
+    "objetos": [
+      {
+        "id": 1,
+        "type": "wall_block",
+        "p": [
+          0,
+          0,
+          -8
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "w": 5,
+        "d": 4,
+        "wallMode": "simple"
+      },
+      {
+        "id": 2,
+        "type": "block",
+        "p": [
+          7,
+          0,
+          7
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": 3,
+        "type": "floor_vitropiso",
+        "p": [
+          -7,
+          0,
+          6
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "w": 3,
+        "d": 3,
+        "area": 9,
+        "color": "#38bdf8"
+      }
+    ],
+    "contador": 4,
+    "progreso": {
+      "buildPhase": 4,
+      "concretoUnlocked": true,
+      "matematicasValidadas": true,
+      "puertas_colocadas": 0,
+      "ventanas_colocadas": 0,
+      "progSequence": [],
+      "focoState": "off",
+      "excavacion": {
+        "largo": 6,
+        "ancho": 4,
+        "profundidad": 1.2,
+        "volumen": 28.8,
+        "activa": true
+      }
+    }
+  },
+  "progreso": {
+    "buildPhase": 4,
+    "concretoUnlocked": true,
+    "matematicasValidadas": true,
+    "puertas_colocadas": 0,
+    "ventanas_colocadas": 0,
+    "progSequence": [],
+    "focoState": "off",
+    "excavacion": {
+      "largo": 6,
+      "ancho": 4,
+      "profundidad": 1.2,
+      "volumen": 28.8,
+      "activa": true
+    }
+  }
+}

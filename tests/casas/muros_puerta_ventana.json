@@ -1,0 +1,141 @@
+{
+  "descripcion": "Muros con puerta y ventanas incrustadas",
+  "estado": {
+    "v": 1,
+    "objetos": [
+      {
+        "id": 1,
+        "type": "wall_block",
+        "p": [
+          0,
+          0,
+          -6
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "w": 5,
+        "d": 4,
+        "wallMode": "puerta"
+      },
+      {
+        "id": 2,
+        "type": "puerta",
+        "p": [
+          0,
+          0,
+          0
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "embeddedInWall": 1
+      },
+      {
+        "id": 3,
+        "type": "wall_madera",
+        "p": [
+          0,
+          0,
+          6
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "w": 6,
+        "d": 4,
+        "wallMode": "ventana"
+      },
+      {
+        "id": 4,
+        "type": "ventana",
+        "p": [
+          -1.5,
+          1.5,
+          0
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "embeddedInWall": 3
+      },
+      {
+        "id": 5,
+        "type": "ventana",
+        "p": [
+          1.5,
+          1.5,
+          0
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "embeddedInWall": 3
+      },
+      {
+        "id": 6,
+        "type": "wall_lamina",
+        "p": [
+          -6,
+          0,
+          0
+        ],
+        "r": [
+          0,
+          1.5708,
+          0
+        ],
+        "w": 4,
+        "d": 3,
+        "wallMode": "simple",
+        "color": "#88aa66"
+      },
+      {
+        "id": 7,
+        "type": "wall_block",
+        "p": [
+          6,
+          0,
+          0
+        ],
+        "r": [
+          0,
+          1.5708,
+          0
+        ],
+        "w": 5,
+        "d": 4,
+        "wallMode": "simple"
+      }
+    ],
+    "contador": 8,
+    "progreso": {
+      "buildPhase": 4,
+      "concretoUnlocked": true,
+      "matematicasValidadas": true,
+      "puertas_colocadas": 1,
+      "ventanas_colocadas": 2,
+      "progSequence": [],
+      "focoState": "off"
+    }
+  },
+  "progreso": {
+    "buildPhase": 4,
+    "concretoUnlocked": true,
+    "matematicasValidadas": true,
+    "puertas_colocadas": 1,
+    "ventanas_colocadas": 2,
+    "progSequence": [],
+    "focoState": "off"
+  }
+}

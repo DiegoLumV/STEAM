@@ -1,0 +1,26 @@
+{
+  "vacia": {
+    "ancho": "10",
+    "largo": "10"
+  },
+  "bloques_con_cortes": {
+    "ancho": "9",
+    "largo": "6"
+  },
+  "muros_puerta_ventana": {
+    "ancho": "13",
+    "largo": "13"
+  },
+  "pisos_vitropiso": {
+    "ancho": "10",
+    "largo": "10"
+  },
+  "excavacion_con_casa": {
+    "ancho": "11",
+    "largo": "16"
+  },
+  "sin_excavacion_antigua": {
+    "ancho": "5",
+    "largo": "8"
+  }
+}

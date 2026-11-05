@@ -1,0 +1,851 @@
+{
+  "techo": {
+    "plano|3x3x0.5": {
+      "area": "9.0 m²",
+      "dims": "3.0 × 3.0 m"
+    },
+    "plano|10x10x1.8": {
+      "area": "100.0 m²",
+      "dims": "10.0 × 10.0 m"
+    },
+    "plano|24x3x4": {
+      "area": "72.0 m²",
+      "dims": "24.0 × 3.0 m"
+    },
+    "plano|7x13x2.3": {
+      "area": "91.0 m²",
+      "dims": "7.0 × 13.0 m"
+    },
+    "plano|24x24x0.5": {
+      "area": "576.0 m²",
+      "dims": "24.0 × 24.0 m"
+    },
+    "plano|5x9x1.1": {
+      "area": "45.0 m²",
+      "dims": "5.0 × 9.0 m"
+    },
+    "dos_aguas|3x3x0.5": {
+      "area": "9.5 m²",
+      "dims": "3.0 × 3.0 m · Altura: 0.5 m"
+    },
+    "dos_aguas|10x10x1.8": {
+      "area": "106.3 m²",
+      "dims": "10.0 × 10.0 m · Altura: 1.8 m"
+    },
+    "dos_aguas|24x3x4": {
+      "area": "75.9 m²",
+      "dims": "24.0 × 3.0 m · Altura: 4.0 m"
+    },
+    "dos_aguas|7x13x2.3": {
+      "area": "108.9 m²",
+      "dims": "7.0 × 13.0 m · Altura: 2.3 m"
+    },
+    "dos_aguas|24x24x0.5": {
+      "area": "576.5 m²",
+      "dims": "24.0 × 24.0 m · Altura: 0.5 m"
+    },
+    "dos_aguas|5x9x1.1": {
+      "area": "49.2 m²",
+      "dims": "5.0 × 9.0 m · Altura: 1.1 m"
+    },
+    "cuatro_aguas|3x3x0.5": {
+      "area": "9.5 m²",
+      "dims": "3.0 × 3.0 m · Altura: 0.5 m"
+    },
+    "cuatro_aguas|10x10x1.8": {
+      "area": "106.3 m²",
+      "dims": "10.0 × 10.0 m · Altura: 1.8 m"
+    },
+    "cuatro_aguas|24x3x4": {
+      "area": "140.5 m²",
+      "dims": "24.0 × 3.0 m · Altura: 4.0 m"
+    },
+    "cuatro_aguas|7x13x2.3": {
+      "area": "102.7 m²",
+      "dims": "7.0 × 13.0 m · Altura: 2.3 m"
+    },
+    "cuatro_aguas|24x24x0.5": {
+      "area": "576.5 m²",
+      "dims": "24.0 × 24.0 m · Altura: 0.5 m"
+    },
+    "cuatro_aguas|5x9x1.1": {
+      "area": "47.7 m²",
+      "dims": "5.0 × 9.0 m · Altura: 1.1 m"
+    },
+    "una_agua|3x3x0.5": {
+      "area": "9.1 m²",
+      "dims": "3.0 × 3.0 m · Altura: 0.5 m"
+    },
+    "una_agua|10x10x1.8": {
+      "area": "101.6 m²",
+      "dims": "10.0 × 10.0 m · Altura: 1.8 m"
+    },
+    "una_agua|24x3x4": {
+      "area": "120.0 m²",
+      "dims": "24.0 × 3.0 m · Altura: 4.0 m"
+    },
+    "una_agua|7x13x2.3": {
+      "area": "92.4 m²",
+      "dims": "7.0 × 13.0 m · Altura: 2.3 m"
+    },
+    "una_agua|24x24x0.5": {
+      "area": "576.1 m²",
+      "dims": "24.0 × 24.0 m · Altura: 0.5 m"
+    },
+    "una_agua|5x9x1.1": {
+      "area": "45.3 m²",
+      "dims": "5.0 × 9.0 m · Altura: 1.1 m"
+    }
+  },
+  "muro": {
+    "block|simple|1|3x4": {
+      "total": "12 piezas",
+      "dims": "3.0 m × 2.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "3",
+      "h": "4"
+    },
+    "block|simple|1|5x5": {
+      "total": "25 piezas",
+      "dims": "5.0 m × 3.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "block|simple|1|7x6": {
+      "total": "42 piezas",
+      "dims": "7.0 m × 4.2 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "block|simple|1|20x15": {
+      "total": "300 piezas",
+      "dims": "20.0 m × 10.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "block|simple|1|4x8": {
+      "total": "32 piezas",
+      "dims": "4.0 m × 5.6 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "4",
+      "h": "8"
+    },
+    "block|simple|1|5x4": {
+      "total": "20 piezas",
+      "dims": "5.0 m × 2.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "block|puerta|1|3x4": {
+      "total": "8 piezas",
+      "dims": "3.0 m × 2.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "3",
+      "h": "4"
+    },
+    "block|puerta|1|5x5": {
+      "total": "21 piezas",
+      "dims": "5.0 m × 3.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "block|puerta|1|7x6": {
+      "total": "38 piezas",
+      "dims": "7.0 m × 4.2 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "block|puerta|1|20x15": {
+      "total": "296 piezas",
+      "dims": "20.0 m × 10.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "block|puerta|1|4x8": {
+      "total": "28 piezas",
+      "dims": "4.0 m × 5.6 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "4",
+      "h": "8"
+    },
+    "block|puerta|1|5x4": {
+      "total": "16 piezas",
+      "dims": "5.0 m × 2.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "block|ventana|1|3x4": {
+      "total": "10 piezas",
+      "dims": "3.0 m × 2.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "3",
+      "h": "4"
+    },
+    "block|ventana|1|5x5": {
+      "total": "23 piezas",
+      "dims": "5.0 m × 3.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "block|ventana|1|7x6": {
+      "total": "40 piezas",
+      "dims": "7.0 m × 4.2 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "block|ventana|1|20x15": {
+      "total": "298 piezas",
+      "dims": "20.0 m × 10.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "block|ventana|1|4x8": {
+      "total": "30 piezas",
+      "dims": "4.0 m × 5.6 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "4",
+      "h": "8"
+    },
+    "block|ventana|1|5x4": {
+      "total": "18 piezas",
+      "dims": "5.0 m × 2.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "block|ventana|2|3x4": {
+      "total": "8 piezas",
+      "dims": "3.0 m × 2.8 m",
+      "deshabilitado": true,
+      "aviso": "⚠ Necesitas más columnas para 2 ventana(s).",
+      "w": "3",
+      "h": "4"
+    },
+    "block|ventana|2|5x5": {
+      "total": "21 piezas",
+      "dims": "5.0 m × 3.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "block|ventana|2|7x6": {
+      "total": "38 piezas",
+      "dims": "7.0 m × 4.2 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "block|ventana|2|20x15": {
+      "total": "296 piezas",
+      "dims": "20.0 m × 10.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "block|ventana|2|4x8": {
+      "total": "28 piezas",
+      "dims": "4.0 m × 5.6 m",
+      "deshabilitado": true,
+      "aviso": "⚠ Necesitas más columnas para 2 ventana(s).",
+      "w": "4",
+      "h": "8"
+    },
+    "block|ventana|2|5x4": {
+      "total": "16 piezas",
+      "dims": "5.0 m × 2.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "madera|simple|1|3x4": {
+      "total": "12 piezas",
+      "dims": "3.0 m × 0.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "3",
+      "h": "4"
+    },
+    "madera|simple|1|5x5": {
+      "total": "25 piezas",
+      "dims": "5.0 m × 1.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "madera|simple|1|7x6": {
+      "total": "42 piezas",
+      "dims": "7.0 m × 1.2 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "madera|simple|1|20x15": {
+      "total": "300 piezas",
+      "dims": "20.0 m × 3.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "madera|simple|1|4x8": {
+      "total": "32 piezas",
+      "dims": "4.0 m × 1.6 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "4",
+      "h": "8"
+    },
+    "madera|simple|1|5x4": {
+      "total": "20 piezas",
+      "dims": "5.0 m × 0.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "madera|puerta|1|3x4": {
+      "total": "8 piezas",
+      "dims": "3.0 m × 0.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "3",
+      "h": "4"
+    },
+    "madera|puerta|1|5x5": {
+      "total": "21 piezas",
+      "dims": "5.0 m × 1.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "madera|puerta|1|7x6": {
+      "total": "38 piezas",
+      "dims": "7.0 m × 1.2 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "madera|puerta|1|20x15": {
+      "total": "296 piezas",
+      "dims": "20.0 m × 3.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "madera|puerta|1|4x8": {
+      "total": "28 piezas",
+      "dims": "4.0 m × 1.6 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "4",
+      "h": "8"
+    },
+    "madera|puerta|1|5x4": {
+      "total": "16 piezas",
+      "dims": "5.0 m × 0.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "madera|ventana|1|3x4": {
+      "total": "10 piezas",
+      "dims": "3.0 m × 0.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "3",
+      "h": "4"
+    },
+    "madera|ventana|1|5x5": {
+      "total": "23 piezas",
+      "dims": "5.0 m × 1.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "madera|ventana|1|7x6": {
+      "total": "40 piezas",
+      "dims": "7.0 m × 1.2 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "madera|ventana|1|20x15": {
+      "total": "298 piezas",
+      "dims": "20.0 m × 3.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "madera|ventana|1|4x8": {
+      "total": "30 piezas",
+      "dims": "4.0 m × 1.6 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "4",
+      "h": "8"
+    },
+    "madera|ventana|1|5x4": {
+      "total": "18 piezas",
+      "dims": "5.0 m × 0.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "madera|ventana|2|3x4": {
+      "total": "8 piezas",
+      "dims": "3.0 m × 0.8 m",
+      "deshabilitado": true,
+      "aviso": "⚠ Necesitas más columnas para 2 ventana(s).",
+      "w": "3",
+      "h": "4"
+    },
+    "madera|ventana|2|5x5": {
+      "total": "21 piezas",
+      "dims": "5.0 m × 1.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "madera|ventana|2|7x6": {
+      "total": "38 piezas",
+      "dims": "7.0 m × 1.2 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "madera|ventana|2|20x15": {
+      "total": "296 piezas",
+      "dims": "20.0 m × 3.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "madera|ventana|2|4x8": {
+      "total": "28 piezas",
+      "dims": "4.0 m × 1.6 m",
+      "deshabilitado": true,
+      "aviso": "⚠ Necesitas más columnas para 2 ventana(s).",
+      "w": "4",
+      "h": "8"
+    },
+    "madera|ventana|2|5x4": {
+      "total": "16 piezas",
+      "dims": "5.0 m × 0.8 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "lamina|simple|1|3x4": {
+      "total": "12 piezas",
+      "dims": "3.0 m × 2.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "3",
+      "h": "4"
+    },
+    "lamina|simple|1|5x5": {
+      "total": "25 piezas",
+      "dims": "5.0 m × 2.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "lamina|simple|1|7x6": {
+      "total": "42 piezas",
+      "dims": "7.0 m × 3.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "lamina|simple|1|20x15": {
+      "total": "300 piezas",
+      "dims": "20.0 m × 7.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "lamina|simple|1|4x8": {
+      "total": "32 piezas",
+      "dims": "4.0 m × 4.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "4",
+      "h": "8"
+    },
+    "lamina|simple|1|5x4": {
+      "total": "20 piezas",
+      "dims": "5.0 m × 2.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "lamina|puerta|1|3x4": {
+      "total": "8 piezas",
+      "dims": "3.0 m × 2.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "3",
+      "h": "4"
+    },
+    "lamina|puerta|1|5x5": {
+      "total": "21 piezas",
+      "dims": "5.0 m × 2.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "lamina|puerta|1|7x6": {
+      "total": "38 piezas",
+      "dims": "7.0 m × 3.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "lamina|puerta|1|20x15": {
+      "total": "296 piezas",
+      "dims": "20.0 m × 7.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "lamina|puerta|1|4x8": {
+      "total": "28 piezas",
+      "dims": "4.0 m × 4.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "4",
+      "h": "8"
+    },
+    "lamina|puerta|1|5x4": {
+      "total": "16 piezas",
+      "dims": "5.0 m × 2.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "lamina|ventana|1|3x4": {
+      "total": "10 piezas",
+      "dims": "3.0 m × 2.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "3",
+      "h": "4"
+    },
+    "lamina|ventana|1|5x5": {
+      "total": "23 piezas",
+      "dims": "5.0 m × 2.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "lamina|ventana|1|7x6": {
+      "total": "40 piezas",
+      "dims": "7.0 m × 3.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "lamina|ventana|1|20x15": {
+      "total": "298 piezas",
+      "dims": "20.0 m × 7.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "lamina|ventana|1|4x8": {
+      "total": "30 piezas",
+      "dims": "4.0 m × 4.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "4",
+      "h": "8"
+    },
+    "lamina|ventana|1|5x4": {
+      "total": "18 piezas",
+      "dims": "5.0 m × 2.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    },
+    "lamina|ventana|2|3x4": {
+      "total": "8 piezas",
+      "dims": "3.0 m × 2.0 m",
+      "deshabilitado": true,
+      "aviso": "⚠ Necesitas más columnas para 2 ventana(s).",
+      "w": "3",
+      "h": "4"
+    },
+    "lamina|ventana|2|5x5": {
+      "total": "21 piezas",
+      "dims": "5.0 m × 2.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "5"
+    },
+    "lamina|ventana|2|7x6": {
+      "total": "38 piezas",
+      "dims": "7.0 m × 3.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "7",
+      "h": "6"
+    },
+    "lamina|ventana|2|20x15": {
+      "total": "296 piezas",
+      "dims": "20.0 m × 7.5 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "20",
+      "h": "15"
+    },
+    "lamina|ventana|2|4x8": {
+      "total": "28 piezas",
+      "dims": "4.0 m × 4.0 m",
+      "deshabilitado": true,
+      "aviso": "⚠ Necesitas más columnas para 2 ventana(s).",
+      "w": "4",
+      "h": "8"
+    },
+    "lamina|ventana|2|5x4": {
+      "total": "16 piezas",
+      "dims": "5.0 m × 2.0 m",
+      "deshabilitado": false,
+      "aviso": "",
+      "w": "5",
+      "h": "4"
+    }
+  },
+  "piso": {
+    "20x20": {
+      "cubierta": "65",
+      "mensaje": "⚠ Se excede el área. Solo quedan 335 m² libres.",
+      "etiquetaArea": "400 m²",
+      "dim": "20 × 20 m",
+      "barra": "16.25%",
+      "previa": "100%",
+      "previaIzq": "16.25%",
+      "deshabilitado": true
+    },
+    "10x20": {
+      "cubierta": "65",
+      "mensaje": "Quedarán 135 m² por cubrir",
+      "etiquetaArea": "200 m²",
+      "dim": "10 × 20 m",
+      "barra": "16.25%",
+      "previa": "50%",
+      "previaIzq": "16.25%",
+      "deshabilitado": false
+    },
+    "10x10": {
+      "cubierta": "65",
+      "mensaje": "Quedarán 235 m² por cubrir",
+      "etiquetaArea": "100 m²",
+      "dim": "10 × 10 m",
+      "barra": "16.25%",
+      "previa": "25%",
+      "previaIzq": "16.25%",
+      "deshabilitado": false
+    },
+    "5x20": {
+      "cubierta": "65",
+      "mensaje": "Quedarán 235 m² por cubrir",
+      "etiquetaArea": "100 m²",
+      "dim": "5 × 20 m",
+      "barra": "16.25%",
+      "previa": "25%",
+      "previaIzq": "16.25%",
+      "deshabilitado": false
+    },
+    "5x10": {
+      "cubierta": "65",
+      "mensaje": "Quedarán 285 m² por cubrir",
+      "etiquetaArea": "50 m²",
+      "dim": "5 × 10 m",
+      "barra": "16.25%",
+      "previa": "12.5%",
+      "previaIzq": "16.25%",
+      "deshabilitado": false
+    },
+    "5x5": {
+      "cubierta": "65",
+      "mensaje": "Quedarán 310 m² por cubrir",
+      "etiquetaArea": "25 m²",
+      "dim": "5 × 5 m",
+      "barra": "16.25%",
+      "previa": "6.25%",
+      "previaIzq": "16.25%",
+      "deshabilitado": false
+    },
+    "4x5": {
+      "cubierta": "65",
+      "mensaje": "Quedarán 315 m² por cubrir",
+      "etiquetaArea": "20 m²",
+      "dim": "4 × 5 m",
+      "barra": "16.25%",
+      "previa": "5%",
+      "previaIzq": "16.25%",
+      "deshabilitado": false
+    },
+    "4x10": {
+      "cubierta": "65",
+      "mensaje": "Quedarán 295 m² por cubrir",
+      "etiquetaArea": "40 m²",
+      "dim": "4 × 10 m",
+      "barra": "16.25%",
+      "previa": "10%",
+      "previaIzq": "16.25%",
+      "deshabilitado": false
+    }
+  },
+  "concreto": {
+    "0|0|0|0": {
+      "total": "0",
+      "cemento": "0%",
+      "arena": "0%",
+      "grava": "0%",
+      "agua": "0%"
+    },
+    "1000|2000|3000|600": {
+      "total": "6,600",
+      "cemento": "15.1515%",
+      "arena": "30.303%",
+      "grava": "45.4545%",
+      "agua": "9.09091%"
+    },
+    "500|0|0|0": {
+      "total": "500",
+      "cemento": "7.57576%",
+      "arena": "0%",
+      "grava": "0%",
+      "agua": "0%"
+    },
+    "7000|0|0|0": {
+      "total": "7,000",
+      "cemento": "100%",
+      "arena": "0%",
+      "grava": "0%",
+      "agua": "0%"
+    },
+    "123.5|77.25|10|0.5": {
+      "total": "211.25",
+      "cemento": "1.87121%",
+      "arena": "1.17045%",
+      "grava": "0.151515%",
+      "agua": "0.0075757%"
+    },
+    "1000|2000|3000|601": {
+      "total": "6,601",
+      "cemento": "15.1515%",
+      "arena": "30.303%",
+      "grava": "45.4545%",
+      "agua": "9.10606%"
+    }
+  },
+  "excavacion": {
+    "6x4x1.2": {
+      "area": "24.00 m²",
+      "vol": "28.80 m³",
+      "dims": "6.00 × 4.00 × 1.20 m"
+    },
+    "12x10x1.5": {
+      "area": "120.00 m²",
+      "vol": "180.00 m³",
+      "dims": "12.00 × 10.00 × 1.50 m"
+    },
+    "12x10x1.6": {
+      "area": "120.00 m²",
+      "vol": "192.00 m³",
+      "dims": "12.00 × 10.00 × 1.60 m"
+    },
+    "18x18x5": {
+      "area": "324.00 m²",
+      "vol": "1620.00 m³",
+      "dims": "18.00 × 18.00 × 5.00 m"
+    },
+    "0.1x3x1.1": {
+      "area": "0.30 m²",
+      "vol": "0.33 m³",
+      "dims": "0.10 × 3.00 × 1.10 m"
+    },
+    "0.1x0.2x0.3": {
+      "area": "0.02 m²",
+      "vol": "0.01 m³",
+      "dims": "0.10 × 0.20 × 0.30 m"
+    },
+    "7.5x2.5x0.4": {
+      "area": "18.75 m²",
+      "vol": "7.50 m³",
+      "dims": "7.50 × 2.50 × 0.40 m"
+    },
+    "1x1x0.2": {
+      "area": "1.00 m²",
+      "vol": "0.20 m³",
+      "dims": "1.00 × 1.00 × 0.20 m"
+    },
+    "13.37x4.21x2.89": {
+      "area": "56.29 m²",
+      "vol": "162.67 m³",
+      "dims": "13.37 × 4.21 × 2.89 m"
+    }
+  }
+}

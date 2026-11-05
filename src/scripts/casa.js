@@ -1,7 +1,10 @@
 // importamos todo lo que vamos a usar de Babylon.js v9
 import { iniciarSesion, cerrarSesion, registrar, setCameraRef } from './telemetria.js';
 import { checkTutorial, startTutorial } from './tutorial.js';
-import { iniciarAutoguardado, marcarSucio, cargar, serializarEscena, reiniciar, haySinGuardar, iniciarSyncMaestro } from './guardado.js';
+import { iniciarAutoguardado, marcarSucio, cargar, serializarEscena, reiniciar, haySinGuardar, iniciarSyncMaestro, asegurarGuardado } from './guardado.js';
+import { MATERIALES } from './materiales.js';
+// Cálculos puros extraídos (Fase 1). Las fórmulas originales quedan comentadas junto a cada uso.
+import { calcularAreaTecho, calcularExcavacion, redondearCentesimas, calcularPiezasMuro, calcularDimensionesMuro, sumarAreaPisos, calcularCoberturaPiso, calcularTotalConcreto, porcentajeBarra, calcularDimensionCubierta, validarMezclaConcretoLibre, convertirCantidadConcreto, COMPONENTES_CONCRETO } from './calculos.js';
 import {
   Engine,
   Scene,
@@ -63,6 +66,10 @@ let buildPhase = 0;
 
 // estado del módulo de matemáticas
 let matematicasValidadas = false;
+
+// Fase 3: modo de construcción libre. Solo de sesión (nunca se guarda ni se serializa).
+// Solo existe el interruptor si la URL trae ?libre=1; sin eso queda siempre en false.
+let modoLibreActivo = false;
 
 // (estado del modal de concreto ahora se maneja por inputs numéricos)
 
@@ -376,9 +383,10 @@ const BUILDERS = {
   },
 };
 
-const LABELS = { block: 'Block', madera: 'Madera', lamina: 'Lámina', teja: 'Teja', roof: 'Techo', foco: 'Foco', puerta: 'Puerta', barillas: 'Barillas', ventana: 'Ventana', concreto: 'Concreto', vitropiso: 'Vitropiso', lampara: 'Lámpara' };
-const EMOJIS = { block: '🧱', madera: '🪵', lamina: '🛡️', teja: '🧱', roof: '🏠', foco: '💡', puerta: '🚪', barillas: '⚙', ventana: '🪟', concreto: '🪨', vitropiso: '🔷', lampara: '🔦' };
-const RESISTANCE = { block: 0.9, concreto: 0.95, barillas: 0.85, vitropiso: 0.7, madera: 0.25, lamina: 0.75, teja: 0.85, puerta: 0.5, ventana: 0.4, foco: 0.3, lampara: 0.4 };
+// Fase 4: los datos vienen de materiales.js; se conservan las mismas formas de acceso LABELS[tipo], EMOJIS[tipo] y RESISTANCE[tipo].
+const LABELS = Object.fromEntries(Object.entries(MATERIALES).map(([k, m]) => [k, m.label]));
+const EMOJIS = Object.fromEntries(Object.entries(MATERIALES).map(([k, m]) => [k, m.emoji]));
+const RESISTANCE = Object.fromEntries(Object.entries(MATERIALES).filter(([, m]) => m.resistencia !== null).map(([k, m]) => [k, m.resistencia]));
 
 // límites de la zona de construcción y mínimo en Y
 const BUILD_ZONE = 10;
@@ -594,6 +602,38 @@ function unlockAll() {
   if (btnProg) { btnProg.disabled = false; btnProg.style.opacity = ''; btnProg.title = ''; }
   setTip('Programacion desbloqueada! Tienes 4 o mas paredes. Ya puedes programar tu casa.');
 }
+
+// Fase 3: recalcula los botones de etapas según el modo y el progreso real, SIN modificar
+// buildPhase, concretoUnlocked ni matematicasValidadas. Solo se llama al (des)activar el modo libre.
+function aplicarEstadoBotonesEtapas() {
+  const slab = objList.some(o => o.type === 'concreto_slab_20');
+  const fijar = (id, habilitado, titulo) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.disabled = !habilitado;
+    b.style.opacity = habilitado ? '' : '0.45';
+    b.title = habilitado ? '' : titulo;
+  };
+  fijar('btnStorm', !slab && (modoLibreActivo || buildPhase >= 1),
+    slab ? '🪨 Ya tienes el concreto creado. Elimínalo primero para poder crearlo de nuevo.' : 'Completa primero Calcular Área');
+  fijar('btnWall', modoLibreActivo || concretoUnlocked, 'Crea el concreto primero');
+  if (modoLibreActivo || buildPhase >= 4) {
+    fijar('btnProgramar', true, '');
+    checkAndUpdateProgramarBtn(); // mantiene validateHouse como validación real
+  } else {
+    fijar('btnProgramar', false, 'Construye al menos 4 paredes primero');
+  }
+}
+function toggleModoLibre() {
+  modoLibreActivo = !modoLibreActivo;
+  const btn = document.getElementById('btnLibre');
+  if (btn) {
+    btn.textContent = modoLibreActivo ? '🔓 Construcción libre: ON' : '🔒 Construcción libre: OFF';
+    btn.classList.toggle('active', modoLibreActivo);
+  }
+  aplicarEstadoBotonesEtapas();
+}
+window.toggleModoLibre = toggleModoLibre;
 // Cuenta solo paredes reales (wall_block, wall_madera o wall_lamina)
 function countWalls() {
   return objList.filter(o => o.type === 'wall_block' || o.type === 'wall_madera' || o.type === 'wall_lamina').length;
@@ -646,6 +686,75 @@ function addObj(type) {
   marcarSucio();
 }
 
+// ── F1 · Cámara libre con colisión nativa de Babylon y «rayos X» ──────────────
+// Parámetros de navegación del simulador (no son datos de la base documental).
+const CAMARA_F1 = Object.freeze({
+  radioMinimo: 1.2,               // m: permite acercarse hasta el interior de la vivienda (antes 5)
+  betaMaximo: Math.PI / 2 - 0.02, // rad: vista casi a la altura del objetivo (antes Math.PI / 2.05)
+  botonDesplazar: 1,              // botón central; el derecho queda para el menú contextual de cortar
+  desplazamientoMaximo: 25,       // m que el objetivo puede alejarse del origen al desplazar
+  radioColision: 0.35,            // m: «cuerpo» de la cámara para no rozar los muros
+});
+// Tipos que la cámara no atraviesa: muros y piezas sueltas de block, madera y lámina.
+// Puertas y ventanas no bloquean (son vanos); techos, pisos y losa tampoco en F1.
+const TIPOS_SOLIDOS_CAMARA = COLLISION_TYPES;
+let rayosXActivo = false; // solo de sesión: nunca se guarda ni se serializa
+
+function configurarCamaraLibre() {
+  // Ratón: izquierdo orbita, central desplaza. El derecho no mueve la cámara.
+  const punteros = camera.inputs.attached.pointers;
+  if (punteros) punteros.buttons = [0, CAMARA_F1.botonDesplazar];
+  camera.panningDistanceLimit = CAMARA_F1.desplazamientoMaximo;
+  // Colisión nativa (sin motor de física): la cámara se detiene al tocar un mesh con checkCollisions.
+  scene.collisionsEnabled = true;
+  camera.checkCollisions = !rayosXActivo;
+  camera.collisionRadius = new Vector3(CAMARA_F1.radioColision, CAMARA_F1.radioColision, CAMARA_F1.radioColision);
+  // El objetivo no baja del nivel del terreno, así la cámara nunca queda bajo el suelo.
+  scene.registerBeforeRender(() => {
+    if (camera.target.y < 0) camera.target.y = 0;
+  });
+  crearBotonRayosX();
+}
+
+function sincronizarColisionesCamara() {
+  objList.forEach(o => {
+    const solido = TIPOS_SOLIDOS_CAMARA.includes(o.type);
+    o.node?.getChildMeshes().forEach(m => { m.checkCollisions = solido; });
+  });
+}
+
+function actualizarBotonRayosX() {
+  const btn = document.getElementById('btnRayosX');
+  if (!btn) return;
+  btn.textContent = rayosXActivo ? '🩻 Rayos X: ON' : '🩻 Rayos X: OFF';
+  btn.classList.toggle('active', rayosXActivo);
+}
+
+function toggleRayosX() {
+  rayosXActivo = !rayosXActivo;
+  if (camera) camera.checkCollisions = !rayosXActivo;
+  actualizarBotonRayosX();
+  setTip(rayosXActivo
+    ? '🩻 <b>Rayos X activado:</b> la cámara puede atravesar muros para inspeccionar la vivienda.'
+    : '🧱 <b>Rayos X desactivado:</b> la cámara vuelve a detenerse en los muros.');
+}
+window.toggleRayosX = toggleRayosX;
+
+// El botón se crea desde aquí para no modificar sandbox.html; usa el mismo estilo que los demás.
+function crearBotonRayosX() {
+  if (document.getElementById('btnRayosX')) return;
+  const ref = document.getElementById('btnNight');
+  if (!ref) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn';
+  btn.id = 'btnRayosX';
+  btn.title = 'Permite que la cámara atraviese muros (solo para observar; no cambia la construcción)';
+  btn.addEventListener('click', toggleRayosX);
+  ref.insertAdjacentElement('afterend', btn);
+  actualizarBotonRayosX();
+}
+
 // configura el gizmo de posición y los controles de teclado para cámara y objetos
 function setupGizmos() {
   if (vistaAlumnoId) return; // Deshabilitado en vista de maestro
@@ -666,7 +775,9 @@ function setupGizmos() {
 
   const CAM_SPEED = Math.PI / 3; // Radianes por segundo, independiente de los FPS.
   const BETA_MIN = 0.20;
-  const BETA_MAX = Math.PI / 2.05;
+  // F1: el teclado usa el mismo límite que el ratón (camera.upperBetaLimit). Antes: Math.PI / 2.05.
+  // Se lee de la cámara para que setupGizmos siga siendo autónoma (tests/integracion.test.js la ejecuta aislada).
+  const BETA_MAX = camera.upperBetaLimit || Math.PI / 2.05;
   const cameraKeys = new Set();
   const arrowKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
   let cameraFast = false;
@@ -817,6 +928,7 @@ function deleteSelected() {
 
 // funciones auxiliares de la interfaz: lista de objetos, tooltip, etc.
 function updateObjListUI() {
+  sincronizarColisionesCamara(); // F1: los muros y piezas sólidas nuevas bloquean la cámara
   const panel = document.getElementById('objlist');
   const items = document.getElementById('obj-items');
   const count = document.getElementById('obj-count');
@@ -851,7 +963,7 @@ function updateObjListUI() {
     </div>`;
   }).join('');
 
-  if (buildPhase >= 4) checkAndUpdateProgramarBtn();
+  if (buildPhase >= 4 || modoLibreActivo) checkAndUpdateProgramarBtn();
 
   // Actualizar contador de paredes en topbar
   const wallBadge = document.getElementById('wall-counter-badge');
@@ -1073,10 +1185,13 @@ function deleteConcreto(id) {
   // Bloquear Construir y Programar de nuevo
   concretoUnlocked = false;
   buildPhase = 1; // matematicas ya validadas
-  const btnWall = document.getElementById('btnWall');
-  if (btnWall) { btnWall.disabled = true; btnWall.style.opacity = '0.45'; btnWall.title = 'Crea el concreto primero'; }
-  const btnProg = document.getElementById('btnProgramar');
-  if (btnProg) { btnProg.disabled = true; btnProg.style.opacity = '0.45'; btnProg.title = 'Completa los pasos anteriores'; }
+  // Fase 3: en modo libre no se vuelven a bloquear los botones (el estado interno se actualiza igual)
+  if (!modoLibreActivo) {
+    const btnWall = document.getElementById('btnWall');
+    if (btnWall) { btnWall.disabled = true; btnWall.style.opacity = '0.45'; btnWall.title = 'Crea el concreto primero'; }
+    const btnProg = document.getElementById('btnProgramar');
+    if (btnProg) { btnProg.disabled = true; btnProg.style.opacity = '0.45'; btnProg.title = 'Completa los pasos anteriores'; }
+  }
   updateObjListUI();
   setTip('🪨 Concreto eliminado. Vuelve a crearlo con el botón 🪨 Crear Concreto.');
   marcarSucio();
@@ -1128,7 +1243,7 @@ function applyLighting() {
 // toda la lógica del modal de mezcla de concreto con inputs numéricos
 function openConcretoModal() {
   try { registrar('modal_abierto', { contexto: { modal: 'concreto' } }); } catch (e) { }
-  if (!matematicasValidadas) {
+  if (!matematicasValidadas && !modoLibreActivo) {
     showLockedMessage('⚠ Debes completar primero el módulo de Matemáticas. Haz clic en 📐 Calcular Área para desbloquear esta función.');
     return;
   }
@@ -1147,6 +1262,7 @@ function openConcretoModal() {
   document.getElementById('concreto-resultado').style.display = 'none';
   const errEl = document.getElementById('cmat-error');
   if (errEl) errEl.style.display = 'none';
+  aplicarTextosModalConcreto(); // Fase 3: textos del modo vigente (en modo normal restaura los originales)
   concretoActualizarBarra();
   document.getElementById('concreto-overlay').classList.add('open');
 
@@ -1168,21 +1284,25 @@ const CONCRETO_CORRECTO = { cemento: 1000, arena: 2000, grava: 3000, agua: 600 }
 const CONCRETO_TOTAL = 6600; // 1000+2000+3000+600
 
 function concretoActualizarBarra() {
+  if (modoLibreActivo) { concretoActualizarBarraLibre(); return; } // Fase 3: rama del modo libre (el modo normal sigue abajo, sin cambios)
   const vals = {};
   ['cemento', 'arena', 'grava', 'agua'].forEach(m => {
     vals[m] = parseFloat(document.getElementById('inp-' + m)?.value) || 0;
   });
-  const total = vals.cemento + vals.arena + vals.grava + vals.agua;
+  // Delegado a calculos.js (Fase 1). Original: const total = vals.cemento + vals.arena + vals.grava + vals.agua;
+  const total = calcularTotalConcreto(vals);
   const totalEl = document.getElementById('cmat-total-val');
   if (totalEl) totalEl.textContent = total.toLocaleString();
 
   ['cemento', 'arena', 'grava', 'agua'].forEach(m => {
     const seg = document.getElementById('cmat-bar-' + m);
-    if (seg) seg.style.width = Math.min((vals[m] / CONCRETO_TOTAL) * 100, 100) + '%';
+    // Original: Math.min((vals[m] / CONCRETO_TOTAL) * 100, 100) + '%'
+    if (seg) seg.style.width = porcentajeBarra(vals[m], CONCRETO_TOTAL) + '%';
   });
 }
 
 function concretoMezclar() {
+  if (modoLibreActivo) { concretoMezclarLibre(); return; } // Fase 3: rama del modo libre (el modo normal sigue abajo, sin cambios)
   const vals = {};
   ['cemento', 'arena', 'grava', 'agua'].forEach(m => {
     vals[m] = parseFloat(document.getElementById('inp-' + m)?.value);
@@ -1230,6 +1350,113 @@ function concretoMezclar() {
   concretoFinalizar();
 }
 
+// ── Fase 3 · Concreto en modo libre (?libre=1) ──────────────────────────────
+// La validación vive en calculos.js (validarMezclaConcretoLibre). Aquí solo se conecta con el modal.
+// El modo normal NO pasa por estas funciones: concretoMezclar/concretoActualizarBarra derivan aquí solo si modoLibreActivo.
+function concretoLeerEntradasLibre() {
+  const entradas = {};
+  COMPONENTES_CONCRETO.forEach(m => {
+    const inp = document.getElementById('inp-' + m);
+    // Un <input type="number"> con texto no numérico (p. ej. "12abc") entrega value === '' y validity.badInput === true:
+    // se marca con un texto que el validador reconoce como no numérico (y no como "vacío").
+    entradas[m] = inp?.validity?.badInput ? '(no numérico)' : (inp?.value ?? '');
+  });
+  return entradas;
+}
+
+// Barra: cada tramo es la fracción de lo ingresado respecto al total ingresado (no hay "mezcla única correcta").
+// Total en cero o no válido → tramos en 0 %. También actualiza el aviso educativo mientras se escribe.
+function concretoActualizarBarraLibre() {
+  const entradas = concretoLeerEntradasLibre();
+  const vals = {};
+  COMPONENTES_CONCRETO.forEach(m => {
+    const c = convertirCantidadConcreto(entradas[m]);
+    vals[m] = c.codigo === null ? c.valor : 0;
+  });
+  const total = calcularTotalConcreto(vals);
+  const hayTotal = Number.isFinite(total) && total > 0;
+  const totalEl = document.getElementById('cmat-total-val');
+  if (totalEl) totalEl.textContent = Number.isFinite(total) ? total.toLocaleString(undefined, { maximumFractionDigits: 6 }) : '0';
+  COMPONENTES_CONCRETO.forEach(m => {
+    const seg = document.getElementById('cmat-bar-' + m);
+    if (seg) seg.style.width = (hayTotal ? porcentajeBarra(vals[m], total) : 0) + '%';
+  });
+  const avisoEl = document.getElementById('cmat-aviso');
+  if (avisoEl) {
+    const { avisos } = validarMezclaConcretoLibre(entradas);
+    avisoEl.textContent = avisos.map(a => a.mensaje).join(' ');
+    avisoEl.style.display = avisos.length ? 'block' : 'none';
+  }
+}
+
+function concretoMezclarLibre() {
+  if (objList.some(o => o.type === 'concreto_slab_20')) {
+    showLockedMessage('🪨 ¡Ya tienes el concreto creado! Si quieres poner uno nuevo, elimínalo primero para poder volver a crearlo.');
+    return;
+  }
+  const entradas = concretoLeerEntradasLibre();
+  const r = validarMezclaConcretoLibre(entradas);
+  const errEl = document.getElementById('cmat-error');
+  if (!r.ok) {
+    // Telemetría del modo libre: campo "modo", entradas como TEXTO (nunca NaN/Infinity) y el motivo estructurado.
+    try {
+      registrar('concreto_intento', {
+        contexto: {
+          // Propiedad propia del modo libre: el evaluador del servidor puntúa la mezcla normal con otra propiedad y no debe verla aquí
+          modo: 'libre', mezcla_valida: false,
+          entradas: Object.fromEntries(COMPONENTES_CONCRETO.map(m => [m, String(entradas[m] ?? '').slice(0, 40)])),
+          errores: r.errores.map(e => ({ campo: e.campo, codigo: e.codigo }))
+        }
+      });
+    } catch (e) { }
+    errEl.style.display = 'block';
+    errEl.innerHTML = r.errores.map(e => '❌ ' + e.mensaje).join('<br>');
+    return;
+  }
+  errEl.style.display = 'none';
+  try {
+    registrar('concreto_intento', {
+      contexto: {
+        modo: 'libre', mezcla_valida: true,
+        cemento: r.valores.cemento, arena: r.valores.arena, grava: r.valores.grava, agua: r.valores.agua,
+        avisos: r.avisos.map(a => a.codigo)
+      }
+    });
+  } catch (e) { }
+  concretoFinalizar(); // flujo actual de creación (losa fija 20×20)
+}
+
+// Textos del modal según el modo vigente. Los originales (modo normal) se guardan tal cual la primera vez y se restauran siempre.
+let textosConcretoOriginales = null;
+function aplicarTextosModalConcreto() {
+  const ids = ['concreto-nota-volumen', 'concreto-sub-division', 'concreto-nota-division', 'cmat-total-ref'];
+  const hints = COMPONENTES_CONCRETO.map(m => document.querySelector('#cmat-' + m + ' .cmat-hint'));
+  if (!textosConcretoOriginales) {
+    textosConcretoOriginales = {
+      ids: ids.map(id => document.getElementById(id)?.innerHTML),
+      hints: hints.map(h => h?.textContent)
+    };
+  }
+  const libre = modoLibreActivo;
+  const nuevos = [
+    '📐 <b>Cantidad de material</b><br><span style="color:rgba(100,220,255,.9); font-size:16px; font-weight:700;">La eliges tú</span><br>' +
+    '<span style="font-size:10px; opacity:.7;">En construcción libre no hay un volumen obligatorio</span>',
+    'Tú decides las cantidades',
+    'Escribe cuántos m³ de cemento, arena, grava y agua quieres mezclar.<br><br>' +
+    '— Cemento, arena y grava deben ser mayores que 0<br>— El agua puede ser 0 (verás un aviso)<br>— No hay proporciones obligatorias',
+    ''
+  ];
+  ids.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = libre ? nuevos[i] : textosConcretoOriginales.ids[i];
+  });
+  hints.forEach((h, i) => {
+    if (h) h.textContent = libre ? (COMPONENTES_CONCRETO[i] === 'agua' ? 'Cantidad libre (puede ser 0)' : 'Cantidad libre (mayor que 0)') : textosConcretoOriginales.hints[i];
+  });
+  const avisoEl = document.getElementById('cmat-aviso');
+  if (avisoEl && !libre) { avisoEl.textContent = ''; avisoEl.style.display = 'none'; }
+}
+
 function concretoMedidaUpdate() {
   // ya no se usa - el concreto es automático 20×20
 }
@@ -1246,8 +1473,8 @@ function concretoFinalizar() {
   if (shadowGen) shadowGen.addShadowCaster(slab, false);
   slab.parent = root;
   clampToZone(root);
-  root.userData = { id, type: 'concreto_slab_20', label: 'Concreto 20×20', emoji: '🪨', isMainSlab: true };
-  objList.push({ id, type: 'concreto_slab_20', label: 'Concreto 20×20', emoji: '🪨', node: root });
+  root.userData = { id, type: 'concreto_slab_20', label: `${LABELS.concreto} 20×20`, emoji: EMOJIS.concreto, isMainSlab: true };
+  objList.push({ id, type: 'concreto_slab_20', label: `${LABELS.concreto} 20×20`, emoji: EMOJIS.concreto, node: root });
   updateObjListUI();
   selectObject(root);
   // Deshabilitar el botón Crear Concreto hasta que se elimine la losa
@@ -1312,7 +1539,7 @@ function validateHouse() {
 }
 
 function checkAndUpdateProgramarBtn() {
-  if (buildPhase < 4) return;
+  if (buildPhase < 4 && !modoLibreActivo) return;
   const result = validateHouse();
   const btn = document.getElementById('btnProgramar');
   if (!btn) return;
@@ -1336,7 +1563,7 @@ const BLOCK_META = {
 };
 
 function openProgramar() {
-  if (buildPhase < 4) {
+  if (buildPhase < 4 && !modoLibreActivo) {
     const walls = countWalls();
     const remaining = 4 - walls;
     showLockedMessage('🔒 Necesitas construir al menos 4 paredes para desbloquear la programación. Te faltan ' + remaining + ' pared(es).');
@@ -1655,9 +1882,9 @@ let wpSelectedD = 20;
 
 // Registro de m² de vitropiso ya colocados (suma de todos los floor_vitropiso)
 function getVitropisoArea() {
-  return objList
-    .filter(o => o.type === 'floor_vitropiso')
-    .reduce((sum, o) => sum + (o.area || 0), 0);
+  // Delegado a calculos.js (Fase 1). Original:
+  //   return objList.filter(o => o.type === 'floor_vitropiso').reduce((sum, o) => sum + (o.area || 0), 0);
+  return sumarAreaPisos(objList);
 }
 
 function wpSelectMat(el) {
@@ -1714,6 +1941,9 @@ function wpUpdate() {
   const coveredArea = getVitropisoArea();
   const total = 400;
   const remaining = total - coveredArea;
+  // Delegado a calculos.js (Fase 1): situación de la cobertura. Originales de cada rama:
+  //   coveredArea >= total  |  coveredArea + newArea > total (maxAllowed = total - coveredArea)  |  after = coveredArea + newArea
+  const cobertura = calcularCoberturaPiso(coveredArea, newArea, total);
 
   // Actualizar info de dimensión
   const dimEl = document.getElementById('wp-build-dim');
@@ -1733,12 +1963,12 @@ function wpUpdate() {
   const msgEl = document.getElementById('wp-coverage-msg');
   const btn = document.getElementById('wp-build-btn');
 
-  if (coveredArea >= total) {
+  if (cobertura.estado === 'completo') {
     if (previewEl) { previewEl.style.left = '100%'; previewEl.style.width = '0%'; }
     if (msgEl) { msgEl.textContent = '✅ ¡Piso completo! 400 / 400 m²'; msgEl.className = 'ok'; }
     if (btn) btn.disabled = true;
-  } else if (coveredArea + newArea > total) {
-    const maxAllowed = total - coveredArea;
+  } else if (cobertura.estado === 'excede') {
+    const maxAllowed = cobertura.maxPermitido;
     if (previewEl) {
       previewEl.style.left = Math.min((coveredArea / total) * 100, 100) + '%';
       previewEl.style.width = Math.min((newArea / total) * 100, 100) + '%';
@@ -1752,12 +1982,11 @@ function wpUpdate() {
       previewEl.style.width = Math.min((newArea / total) * 100, 100) + '%';
       previewEl.style.background = 'rgba(255,255,255,.18)';
     }
-    const after = coveredArea + newArea;
     if (msgEl) {
-      msgEl.textContent = after === total
+      msgEl.textContent = cobertura.exacto
         ? `✅ ¡Perfecto! Completarás los 400 m²`
-        : `Quedarán ${total - after} m² por cubrir`;
-      msgEl.className = after === total ? 'ok' : '';
+        : `Quedarán ${cobertura.quedan} m² por cubrir`;
+      msgEl.className = cobertura.exacto ? 'ok' : '';
     }
     if (btn) btn.disabled = false;
   }
@@ -1838,9 +2067,9 @@ function buildFloor() {
     }
   }
 
-  const label = `Vitropiso ${w}×${d}`;
-  root.userData = { id, type: 'floor_vitropiso', label, emoji: '🔷', color: hex };
-  objList.push({ id, type: 'floor_vitropiso', label, emoji: '🔷', node: root, area: newArea, w, d });
+  const label = `${LABELS.vitropiso} ${w}×${d}`;
+  root.userData = { id, type: 'floor_vitropiso', label, emoji: EMOJIS.vitropiso, color: hex };
+  objList.push({ id, type: 'floor_vitropiso', label, emoji: EMOJIS.vitropiso, node: root, area: newArea, w, d });
   clampToZone(root);
   updateObjListUI();
   selectObject(root);
@@ -1899,7 +2128,7 @@ function applyColorPicker() {
       }
     }
   });
-  if (buildPhase >= 4) checkAndUpdateProgramarBtn();
+  if (buildPhase >= 4 || modoLibreActivo) checkAndUpdateProgramarBtn();
   marcarSucio();
 }
 function confirmColorPicker() {
@@ -1913,7 +2142,7 @@ function confirmColorPicker() {
 let wbMat = 'block';
 
 function openWallBuilder() {
-  if (!concretoUnlocked) {
+  if (!concretoUnlocked && !modoLibreActivo) {
     showLockedMessage('Esta función aún no está disponible. Completa los pasos anteriores para desbloquear.');
     return;
   }
@@ -1952,22 +2181,16 @@ function wbUpdate() {
   const h = parseInt(document.getElementById('wb-height').value);
   document.getElementById('wb-width-val').textContent = w;
   document.getElementById('wb-height-val').textContent = h;
-  const bW = 1.0;
-  const bH = wbMat === 'block' ? 0.7 : (wbMat === 'madera' ? 0.2 : 0.5);
-  const totalW = w * bW;
-  const totalH = h * bH;
-
-  // Calcular piezas reales (descontando huecos)
-  let huecos = 0;
-  if (wbWallMode === 'puerta') {
-    // hueco central: 1 col × 4 filas (desde abajo)
-    huecos = Math.min(4, h);
-  } else if (wbWallMode === 'ventana') {
-    // cada ventana ocupa 1 col × 2 filas (las 2 filas superiores)
-    const ventRows = Math.min(2, h);
-    huecos = wbVentanasCount * ventRows;
-  }
-  const piezas = Math.max(0, w * h - huecos);
+  // Delegado a calculos.js (Fase 1). Fórmulas originales, como respaldo:
+  //   const bW = 1.0;
+  //   const bH = wbMat === 'block' ? 0.7 : (wbMat === 'madera' ? 0.2 : 0.5);
+  //   const totalW = w * bW;  const totalH = h * bH;
+  //   let huecos = 0;
+  //   if (wbWallMode === 'puerta') huecos = Math.min(4, h);                       // 1 col × 4 filas
+  //   else if (wbWallMode === 'ventana') huecos = wbVentanasCount * Math.min(2, h); // 1 col × 2 filas por ventana
+  //   const piezas = Math.max(0, w * h - huecos);
+  const { ancho: totalW, alto: totalH } = calcularDimensionesMuro(w, h, wbMat);
+  const piezas = calcularPiezasMuro(w, h, wbWallMode, wbVentanasCount);
   document.getElementById('wb-total').textContent = piezas + ' piezas';
   document.getElementById('wb-dims').textContent = `${totalW.toFixed(1)} m × ${totalH.toFixed(1)} m`;
 
@@ -2195,8 +2418,8 @@ function buildWall() {
       if (shadowGen) shadowGen.addShadowCaster(m, false);
     });
     // Registrar la puerta en objList también
-    doorRoot.userData = { id: doorId, type: 'puerta', label: 'Puerta', emoji: '🚪', embeddedInWall: id };
-    objList.push({ id: doorId, type: 'puerta', label: 'Puerta', emoji: '🚪', node: doorRoot });
+    doorRoot.userData = { id: doorId, type: 'puerta', label: LABELS.puerta, emoji: EMOJIS.puerta, embeddedInWall: id };
+    objList.push({ id: doorId, type: 'puerta', label: LABELS.puerta, emoji: EMOJIS.puerta, node: doorRoot });
     puertas_colocadas++;
   } else if (mode === 'ventana') {
     const positions = wbVentanasCount === 1
@@ -2224,8 +2447,8 @@ function buildWall() {
         m.receiveShadows = true;
         if (shadowGen) shadowGen.addShadowCaster(m, false);
       });
-      winRoot.userData = { id: winId, type: 'ventana', label: 'Ventana', emoji: '🪟', embeddedInWall: id };
-      objList.push({ id: winId, type: 'ventana', label: 'Ventana', emoji: '🪟', node: winRoot });
+      winRoot.userData = { id: winId, type: 'ventana', label: LABELS.ventana, emoji: EMOJIS.ventana, embeddedInWall: id };
+      objList.push({ id: winId, type: 'ventana', label: LABELS.ventana, emoji: EMOJIS.ventana, node: winRoot });
     });
     ventanas_colocadas += wbVentanasCount;
   }
@@ -2233,9 +2456,9 @@ function buildWall() {
   updateOpeningCounters();
 
   const modeTag = mode === 'puerta' ? ' + 🚪 Puerta' : mode === 'ventana' ? ` + 🪟 ${wbVentanasCount} Ventana(s)` : '';
-  const matName = type === 'block' ? 'Block' : (type === 'madera' ? 'Madera' : 'Lámina');
+  const matName = LABELS[type];
   const label = `Pared ${matName} ${w}×${h}${modeTag}`;
-  const emoji = type === 'block' ? '🧱' : (type === 'madera' ? '🪵' : '🛡️');
+  const emoji = EMOJIS[type];
   root.userData = { id, type: 'wall_' + type, label, emoji, wallMode: mode, w, h };
   objList.push({ id, type: 'wall_' + type, label, emoji, node: root, w, d: h });
 
@@ -2306,10 +2529,11 @@ const ROOF_SHAPES = {
 };
 
 const ROOF_MATERIALS = {
-  concreto: { id: 'concreto', label: 'Concreto', icon: '🪨', colorHex: '#9ca3af' },
-  madera: { id: 'madera', label: 'Madera', icon: '🪵', colorHex: '#92400e' },
-  lamina: { id: 'lamina', label: 'Lámina', icon: '🛡️', colorHex: '#64748b' },
-  teja: { id: 'teja', label: 'Teja', icon: '🧱', colorHex: '#ea580c' }
+  // Fase 4: label e icon salen de MATERIALES (mismos valores); id y colorHex son propios del techo.
+  concreto: { id: 'concreto', label: MATERIALES.concreto.label, icon: MATERIALES.concreto.emoji, colorHex: '#9ca3af' },
+  madera: { id: 'madera', label: MATERIALES.madera.label, icon: MATERIALES.madera.emoji, colorHex: '#92400e' },
+  lamina: { id: 'lamina', label: MATERIALES.lamina.label, icon: MATERIALES.lamina.emoji, colorHex: '#64748b' },
+  teja: { id: 'teja', label: MATERIALES.teja.label, icon: MATERIALES.teja.emoji, colorHex: '#ea580c' }
 };
 
 function getRoofMaterial(matKey) {
@@ -2347,8 +2571,11 @@ function getHouseBounds() {
     });
   });
 
-  const w = Math.max(3, Math.min(24, Math.round(maxX - minX + 0.6)));
-  const d = Math.max(3, Math.min(24, Math.round(maxZ - minZ + 0.6)));
+  // Delegado a calculos.js (Fase 1). Originales:
+  //   const w = Math.max(3, Math.min(24, Math.round(maxX - minX + 0.6)));
+  //   const d = Math.max(3, Math.min(24, Math.round(maxZ - minZ + 0.6)));
+  const w = calcularDimensionCubierta(minX, maxX);
+  const d = calcularDimensionCubierta(minZ, maxZ);
   const centerX = (minX + maxX) / 2;
   const centerZ = (minZ + maxZ) / 2;
   return { minX, maxX, minZ, maxZ, maxY: Math.max(0.2, maxY), centerX, centerZ, w, d, hasWalls: true };
@@ -2409,14 +2636,12 @@ function roofUpdate() {
   const shapeConfig = ROOF_SHAPES[roofShapeSelected] || ROOF_SHAPES.plano;
   const matConfig = ROOF_MATERIALS[roofMatSelected] || ROOF_MATERIALS.teja;
 
-  let calcArea = w * d;
-  if (roofShapeSelected === 'dos_aguas') {
-    calcArea = 2 * Math.hypot(w / 2, h) * d;
-  } else if (roofShapeSelected === 'cuatro_aguas') {
-    calcArea = 2 * (w / 2 * Math.hypot(d / 2, h)) + 2 * (d / 2 * Math.hypot(w / 2, h));
-  } else if (roofShapeSelected === 'una_agua') {
-    calcArea = Math.hypot(d, h) * w;
-  }
+  // Delegado a calculos.js (Fase 1). Fórmula original, como respaldo:
+  //   let calcArea = w * d;
+  //   if (roofShapeSelected === 'dos_aguas') calcArea = 2 * Math.hypot(w / 2, h) * d;
+  //   else if (roofShapeSelected === 'cuatro_aguas') calcArea = 2 * (w / 2 * Math.hypot(d / 2, h)) + 2 * (d / 2 * Math.hypot(w / 2, h));
+  //   else if (roofShapeSelected === 'una_agua') calcArea = Math.hypot(d, h) * w;
+  const calcArea = calcularAreaTecho(roofShapeSelected, w, d, h);
 
   const infoShape = document.getElementById('roof-info-shape');
   if (infoShape) infoShape.textContent = shapeConfig.label;
@@ -2688,15 +2913,15 @@ function createGableWall(root, id, side, hw, h, zPos, zThick, mat, meshes) {
   const z1 = zPos;
   const z2 = zPos + zThick;
   const positions = [
-    -hw, 0, z1, hw, 0, z1, 0, h, z1,
-    -hw, 0, z2, hw, 0, z2, 0, h, z2,
+    -hw, 0, z1,   hw, 0, z1,   0, h, z1,
+    -hw, 0, z2,   hw, 0, z2,   0, h, z2,
   ];
   const indices = [
-    0, 1, 2, 0, 2, 1,
-    3, 5, 4, 3, 4, 5,
-    0, 3, 4, 0, 4, 1,
-    0, 2, 5, 0, 5, 3,
-    1, 4, 5, 1, 5, 2
+    0, 1, 2,  0, 2, 1,
+    3, 5, 4,  3, 4, 5,
+    0, 3, 4,  0, 4, 1,
+    0, 2, 5,  0, 5, 3,
+    1, 4, 5,  1, 5, 2
   ];
   const normals = [];
   VertexData.ComputeNormals(positions, indices, normals);
@@ -2715,15 +2940,15 @@ function createShedSideWall(root, id, side, xPos, hd, h, mat, meshes) {
   const x1 = xPos - 0.06;
   const x2 = xPos + 0.06;
   const positions = [
-    x1, 0, hd, x1, 0, -hd, x1, h, -hd,
-    x2, 0, hd, x2, 0, -hd, x2, h, -hd
+    x1, 0, hd,   x1, 0, -hd,   x1, h, -hd,
+    x2, 0, hd,   x2, 0, -hd,   x2, h, -hd
   ];
   const indices = [
-    0, 1, 2, 0, 2, 1,
-    3, 5, 4, 3, 4, 5,
-    0, 3, 4, 0, 4, 1,
-    1, 4, 5, 1, 5, 2,
-    0, 2, 5, 0, 5, 3
+    0, 1, 2,  0, 2, 1,
+    3, 5, 4,  3, 4, 5,
+    0, 3, 4,  0, 4, 1,
+    1, 4, 5,  1, 5, 2,
+    0, 2, 5,  0, 5, 3
   ];
   const normals = [];
   VertexData.ComputeNormals(positions, indices, normals);
@@ -2746,41 +2971,41 @@ function createHipRoofMesh(root, id, hw, hd, h, mat, meshes) {
     const rL = Math.max(0.2, (hd - hw) * 1.4);
     positions = [
       -hw, 0, -hd,
-      hw, 0, -hd,
-      hw, 0, hd,
-      -hw, 0, hd,
-      0, h, -rL / 2,
-      0, h, rL / 2
+       hw, 0, -hd,
+       hw, 0,  hd,
+      -hw, 0,  hd,
+        0, h, -rL / 2,
+        0, h,  rL / 2
     ];
     indices = [
-      0, 1, 4, 0, 4, 1,
-      2, 3, 5, 2, 5, 3,
-      3, 0, 4, 3, 4, 0,
-      3, 4, 5, 3, 5, 4,
-      1, 2, 5, 1, 5, 2,
-      1, 5, 4, 1, 4, 5,
-      0, 3, 2, 0, 2, 3,
-      0, 2, 1, 0, 1, 2
+      0, 1, 4,   0, 4, 1,
+      2, 3, 5,   2, 5, 3,
+      3, 0, 4,   3, 4, 0,
+      3, 4, 5,   3, 5, 4,
+      1, 2, 5,   1, 5, 2,
+      1, 5, 4,   1, 4, 5,
+      0, 3, 2,   0, 2, 3,
+      0, 2, 1,   0, 1, 2
     ];
   } else {
     const rL = Math.max(0.2, (hw - hd) * 1.4);
     positions = [
       -hw, 0, -hd,
-      hw, 0, -hd,
-      hw, 0, hd,
-      -hw, 0, hd,
+       hw, 0, -hd,
+       hw, 0,  hd,
+      -hw, 0,  hd,
       -rL / 2, h, 0,
-      rL / 2, h, 0
+       rL / 2, h, 0
     ];
     indices = [
-      3, 0, 4, 3, 4, 0,
-      1, 2, 5, 1, 5, 2,
-      0, 1, 5, 0, 5, 1,
-      0, 5, 4, 0, 4, 5,
-      2, 3, 4, 2, 4, 3,
-      2, 4, 5, 2, 5, 4,
-      0, 3, 2, 0, 2, 3,
-      0, 2, 1, 0, 1, 2
+      3, 0, 4,   3, 4, 0,
+      1, 2, 5,   1, 5, 2,
+      0, 1, 5,   0, 5, 1,
+      0, 5, 4,   0, 4, 5,
+      2, 3, 4,   2, 4, 3,
+      2, 4, 5,   2, 5, 4,
+      0, 3, 2,   0, 2, 3,
+      0, 2, 1,   0, 1, 2
     ];
   }
 
@@ -3031,15 +3256,19 @@ document.addEventListener('guardado:error', () => setSaveBadge('error'));
 })();
 
 // ── Entrega de la casa (desbloquea el Cuestionario en learn.html) ──
+let entregando = false; // evita entregas simultáneas (doble clic)
 async function entregarCasa() {
   const btn = document.getElementById('btnEntregar');
   if (btn.classList.contains('entregado')) {
     showLockedMessage('Ya entregaste tu casa. Puedes seguir editándola si quieres.');
     return;
   }
+  if (entregando) return;
   if (!confirm('¿Entregar tu casa? Esto desbloqueará el Cuestionario del Proyecto en tu ruta de aprendizaje. Podrás seguir editando después si quieres.')) return;
 
+  entregando = true;
   try {
+    await asegurarGuardado(); // la entrega usa la versión más reciente; si falla, no se entrega
     const pid = parseInt(new URLSearchParams(location.search).get('proyecto') || 1, 10);
     const res = await fetch('/api/entrega', {
       method: 'POST',
@@ -3052,9 +3281,35 @@ async function entregarCasa() {
     showSuccessMessage('🎉 ¡Casa entregada! Ya puedes ir al Cuestionario del Proyecto.');
   } catch (e) {
     showLockedMessage('No se pudo entregar: ' + e.message + '. Verifica que tu casa esté guardada.');
+  } finally {
+    entregando = false;
   }
 }
 window.entregarCasa = entregarCasa;
+
+// Fase 4: sincroniza el catálogo visual del HTML con MATERIALES. El HTML conserva sus textos y emojis
+// como valor de reserva (se ven antes de que cargue el módulo); aquí solo se reescriben con el mismo dato central.
+function sincronizarCatalogoVisual(doc = document, datos = MATERIALES) {
+  ['block', 'madera', 'lamina', 'foco', 'puerta', 'ventana', 'vitropiso', 'lampara', 'concreto'].forEach(clave => {
+    const item = doc.getElementById('cat-' + clave);
+    const m = datos[clave];
+    if (!item || !m) return;
+    const ico = item.querySelector('.ico');
+    if (ico) ico.textContent = m.emoji;
+    for (const n of item.childNodes) {
+      if (n.nodeType === 3 && n.nodeValue.trim()) { n.nodeValue = n.nodeValue.replace(/\S(?:[\s\S]*\S)?/, () => m.label); break; }
+    }
+  });
+  ['#wb-mat-options', '#roof-mat-options'].forEach(sel => {
+    doc.querySelectorAll(sel + ' .wb-opt[data-mat]').forEach(el => {
+      const m = datos[el.dataset.mat];
+      if (m) el.textContent = `${m.emoji} ${m.label}`;
+    });
+  });
+  const info = doc.getElementById('roof-info-mat'); // la selección inicial del techo es 'teja'
+  if (info && datos.teja) info.textContent = datos.teja.label;
+}
+sincronizarCatalogoVisual();
 
 (async function chequearEntrega() {
   try {
@@ -3340,17 +3595,17 @@ function setupBlockContextMenu() {
   document.body.appendChild(overlay);
 
   // ── referencias a elementos del nuevo modal ──
-  const slider = document.getElementById('cut-range-slider');
-  const dimValue = document.getElementById('cut-dim-value');
-  const ghostEl = document.getElementById('cut-ghost');
-  const keepEl = document.getElementById('cut-keep');
-  const discardEl = document.getElementById('cut-discard');
-  const cutLineEl = document.getElementById('cut-line');
-  const lblKeep = document.getElementById('cut-label-keep');
-  const lblDiscard = document.getElementById('cut-label-discard');
+  const slider      = document.getElementById('cut-range-slider');
+  const dimValue    = document.getElementById('cut-dim-value');
+  const ghostEl     = document.getElementById('cut-ghost');
+  const keepEl      = document.getElementById('cut-keep');
+  const discardEl   = document.getElementById('cut-discard');
+  const cutLineEl   = document.getElementById('cut-line');
+  const lblKeep     = document.getElementById('cut-label-keep');
+  const lblDiscard  = document.getElementById('cut-label-discard');
   const collisionMsg = document.getElementById('cut-collision-msg');
-  const confirmBtn = document.getElementById('cut-confirm');
-  const previewBox = document.getElementById('cut-preview-container');
+  const confirmBtn  = document.getElementById('cut-confirm');
+  const previewBox  = document.getElementById('cut-preview-container');
 
   // ── estado ──
   let ctxTarget = null;
@@ -3676,7 +3931,8 @@ const EXC_LIMITES = {
 const EXC_DECIMALES = 100; // precisión de 0.01 m para evitar ruido de punto flotante
 
 // Redondea a 0.01 m (corrige errores como 0.1 + 0.2 = 0.30000000000000004)
-const excRedondear = n => Math.round(n * EXC_DECIMALES) / EXC_DECIMALES;
+// Delegado a calculos.js (Fase 1). Original: const excRedondear = n => Math.round(n * EXC_DECIMALES) / EXC_DECIMALES;
+const excRedondear = redondearCentesimas;
 
 // Valida dimensiones: solo datos inválidos o fuera de los límites técnicos
 function validarDimensionesExcavacion(largo, ancho, profundidad) {
@@ -3888,7 +4144,8 @@ function crearGeometriaExcavacion(largo, ancho, profundidad, conFeedback = true)
   }
 
   // 7. Montículo de acopio de tierra extraída al costado
-  const vol = Math.round(L * W * D * 1000) / 1000;
+  // Delegado a calculos.js (Fase 1). Original: const vol = Math.round(L * W * D * 1000) / 1000;
+  const vol = calcularExcavacion(L, W, D).volumen;
   const pileRadius = Math.min(2.8, Math.max(1.2, Math.cbrt(vol) * 0.42));
   const pileHeight = Math.min(1.9, Math.max(0.6, Math.cbrt(vol) * 0.28));
   const pileX = Math.min(9.5 - pileRadius, W / 2 + 1.2 + pileRadius);
@@ -4045,8 +4302,10 @@ function excActualizarVista() {
   if (errEl) errEl.style.display = 'none';
   if (evalBox) evalBox.style.display = 'none';
 
-  const area = excRedondear(lVal * aVal);
-  const vol = Math.round(lVal * aVal * pVal * 1000) / 1000;
+  // Delegado a calculos.js (Fase 1). Original:
+  //   const area = excRedondear(lVal * aVal);
+  //   const vol = Math.round(lVal * aVal * pVal * 1000) / 1000;
+  const { area, volumen: vol } = calcularExcavacion(lVal, aVal, pVal);
 
   const statArea = document.getElementById('exc-stat-area');
   const statVol = document.getElementById('exc-stat-vol');
@@ -4204,6 +4463,65 @@ function snapshotActual() {
   return { estado, progreso };
 }
 
+// Gancho de SOLO LECTURA para las pruebas automatizadas (Playwright).
+// Solo existe si la URL incluye ?steamTest=1; sin ese parámetro no se crea y no altera nada.
+if (new URLSearchParams(location.search).get('steamTest') === '1') {
+  window.__steamTest = {
+    snapshot: () => snapshotActual(),
+    resumenEscena: () => ({
+      objetos: objList.map(o => ({ id: o.id, type: o.type })),
+      mallas: scene ? scene.meshes.map(m => ({ name: m.name, visible: m.isVisible, enabled: m.isEnabled() })) : [],
+      excavacion: excavacionData ? { ...excavacionData } : null,
+      puertas: puertas_colocadas,
+      ventanas: ventanas_colocadas,
+      paredes: countWalls()
+    }),
+    // F1 · cámara (solo pruebas). Lectura del estado de la cámara y utilidades de proyección.
+    camara: () => ({
+      alpha: camera.alpha, beta: camera.beta, radius: camera.radius,
+      target: { x: camera.target.x, y: camera.target.y, z: camera.target.z },
+      posicion: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+      colision: camera.checkCollisions, rayosX: rayosXActivo,
+      radioMinimo: camera.lowerRadiusLimit, betaMaximo: camera.upperBetaLimit,
+      enMovimiento: Math.abs(camera.inertialAlphaOffset) + Math.abs(camera.inertialBetaOffset) +
+        Math.abs(camera.inertialRadiusOffset) + Math.abs(camera.inertialPanningX) + Math.abs(camera.inertialPanningY) > 1e-4,
+    }),
+    // ÚNICA escritura del gancho: coloca la cámara para preparar un caso de prueba (solo con ?steamTest=1).
+    fijarCamara: ({ alpha, beta, radius, target }) => {
+      camera.inertialAlphaOffset = 0; camera.inertialBetaOffset = 0; camera.inertialRadiusOffset = 0;
+      camera.inertialPanningX = 0; camera.inertialPanningY = 0;
+      if (target) camera.setTarget(new Vector3(target.x, target.y, target.z));
+      if (alpha !== undefined) camera.alpha = alpha;
+      if (beta !== undefined) camera.beta = beta;
+      if (radius !== undefined) camera.radius = radius;
+    },
+    seleccionado: () => selectedMesh?.userData?.id ?? null,
+    limitesObjeto: id => {
+      const o = objList.find(x => x.id === id);
+      if (!o) return null;
+      const b = o.node.getHierarchyBoundingVectors(true);
+      return { min: { x: b.min.x, y: b.min.y, z: b.min.z }, max: { x: b.max.x, y: b.max.y, z: b.max.z } };
+    },
+    // Coordenadas CSS en pantalla de un punto 3D (para dirigir el ratón en las pruebas).
+    aPantalla: (x, y, z) => {
+      const w = engine.getRenderWidth(), h = engine.getRenderHeight();
+      const p = Vector3.Project(new Vector3(x, y, z), Matrix.Identity(), scene.getTransformMatrix(),
+        camera.viewport.toGlobal(w, h));
+      const r = canvas.getBoundingClientRect();
+      return { x: r.left + p.x * r.width / w, y: r.top + p.y * r.height / h };
+    },
+    // Centro en pantalla de la flecha del gizmo de posición para el eje dado ('x' | 'y' | 'z').
+    gizmoEnPantalla: eje => {
+      const g = gizmoMgr?.gizmos?.positionGizmo?.[eje + 'Gizmo'];
+      const malla = g?._rootMesh;
+      if (!malla) return null;
+      const b = malla.getHierarchyBoundingVectors(true);
+      const c = b.min.add(b.max).scale(0.5);
+      return window.__steamTest.aPantalla(c.x, c.y, c.z);
+    },
+  };
+}
+
 async function restaurarProgreso() {
   const data = await cargar();
   if (!data || !data.estado) return data;
@@ -4278,8 +4596,8 @@ async function restaurarProgreso() {
       if (shadowGen) shadowGen.addShadowCaster(slab, false);
       slab.parent = root;
       clampToZone(root);
-      root.userData = { id: o.id, type: 'concreto_slab_20', label: 'Concreto 20×20', emoji: '🪨', isMainSlab: true };
-      objList.push({ id: o.id, type: 'concreto_slab_20', label: 'Concreto 20×20', emoji: '🪨', node: root });
+      root.userData = { id: o.id, type: 'concreto_slab_20', label: `${LABELS.concreto} 20×20`, emoji: EMOJIS.concreto, isMainSlab: true };
+      objList.push({ id: o.id, type: 'concreto_slab_20', label: `${LABELS.concreto} 20×20`, emoji: EMOJIS.concreto, node: root });
 
       const btnStormCreate = document.getElementById('btnStorm');
       if (btnStormCreate) {
@@ -4325,9 +4643,9 @@ async function restaurarProgreso() {
         }
       }
 
-      const label = `Vitropiso ${w}×${d}`;
-      root.userData = { id: o.id, type: 'floor_vitropiso', label, emoji: '🔷', color: hex };
-      objList.push({ id: o.id, type: 'floor_vitropiso', label, emoji: '🔷', node: root, area: newArea, w, d });
+      const label = `${LABELS.vitropiso} ${w}×${d}`;
+      root.userData = { id: o.id, type: 'floor_vitropiso', label, emoji: EMOJIS.vitropiso, color: hex };
+      objList.push({ id: o.id, type: 'floor_vitropiso', label, emoji: EMOJIS.vitropiso, node: root, area: newArea, w, d });
     } else if (o.type === 'wall_block' || o.type === 'wall_madera' || o.type === 'wall_lamina') {
       const matType = o.type === 'wall_block' ? 'block' : (o.type === 'wall_madera' ? 'madera' : 'lamina');
       const mode = o.wallMode || 'simple';
@@ -4393,9 +4711,9 @@ async function restaurarProgreso() {
       }
 
       const modeTag = mode === 'puerta' ? ' + 🚪 Puerta' : mode === 'ventana' ? ` + 🪟 ${ventCount} Ventana(s)` : '';
-      const matName = matType === 'block' ? 'Block' : (matType === 'madera' ? 'Madera' : 'Lámina');
+      const matName = LABELS[matType];
       const label = `Pared ${matName} ${w}×${h}${modeTag}`;
-      const emoji = matType === 'block' ? '🧱' : (matType === 'madera' ? '🪵' : '🛡️');
+      const emoji = EMOJIS[matType];
       root.userData = { id: o.id, type: o.type, label, emoji, wallMode: mode, w, h };
       if (o.color) root.userData.color = o.color;
       objList.push({ id: o.id, type: o.type, label, emoji, node: root, w, d: h });
@@ -4515,16 +4833,21 @@ const init = () => {
   camera = new ArcRotateCamera('cam', -Math.PI / 2, 0.95, 30, new Vector3(0, 0, 0), scene);
   setCameraRef(camera);
   iniciarSesion();
-  camera.lowerRadiusLimit = 5; camera.upperRadiusLimit = 60;
-  camera.upperBetaLimit = Math.PI / 2.05; camera.lowerBetaLimit = 0.18;
+  // F1 · cámara libre. Respaldo de la configuración anterior:
+  //   camera.lowerRadiusLimit = 5; camera.upperBetaLimit = Math.PI / 2.05;
+  //   camera.attachControl(canvas, true);
+  //   camera.inputs.remove(camera.inputs.attached.pointers);   // sin ratón: solo flechas y rueda
+  camera.lowerRadiusLimit = CAMARA_F1.radioMinimo; camera.upperRadiusLimit = 60;
+  camera.upperBetaLimit = CAMARA_F1.betaMaximo; camera.lowerBetaLimit = 0.18;
   camera.wheelDeltaPercentage = 0.008;
-  camera.attachControl(canvas, true);
+  // noPreventDefault, Ctrl + clic izquierdo también desplaza, botón central desplaza
+  camera.attachControl(true, true, CAMARA_F1.botonDesplazar);
 
   camera.inputs.remove(camera.inputs.attached.keyboard);
   camera.inputs.remove(camera.inputs.attached.mousewheel);
-  camera.inputs.remove(camera.inputs.attached.pointers);
   camera.inputs.add(new ArcRotateCameraMouseWheelInput());
   camera.wheelDeltaPercentage = 0.008;
+  configurarCamaraLibre();
 
   P(18, 'Luces…');
   sunLight = new DirectionalLight('sun', new Vector3(-1, -2.2, -0.8), scene);
@@ -4548,7 +4871,7 @@ const init = () => {
   restaurarProgreso().then((data) => {
     const pid = parseInt(new URLSearchParams(location.search).get('proyecto') || 1, 10);
     iniciarAutoguardado(snapshotActual, { proyecto_id: pid });
-
+    
     if (vistaAlumnoId) {
       // Activar modo solo lectura y sincronización
       document.getElementById('topbar').style.pointerEvents = 'none';
@@ -4562,26 +4885,26 @@ const init = () => {
       } else {
         document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> Viendo el progreso del alumno.<br>Esta vista se actualizará automáticamente cuando el alumno guarde cambios.";
       }
-
+      
       iniciarSyncMaestro(data ? data.actualizado_en : null);
-
+      
       document.addEventListener('guardado:actualizado_externo', async () => {
-        if (gizmoMgr) {
-          gizmoMgr.attachToMesh(null);
-        }
-        selectedMesh = null;
-        objList.forEach(o => { if (o.node) o.node.dispose(); });
-        objList = [];
-        objIdCounter = 1;
-        const res = await restaurarProgreso();
-
-        if (!res) {
-          document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> El alumno todavía no ha guardado ningún progreso.";
-        } else {
-          document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> Viendo el progreso del alumno.<br>Esta vista se actualizará automáticamente cuando el alumno guarde cambios.";
-        }
-
-        if (res) iniciarSyncMaestro(res.actualizado_en); // actualizar timestamp
+         if (gizmoMgr) {
+             gizmoMgr.attachToMesh(null);
+         }
+         selectedMesh = null;
+         objList.forEach(o => { if(o.node) o.node.dispose(); });
+         objList = [];
+         objIdCounter = 1;
+         const res = await restaurarProgreso();
+         
+         if (!res) {
+           document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> El alumno todavía no ha guardado ningún progreso.";
+         } else {
+           document.getElementById('tip').innerHTML = "<b>Modo solo lectura:</b> Viendo el progreso del alumno.<br>Esta vista se actualizará automáticamente cuando el alumno guarde cambios.";
+         }
+         
+         if (res) iniciarSyncMaestro(res.actualizado_en); // actualizar timestamp
       });
     }
   });
@@ -4632,8 +4955,14 @@ const init = () => {
     }
   });
 
-  setInterval(() => { if (buildPhase >= 4) checkAndUpdateProgramarBtn(); }, 500);
+  setInterval(() => { if (buildPhase >= 4 || modoLibreActivo) checkAndUpdateProgramarBtn(); }, 500);
 
+  // Fase 3: el interruptor de construcción libre solo se muestra con ?libre=1 (y arranca en OFF)
+  if (new URLSearchParams(location.search).get('libre') === '1') {
+    const btnLibre = document.getElementById('btnLibre');
+    if (btnLibre) btnLibre.style.display = '';
+  }
+  
   // Mostrar tutorial guiado al entrar (solo si es alumno y no lo ha completado)
   setTimeout(checkTutorial, 1000); // 1s delay to let UI render properly
 };

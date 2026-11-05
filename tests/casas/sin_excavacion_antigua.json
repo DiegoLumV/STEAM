@@ -1,0 +1,64 @@
+{
+  "descripcion": "Guardado de una versión anterior: sin excavacion, cutFactor ni techos",
+  "estado": {
+    "v": 1,
+    "objetos": [
+      {
+        "id": 1,
+        "type": "concreto_slab_20",
+        "p": [
+          0,
+          0,
+          0
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": 2,
+        "type": "block",
+        "p": [
+          2,
+          0.2,
+          2
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": 3,
+        "type": "wall_block",
+        "p": [
+          0,
+          0.2,
+          -5
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "w": 4,
+        "d": 3,
+        "wallMode": "simple"
+      }
+    ],
+    "contador": 4,
+    "progreso": {
+      "buildPhase": 2,
+      "concretoUnlocked": true,
+      "matematicasValidadas": true
+    }
+  },
+  "progreso": {
+    "buildPhase": 2,
+    "concretoUnlocked": true,
+    "matematicasValidadas": true
+  }
+}

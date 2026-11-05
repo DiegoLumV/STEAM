@@ -1,0 +1,116 @@
+{
+  "descripcion": "Bloque, madera y lámina; con cortes y colores",
+  "estado": {
+    "v": 1,
+    "objetos": [
+      {
+        "id": 1,
+        "type": "block",
+        "p": [
+          -3,
+          0,
+          -3
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": 2,
+        "type": "block",
+        "p": [
+          -1.5,
+          0,
+          -3
+        ],
+        "r": [
+          0,
+          0.785,
+          0
+        ],
+        "cutFactor": 0.5
+      },
+      {
+        "id": 3,
+        "type": "block",
+        "p": [
+          0,
+          0,
+          -3
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "cutFactor": 0.25,
+        "color": "#cc3333"
+      },
+      {
+        "id": 4,
+        "type": "madera",
+        "p": [
+          2,
+          0,
+          -3
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "cutFactor": 0.5
+      },
+      {
+        "id": 5,
+        "type": "madera",
+        "p": [
+          4,
+          0,
+          -3
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "color": "#336699"
+      },
+      {
+        "id": 6,
+        "type": "lamina",
+        "p": [
+          -3,
+          0,
+          2
+        ],
+        "r": [
+          0,
+          1.57,
+          0
+        ]
+      }
+    ],
+    "contador": 7,
+    "progreso": {
+      "buildPhase": 4,
+      "concretoUnlocked": true,
+      "matematicasValidadas": true,
+      "puertas_colocadas": 0,
+      "ventanas_colocadas": 0,
+      "progSequence": [],
+      "focoState": "off"
+    }
+  },
+  "progreso": {
+    "buildPhase": 4,
+    "concretoUnlocked": true,
+    "matematicasValidadas": true,
+    "puertas_colocadas": 0,
+    "ventanas_colocadas": 0,
+    "progSequence": [],
+    "focoState": "off"
+  }
+}

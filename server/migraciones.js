@@ -6,6 +6,102 @@
 
 export const MIGRACIONES = [
   {
+    // Estructuras base que 003 y las rutas necesitan y que el respaldo
+    // proyectoUPV.sql (solo roles, usuarios y tablas académicas) no trae:
+    // proyectos y las tablas de telemetría/evaluación. Definiciones tomadas de
+    // database/DBProyectoSTEAM.sql (BD funcional). Todo con IF NOT EXISTS: en una
+    // BD que ya las tiene no cambia nada y no borra ni reescribe datos.
+    // Debe ir ANTES de 003_guardados (el arreglo se ejecuta en orden).
+    id: '002_tablas_base_proyectos_telemetria',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS proyectos (
+        id             SERIAL PRIMARY KEY,
+        nombre         VARCHAR(100) NOT NULL UNIQUE,
+        descripcion    TEXT,
+        url_simulador  VARCHAR(200)
+      )`,
+      // Proyecto #1: solo en una tabla vacía (instalación limpia). Si ya hay proyectos
+      // no se toca nada; DO NOTHING sin objetivo cubre conflictos de id y de nombre.
+      `INSERT INTO proyectos (id, nombre, descripcion, url_simulador)
+        SELECT 1, 'Constructor de Casa',
+               'Simulador 3D para diseñar, calcular y construir una vivienda sustentable.',
+               '/sandbox.html'
+        WHERE NOT EXISTS (SELECT 1 FROM proyectos)
+        ON CONFLICT DO NOTHING`,
+      // La secuencia solo se adelanta (nunca retrocede) si quedó por debajo del MAX(id).
+      `SELECT setval(
+        pg_get_serial_sequence('proyectos', 'id'),
+        GREATEST(COALESCE((SELECT MAX(id) FROM proyectos), 1), 1),
+        EXISTS (SELECT 1 FROM proyectos)
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS dimensiones_steam (
+        id           SERIAL PRIMARY KEY,
+        nombre       VARCHAR(50) NOT NULL UNIQUE,
+        descripcion  TEXT,
+        color_hex    VARCHAR(7)
+      )`,
+      `CREATE TABLE IF NOT EXISTS habilidades (
+        id            SERIAL PRIMARY KEY,
+        dimension_id  INTEGER NOT NULL REFERENCES dimensiones_steam(id) ON DELETE CASCADE,
+        nombre        VARCHAR(120) NOT NULL UNIQUE,
+        descripcion   TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS actividades_criticas (
+        id                SERIAL PRIMARY KEY,
+        nombre            VARCHAR(120) NOT NULL UNIQUE,
+        descripcion       TEXT,
+        tipo_interaccion  VARCHAR(50),
+        proyecto_id       INTEGER REFERENCES proyectos(id) ON DELETE CASCADE
+      )`,
+      `CREATE TABLE IF NOT EXISTS actividades_habilidades (
+        actividad_id  INTEGER NOT NULL REFERENCES actividades_criticas(id) ON DELETE CASCADE,
+        habilidad_id  INTEGER NOT NULL REFERENCES habilidades(id) ON DELETE CASCADE,
+        peso          NUMERIC(5,2) DEFAULT 1.0,
+        PRIMARY KEY (actividad_id, habilidad_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS sesiones_simulacion (
+        id            SERIAL PRIMARY KEY,
+        usuario_id    INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        fecha_inicio  TIMESTAMP NOT NULL DEFAULT NOW(),
+        fecha_fin     TIMESTAMP,
+        metadata      JSONB DEFAULT '{}'::jsonb,
+        proyecto_id   INTEGER REFERENCES proyectos(id) ON DELETE CASCADE
+      )`,
+      // BD armadas con steam_tables.sql (sin el parche): solo se agrega la columna
+      // que falta; los datos existentes quedan como están (proyecto_id NULL).
+      `ALTER TABLE sesiones_simulacion
+         ADD COLUMN IF NOT EXISTS proyecto_id INTEGER REFERENCES proyectos(id) ON DELETE CASCADE`,
+      `ALTER TABLE actividades_criticas
+         ADD COLUMN IF NOT EXISTS proyecto_id INTEGER REFERENCES proyectos(id) ON DELETE CASCADE`,
+      `CREATE TABLE IF NOT EXISTS telemetria_3d (
+        id            BIGSERIAL PRIMARY KEY,
+        sesion_id     INTEGER NOT NULL REFERENCES sesiones_simulacion(id) ON DELETE CASCADE,
+        actividad_id  INTEGER REFERENCES actividades_criticas(id),
+        marca_tiempo  TIMESTAMP NOT NULL DEFAULT NOW(),
+        tipo_evento   VARCHAR(50) NOT NULL,
+        pos_x         REAL,
+        pos_y         REAL,
+        pos_z         REAL,
+        contexto      JSONB DEFAULT '{}'::jsonb
+      )`,
+      `CREATE TABLE IF NOT EXISTS evaluaciones_habilidad (
+        id                 BIGSERIAL PRIMARY KEY,
+        sesion_id          INTEGER NOT NULL REFERENCES sesiones_simulacion(id) ON DELETE CASCADE,
+        habilidad_id       INTEGER NOT NULL REFERENCES habilidades(id) ON DELETE CASCADE,
+        puntaje            NUMERIC(5,2) NOT NULL DEFAULT 0,
+        intentos_fallidos  INTEGER DEFAULT 0,
+        tiempo_segundos    INTEGER DEFAULT 0,
+        creado_en          TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_sesiones_simulacion_usuario_id ON sesiones_simulacion (usuario_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_telemetria_3d_sesion_id ON telemetria_3d (sesion_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_telemetria_3d_tipo_evento ON telemetria_3d (tipo_evento)`,
+      `CREATE INDEX IF NOT EXISTS idx_evaluaciones_habilidad_sesion_id ON evaluaciones_habilidad (sesion_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_evaluaciones_habilidad_habilidad_id ON evaluaciones_habilidad (habilidad_id)`,
+    ]
+  },
+  {
     id: '003_guardados',
     sql: [
       `CREATE TABLE IF NOT EXISTS proyecto_guardados (
@@ -249,16 +345,57 @@ export const MIGRACIONES = [
       `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil TEXT`,
       `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE`
     ]
+  },
+  {
+    // Fase 2 (estado v2): el historial también archiva la columna "progreso" del guardado
+    // anterior, para conservarla exacta junto con "estado". Aditiva: columna nullable, sin datos.
+    id: '013_guardados_hist_progreso',
+    sql: [
+      `ALTER TABLE proyecto_guardados_hist ADD COLUMN IF NOT EXISTS progreso JSONB`
+    ]
+  },
+  {
+    // A-03: alinea evaluaciones_habilidad con evaluacion.js, que usa alumno_id, actividad_id
+    // y fecha (la 002 solo crea 7 columnas). Aditiva: columnas nuevas NULLABLE; no borra ni
+    // reescribe filas. Idempotente: ADD COLUMN IF NOT EXISTS, UPDATE solo sobre NULL,
+    // SET DEFAULT repetible. alumno_id se recupera desde sesiones_simulacion.usuario_id;
+    // fecha desde creado_en; actividad_id queda NULL (no se puede deducir).
+    // "fecha" se agrega SIN default, se rellena y solo después recibe DEFAULT NOW(), para que
+    // las filas anteriores conserven su fecha original y no la de la migración.
+    id: '014_evaluaciones_habilidad_columnas',
+    sql: [
+      `ALTER TABLE evaluaciones_habilidad
+         ADD COLUMN IF NOT EXISTS alumno_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE`,
+      `ALTER TABLE evaluaciones_habilidad
+         ADD COLUMN IF NOT EXISTS actividad_id INTEGER REFERENCES actividades_criticas(id) ON DELETE SET NULL`,
+      `ALTER TABLE evaluaciones_habilidad ADD COLUMN IF NOT EXISTS fecha TIMESTAMP`,
+      `UPDATE evaluaciones_habilidad eh
+          SET alumno_id = s.usuario_id
+         FROM sesiones_simulacion s
+        WHERE s.id = eh.sesion_id AND eh.alumno_id IS NULL`,
+      `UPDATE evaluaciones_habilidad SET fecha = creado_en WHERE fecha IS NULL AND creado_en IS NOT NULL`,
+      `ALTER TABLE evaluaciones_habilidad ALTER COLUMN fecha SET DEFAULT NOW()`,
+      `CREATE INDEX IF NOT EXISTS idx_evaluaciones_habilidad_alumno_id ON evaluaciones_habilidad (alumno_id)`
+    ]
   }
 ];
+
 
 export async function aplicarMigraciones(query, log = console.log) {
   for (const m of MIGRACIONES) {
     try {
-      for (const sql of m.sql) await query(sql);
+      for (let i = 0; i < m.sql.length; i++) {
+        try {
+          await query(m.sql[i]);
+        } catch (e) {
+          log(`Instrucción ${i + 1}/${m.sql.length} de '${m.id}' falló.`);
+          log(`SQL: ${m.sql[i]}`);
+          throw e;
+        }
+      }
     } catch (e) {
       log(`Migración '${m.id}' falló: ${e.message}`);
-      throw e; // no arrancar el servidor con un esquema a medias
+      throw e;
     }
   }
   log(`Esquema al día (${MIGRACIONES.length} migraciones verificadas)`);

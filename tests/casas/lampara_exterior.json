@@ -1,0 +1,55 @@
+{
+  "descripcion": "Lámpara en el área exterior del terreno y un bloque dentro de la zona",
+  "estado": {
+    "v": 1,
+    "objetos": [
+      {
+        "id": 1,
+        "type": "lampara",
+        "p": [
+          12,
+          0,
+          -11.5
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": 2,
+        "type": "block",
+        "p": [
+          3,
+          0,
+          3
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "contador": 3,
+    "progreso": {
+      "buildPhase": 4,
+      "concretoUnlocked": true,
+      "matematicasValidadas": true,
+      "puertas_colocadas": 0,
+      "ventanas_colocadas": 0,
+      "progSequence": [],
+      "focoState": "off"
+    }
+  },
+  "progreso": {
+    "buildPhase": 4,
+    "concretoUnlocked": true,
+    "matematicasValidadas": true,
+    "puertas_colocadas": 0,
+    "ventanas_colocadas": 0,
+    "progSequence": [],
+    "focoState": "off"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "descripcion": "Sin objetos; estado mínimo",
+  "estado": {
+    "v": 1,
+    "objetos": [],
+    "contador": 1,
+    "progreso": {
+      "buildPhase": 0,
+      "concretoUnlocked": false,
+      "matematicasValidadas": false,
+      "puertas_colocadas": 0,
+      "ventanas_colocadas": 0,
+      "progSequence": [],
+      "focoState": "off",
+      "excavacion": null
+    }
+  },
+  "progreso": {
+    "buildPhase": 0,
+    "concretoUnlocked": false,
+    "matematicasValidadas": false,
+    "puertas_colocadas": 0,
+    "ventanas_colocadas": 0,
+    "progSequence": [],
+    "focoState": "off",
+    "excavacion": null
+  }
+}

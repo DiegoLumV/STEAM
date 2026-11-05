@@ -1,0 +1,80 @@
+{
+  "descripcion": "Pisos de distintos tamaños y colores",
+  "estado": {
+    "v": 1,
+    "objetos": [
+      {
+        "id": 1,
+        "type": "floor_vitropiso",
+        "p": [
+          -4,
+          0,
+          -4
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "w": 4,
+        "d": 5,
+        "area": 20,
+        "color": "#38bdf8"
+      },
+      {
+        "id": 2,
+        "type": "floor_vitropiso",
+        "p": [
+          3,
+          0,
+          2
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "w": 6,
+        "d": 6,
+        "area": 36,
+        "color": "#f59e0b"
+      },
+      {
+        "id": 3,
+        "type": "floor_vitropiso",
+        "p": [
+          -5,
+          0,
+          5
+        ],
+        "r": [
+          0,
+          0,
+          0
+        ],
+        "w": 3,
+        "d": 3,
+        "area": 9
+      }
+    ],
+    "contador": 4,
+    "progreso": {
+      "buildPhase": 4,
+      "concretoUnlocked": true,
+      "matematicasValidadas": true,
+      "puertas_colocadas": 0,
+      "ventanas_colocadas": 0,
+      "progSequence": [],
+      "focoState": "off"
+    }
+  },
+  "progreso": {
+    "buildPhase": 4,
+    "concretoUnlocked": true,
+    "matematicasValidadas": true,
+    "puertas_colocadas": 0,
+    "ventanas_colocadas": 0,
+    "progSequence": [],
+    "focoState": "off"
+  }
+}
