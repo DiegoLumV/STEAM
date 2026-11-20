@@ -149,12 +149,6 @@ body.day-mode::after {
   color: #fff;
 }
 
-.btn.storm-on {
-  background: rgba(50, 10, 80, .9);
-  color: #cc88ff;
-  border-color: rgba(160, 80, 255, .6);
-}
-
 .btn.prog-on {
   background: rgba(10, 50, 30, .9);
   color: #55ffaa;
@@ -374,73 +368,6 @@ body.day-mode::after {
   z-index: 25;
   display: none;
   pointer-events: none;
-}
-
-/* lluvia, relámpago y barra de viento — están desactivados pero se conservan */
-#rain-canvas {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 15;
-  display: none;
-}
-
-#lightning-flash {
-  position: fixed;
-  inset: 0;
-  background: rgba(200, 180, 255, 0);
-  pointer-events: none;
-  z-index: 16;
-  transition: background .06s;
-}
-
-#storm-wind-bar {
-  position: fixed;
-  bottom: 72px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(4, 10, 30, .88);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(160, 80, 255, .35);
-  border-radius: 10px;
-  padding: 8px 18px;
-  z-index: 25;
-  display: none;
-  align-items: center;
-  gap: 10px;
-  min-width: 280px;
-}
-
-#storm-wind-label {
-  color: rgba(200, 160, 255, .8);
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-#storm-wind-track {
-  flex: 1;
-  height: 6px;
-  background: rgba(100, 40, 180, .25);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-#storm-wind-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #7040cc, #cc60ff);
-  border-radius: 3px;
-  transition: width .15s;
-}
-
-#storm-resist-msg {
-  font-size: 10px;
-  color: rgba(200, 160, 255, .7);
-  white-space: nowrap;
-  min-width: 110px;
-  text-align: right;
 }
 
 /* modal de programación por bloques con overlay oscuro — NUEVO DISEÑO */
@@ -2862,4 +2789,902 @@ body.day-mode::after {
   opacity: .75;
   margin-top: 6px;
   line-height: 1.4;
+}
+/* ── F2.2 · Avisos de colocación (informativos) ───────────────────────────────
+   Overlay HTML (no 3D) en la esquina inferior derecha, por debajo de los modales (z-index 100) y por encima
+   del canvas. Nunca captura clics: solo la casilla de sonido y el botón del historial son interactivos. */
+#aviso-colocacion {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 26; /* sobre #tip (25) para que el aviso nunca quede tapado; muy por debajo de los modales (100) */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+  font-family: inherit;
+  color: #f1f1f1;
+}
+
+/* El panel de medidas (186 px, abajo a la derecha) ya ocupa esa esquina: el aviso se coloca a su izquierda. */
+body:has(#measure-panel) #aviso-colocacion {
+  right: 216px;
+}
+
+#aviso-alerta,
+#aviso-panel {
+  min-width: 190px;
+  max-width: 260px;
+  background: rgba(20, 20, 20, .85);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .35);
+  font-size: 12px;
+  line-height: 1.4;
+  /* entrada y salida sutiles de 200 ms; visibility espera a que termine la salida */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity .2s ease-out, transform .2s ease-out, visibility 0s linear .2s;
+}
+
+#aviso-alerta.visible,
+#aviso-panel.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.aviso-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-left: 3px solid var(--aviso-color);
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.aviso-chip+.aviso-chip {
+  border-top: 1px solid rgba(255, 255, 255, .1);
+}
+
+.aviso-chip svg {
+  color: var(--aviso-color);
+  flex: none;
+}
+
+#aviso-panel {
+  border-left: 3px solid var(--aviso-color, #2E7D32);
+  padding: 8px 12px 8px 10px;
+}
+
+.aviso-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.aviso-cab svg {
+  color: var(--aviso-color, #2E7D32);
+  flex: none;
+}
+
+#aviso-estado {
+  margin-left: auto;
+  color: var(--aviso-color, #2E7D32);
+  font-size: 11px;
+  letter-spacing: .04em;
+}
+
+.aviso-datos {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: .85;
+}
+
+.aviso-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 10.5px;
+}
+
+#aviso-panel .aviso-pie>*,
+#aviso-panel #aviso-hist {
+  pointer-events: auto;
+}
+
+.aviso-sonido {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  opacity: .8;
+}
+
+#aviso-hist-toggle {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  padding: 1px 7px;
+  cursor: pointer;
+}
+
+#aviso-hist-toggle:hover {
+  background: rgba(255, 255, 255, .08);
+}
+
+#aviso-hist {
+  list-style: none;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+  font-size: 10px;
+  line-height: 1.5;
+  opacity: .85;
+}
+
+#aviso-hist[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  #aviso-alerta,
+  #aviso-panel {
+    transition: none;
+  }
+}
+
+/* ── F2.4c · «Apoyar» explícito ───────────────────────────────────────────────
+   Botones dentro del panel de estado de F2.2 (el contenedor sigue sin capturar clics: solo estos hijos sí)
+   y aviso de caída arriba al centro (misma zona que #locked-toast; z-index 40, por debajo de los modales, 100). */
+.aviso-acciones {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.aviso-acciones[hidden],
+#apoyar-confirma[hidden] {
+  display: none;
+}
+
+#apoyar-btn,
+#apoyar-deshacer,
+#apoyar-confirma button {
+  flex: 1;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+#apoyar-btn:hover:not(:disabled),
+#apoyar-deshacer:hover,
+#apoyar-confirma button:hover {
+  background: rgba(255, 255, 255, .18);
+}
+
+#apoyar-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+#apoyar-confirma {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(20, 20, 20, .92);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(249, 168, 37, .55);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .35);
+  color: #f1f1f1;
+  font-size: 12.5px;
+}
+
+#apoyar-confirma button {
+  flex: none;
+}
+
+/* ── F2.4d · «Desapoyar» ──────────────────────────────────────────────────────
+   Con hasta cuatro botones en el panel: fila 1 «Apoyar» | «Desapoyar»; fila 2 el único «Deshacer» visible (a todo el ancho).
+   Solo se AÑADEN reglas (las de F2.4c no se tocan): al ir después y con el mismo id, estas prevalecen en flex. */
+#apoyar-acciones {
+  flex-wrap: wrap;
+}
+
+#apoyar-btn,
+#desapoyar-btn {
+  flex: 1 1 calc(50% - 3px);
+}
+
+#apoyar-deshacer,
+#desapoyar-deshacer {
+  flex: 1 1 100%;
+}
+
+#desapoyar-btn,
+#desapoyar-deshacer {
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+#desapoyar-btn:hover:not(:disabled),
+#desapoyar-deshacer:hover {
+  background: rgba(255, 255, 255, .18);
+}
+
+#desapoyar-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* ── F3 · Excavación: tipo de suelo, % a retirar y resultados en volqueta ─────────────────────────────────────
+   Solo estilos nuevos (mismo aspecto que .exc-preview-card). No cambia ninguna regla existente. */
+.exc-suelo-card {
+  background: rgba(10, 22, 52, .55);
+  border: 1px solid rgba(70, 150, 240, .25);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.exc-suelo-sel {
+  width: 100%;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.exc-suelo-sel option:disabled {
+  color: rgba(150, 165, 195, .55);
+}
+
+.exc-retiro-val {
+  width: 48px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: rgba(100, 220, 255, 1);
+}
+
+.exc-resultados {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exc-resultados[hidden] {
+  display: none;
+}
+
+.exc-res-cadena {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #6fe5ff;
+  padding: 6px 8px;
+  background: rgba(4, 10, 26, .6);
+  border: 1px solid rgba(80, 180, 255, .25);
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.exc-res-nota {
+  font-size: 9.5px;
+  line-height: 1.45;
+  color: rgba(180, 205, 240, .7);
+  padding: 0 6px;
+}
+
+/* ── F4a · Editor 2D del plano ── */
+/* z-index 60: cubre la interfaz normal (10–55) y queda por debajo de los modales (100). Es [id$="-overlay"].open, así que F2.4c/F2.4d lo tratan como modal. */
+#plano-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  background: #050d24;
+  color: #cfe3ff;
+  font-size: 12px;
+  outline: none;
+}
+
+#plano-overlay.open {
+  display: flex;
+}
+
+#plano-overlay [hidden] {
+  display: none !important;
+}
+
+#plano-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 8px 14px;
+  background: rgba(6, 14, 38, .98);
+  border-bottom: 1px solid rgba(80, 200, 255, .25);
+}
+
+#plano-titulo {
+  font-weight: 700;
+  letter-spacing: .07em;
+  color: rgba(150, 220, 255, .95);
+}
+
+.plano-grupo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plano-espacio {
+  flex: 1;
+}
+
+.plano-etq {
+  color: rgba(170, 205, 255, .85);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.plano-btn {
+  background: rgba(10, 22, 60, .8);
+  color: #7aacff;
+  border: 1px solid rgba(50, 110, 220, .35);
+  padding: 5px 11px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.plano-btn:hover:not(:disabled) {
+  background: rgba(30, 75, 200, .8);
+  color: #fff;
+}
+
+.plano-btn.activa {
+  background: rgba(25, 70, 210, .95);
+  color: #fff;
+  border-color: rgba(120, 180, 255, .8);
+}
+
+.plano-btn.primary {
+  border-color: rgba(60, 220, 130, .5);
+  color: rgba(130, 255, 180, .95);
+}
+
+.plano-btn.danger {
+  border-color: rgba(255, 90, 90, .45);
+  color: rgba(255, 150, 150, .95);
+}
+
+.plano-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.plano-btn kbd {
+  font: inherit;
+  font-size: 9px;
+  opacity: .7;
+  margin-left: 3px;
+}
+
+#plano-overlay input[type=number],
+#plano-overlay select {
+  background: rgba(10, 22, 60, .9);
+  color: #cfe3ff;
+  border: 1px solid rgba(50, 110, 220, .45);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-family: inherit;
+}
+
+#plano-overlay input[type=number] {
+  width: 62px;
+}
+
+#plano-dirty.sucio {
+  color: #ffd27a;
+}
+
+#plano-lienzo {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(20, 45, 100, .35), rgba(5, 13, 36, 1) 75%);
+}
+
+#plano-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  user-select: none;
+  cursor: default;
+}
+
+#plano-svg.herr-dibujo {
+  cursor: crosshair;
+}
+
+#plano-svg.panning {
+  cursor: grabbing;
+}
+
+#plano-svg * {
+  pointer-events: none;
+}
+
+#plano-svg .plano-contorno-hit {
+  pointer-events: stroke;
+}
+
+#plano-pie {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 14px;
+  background: rgba(6, 14, 38, .98);
+  border-top: 1px solid rgba(80, 200, 255, .2);
+  color: rgba(170, 205, 255, .85);
+  font-size: 11px;
+}
+
+#plano-cursor {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+#plano-tip {
+  position: absolute;
+  left: 50%;
+  bottom: 44px;
+  transform: translateX(-50%);
+  background: rgba(40, 30, 5, .95);
+  border: 1px solid rgba(255, 200, 90, .6);
+  color: #ffe2a3;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  z-index: 2;
+}
+
+#plano-confirma {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .6);
+}
+
+#plano-confirma-caja {
+  background: rgba(6, 14, 38, .99);
+  border: 1px solid rgba(80, 200, 255, .4);
+  border-radius: 14px;
+  padding: 20px 24px;
+  max-width: min(420px, 92vw);
+}
+
+#plano-confirma-txt {
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.plano-confirma-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* elementos del SVG */
+.plano-lote {
+  fill: rgba(60, 130, 230, .07);
+  stroke: rgba(120, 190, 255, .85);
+  stroke-width: 1.5;
+}
+
+.plano-rejilla {
+  stroke: rgba(120, 170, 255, .22);
+  stroke-width: 1;
+  fill: none;
+}
+
+.plano-eje {
+  stroke: rgba(255, 190, 120, .85);
+  stroke-width: 1.2;
+  fill: none;
+}
+
+.plano-flecha {
+  fill: rgba(255, 190, 120, .95);
+}
+
+.plano-contorno {
+  fill: rgba(150, 155, 165, .06);
+  stroke: #9aa0a6;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+.plano-contorno-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+}
+
+.plano-el .forma {
+  fill: rgba(130, 200, 255, .12);
+  stroke: #9fd4ff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.plano-el.punto .forma {
+  fill: #9fd4ff;
+}
+
+.plano-el.sel .forma {
+  stroke: #ffb74d;
+  stroke-width: 3;
+}
+
+.plano-el.punto.sel .forma {
+  fill: #ffb74d;
+}
+
+.plano-el.sel .forma[data-rect] {
+  fill: rgba(255, 183, 77, .14);
+}
+
+.plano-el.fantasma .forma {
+  stroke-dasharray: 5 4;
+  opacity: .8;
+}
+
+.plano-cota {
+  fill: #e6f1ff;
+  font-size: 11px;
+  paint-order: stroke;
+  stroke: #050d24;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  font-variant-numeric: tabular-nums;
+}
+
+.plano-cota.lote {
+  fill: #a8d4ff;
+}
+
+.plano-cota.eje {
+  fill: #ffcf9e;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  #plano-barra {
+    gap: 6px 8px;
+    padding: 6px 8px;
+  }
+}
+
+/* Botón «Plano»: flotante, siempre visible, en la zona libre bajo la barra superior (arriba a la derecha). */
+#btnPlano {
+  position: fixed;
+  top: 62px;
+  right: 14px;
+  z-index: 30;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
+}
+
+/* ── F4b · Habitaciones libres con nombre ── */
+/* Color (opción A): habitación seleccionada = halo y handles CELESTES; solape = borde y relleno ÁMBAR. Los elementos de F4a
+   (punto, línea, rectángulo) conservan su ámbar de selección sin cambios: aquí no se toca ninguna regla .plano-el. */
+.plano-ico {
+  vertical-align: -2px;
+  margin-right: 3px;
+}
+
+#plano-overlay input[type=text] {
+  background: rgba(10, 22, 60, .9);
+  color: #cfe3ff;
+  border: 1px solid rgba(50, 110, 220, .45);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-family: inherit;
+}
+
+#plano-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 240px;
+  max-width: calc(100% - 24px);
+  padding: 10px 12px;
+  background: rgba(6, 14, 38, .96);
+  border: 1px solid rgba(80, 200, 255, .3);
+  border-radius: 12px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .45);
+  font-size: 11px;
+}
+
+#plano-panel-titulo {
+  margin-bottom: 8px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  color: #7fe0ff;
+}
+
+#plano-panel-vacio {
+  margin: 0;
+  color: rgba(170, 205, 255, .8);
+}
+
+#plano-panel-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+#plano-panel .plano-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: rgba(170, 205, 255, .9);
+}
+
+#plano-panel input[type=text] {
+  width: 130px;
+}
+
+#plano-panel input[type=number] {
+  width: 80px;
+}
+
+#plano-panel output {
+  font-variant-numeric: tabular-nums;
+  color: #e6f1ff;
+}
+
+#plano-hab-solape {
+  margin: 0;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 194, 71, .6);
+  border-radius: 8px;
+  background: rgba(255, 194, 71, .12);
+  color: #ffc247;
+}
+
+.plano-hab .hab-forma {
+  fill: rgba(127, 214, 180, .1);
+  stroke: #7fd6b4;
+  stroke-width: 2;
+}
+
+.plano-hab.solape .hab-forma {
+  fill: rgba(255, 194, 71, .18);
+  stroke: #ffc247;
+  stroke-width: 3;
+}
+
+.plano-hab .hab-halo {
+  fill: none;
+  stroke: #7fe0ff;
+  stroke-width: 3;
+  stroke-opacity: .9;
+  rx: 4;
+}
+
+.plano-hab .hab-nombre {
+  font-weight: 700;
+  fill: #e6fff6;
+}
+
+.plano-hab .hab-area {
+  fill: #bfeadb;
+}
+
+.plano-hab.previa .hab-forma {
+  stroke-dasharray: 5 4;
+  opacity: .85;
+}
+
+.plano-hab.previa.invalida .hab-forma {
+  stroke: #ff8a80;
+  fill: rgba(255, 138, 128, .1);
+}
+
+.plano-handle {
+  fill: #7fe0ff;
+  stroke: #050d24;
+  stroke-width: 1.5;
+}
+
+.plano-handle.activo {
+  fill: #ffffff;
+}
+
+.plano-dialogo {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .6);
+}
+
+.plano-dialogo-caja {
+  background: rgba(6, 14, 38, .99);
+  border: 1px solid rgba(80, 200, 255, .4);
+  border-radius: 14px;
+  padding: 20px 24px;
+  max-width: min(420px, 92vw);
+}
+
+.plano-dialogo-txt {
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+/* ── F4c · vanos (puertas y ventanas) ──
+   El hueco en la pared lo hace una máscara SVG sobre el borde de la habitación; aquí solo va el color de cada vano. */
+.plano-vano .vano-color {
+  stroke-width: 5;
+  stroke-linecap: butt;
+}
+
+.plano-vano.puerta .vano-color {
+  stroke: #b07a4a;
+}
+
+.plano-vano.ventana .vano-color {
+  stroke: #8fd3ff;
+}
+
+.plano-vano .vano-halo {
+  fill: none;
+  stroke: #7fe0ff;
+  stroke-width: 3;
+  stroke-opacity: .95;
+  rx: 4;
+}
+
+.plano-vano .vano-aviso {
+  fill: none;
+  stroke: #ffc247;
+  stroke-width: 2.5;
+  rx: 3;
+}
+
+.plano-vano.solape .vano-aviso {
+  stroke: #ffc247;
+}
+
+.plano-vano.fuera .vano-aviso {
+  stroke: #ff8a80;
+}
+
+.plano-vano.previa {
+  opacity: .7;
+}
+
+.plano-vano.previa .vano-color {
+  stroke-dasharray: 5 3;
+}
+
+#plano-panel-vano {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.plano-panel-sub {
+  font-weight: 700;
+  color: #e6f1ff;
+}
+
+#plano-panel select {
+  background: rgba(10, 22, 60, .9);
+  color: #cfe3ff;
+  border: 1px solid rgba(50, 110, 220, .45);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-family: inherit;
+}
+
+#plano-hab-vanos,
+#plano-vano-aviso {
+  margin: 0;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 138, 128, .6);
+  border-radius: 8px;
+  background: rgba(255, 138, 128, .12);
+  color: #ff8a80;
+}
+
+#plano-panel {
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+}
+
+/* ── F4d · materialización del plano en 3D ── */
+#plano-mat-aviso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  background: rgba(255, 194, 71, .12);
+  border-bottom: 1px solid rgba(255, 194, 71, .45);
+  color: #ffd98a;
+  font-size: 12px;
+}
+
+#plano-mat-aviso-txt {
+  flex: 1;
+}
+
+#plano-mat-estado {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plano-dialogo-nota {
+  margin: -6px 0 14px;
+  font-size: 12px;
+  color: #ffd98a;
+  max-width: 380px;
 }

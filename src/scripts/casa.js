@@ -3,8 +3,36 @@ import { iniciarSesion, cerrarSesion, registrar, setCameraRef } from './telemetr
 import { checkTutorial, startTutorial } from './tutorial.js';
 import { iniciarAutoguardado, marcarSucio, cargar, serializarEscena, reiniciar, haySinGuardar, iniciarSyncMaestro, asegurarGuardado } from './guardado.js';
 import { MATERIALES } from './materiales.js';
+// F2.1 / F2.2: clasificación pura de la colocación de una pieza (solo se importa; no se modifica).
+import { clasificarColocacion, buscarApoyo, limitesCaja, desplazamientoParaApoyar } from './manipulacion.js';
 // Cálculos puros extraídos (Fase 1). Las fórmulas originales quedan comentadas junto a cada uso.
 import { calcularAreaTecho, calcularExcavacion, redondearCentesimas, calcularPiezasMuro, calcularDimensionesMuro, sumarAreaPisos, calcularCoberturaPiso, calcularTotalConcreto, porcentajeBarra, calcularDimensionCubierta, validarMezclaConcretoLibre, convertirCantidadConcreto, COMPONENTES_CONCRETO } from './calculos.js';
+// F3: suelo y volqueta de la excavación. Funciones puras en calculos.js; los datos (A.1, volqueta) vienen de referencia.js (solo lectura).
+import { volumenSuelto, viajesVolqueta, factorBancoSuelto, SUELO_POR_DEFECTO, PORCENTAJE_RETIRO_POR_DEFECTO } from './calculos.js';
+import { A1_FACTORES_SUELO, PARAMETROS } from './referencia.js';
+// F4a: editor 2D del plano. Funciones puras en calculos.js; la interfaz (SVG) vive en el bloque «F4a · EDITOR 2D DEL PLANO».
+import {
+  distancia, normalizarRectangulo, ajustarARejilla, formatearCota, zoomEnPunto, escalaBasePlano, mundoAPantalla, pantallaAMundo,
+  moverElemento, anclaElemento, cotasElemento, elementoEn, planoVacio, sanearPlano,
+  PLANO_MAX_ELEMENTOS, PLANO_MAX_COORDENADA, PLANO_LOTE_MIN, PLANO_LOTE_MAX, PLANO_PASOS_REJILLA, PLANO_PASO_DEFECTO,
+} from './calculos.js';
+// F4b: habitaciones libres con nombre en el editor del plano (funciones puras de calculos.js).
+import {
+  areaRectangulo, perimetroRectangulo, formatearArea, habitacionCreable, solapesHabitaciones, siguienteIdHabitacion,
+  nombreHabitacionDefecto, habitacionEn, redimensionarDesdeEsquina, generarPlantilla, sanearHabitaciones,
+  PLANTILLAS_HABITACIONES, HAB_MAX, HAB_LADO_MIN, HAB_LADO_MAX, HAB_NOMBRE_MAX,
+} from './calculos.js';
+// F4c: vanos (puertas y ventanas) dentro de las habitaciones del editor del plano (funciones puras de calculos.js).
+import {
+  VANO_MAX_POR_HAB, VANO_MAX_GLOBAL, VANO_ANCHO_MIN, VANO_ANCHO_MAX, VANO_ALTO_MIN, VANO_ALTO_MAX, VANO_OFFSET_MAX, VANO_TIPOS, VANO_LADOS,
+  longitudPared, vanoCabeEnPared, segmentoVano, posicionEnPared, paredMasCercana, vanoNuevo, desplazarVano,
+  vanoEnHabitaciones, estadoVanos, totalVanos, nombreVano, siguienteIdVano,
+} from './calculos.js';
+// F4d: materialización del plano en 3D (paredes con huecos, sin CSG). Funciones puras en calculos.js; la parte 3D vive en el bloque «F4d · MATERIALIZACIÓN».
+import {
+  PARED_ALTURA_DEFECTO, PARED_GROSOR_DEFECTO, PARED_ALFEIZAR_DEFECTO, PARED_RECT_AVISO,
+  generarParedes3D, generarParedConHuecos, resumirMaterializacion, compactarMaterializado, expandirMaterializado, sanearMaterializado,
+} from './calculos.js';
 import {
   Engine,
   Scene,
@@ -12,6 +40,7 @@ import {
   Color4,
   Vector3,
   Matrix,
+  Ray,
   ArcRotateCamera,
   ArcRotateCameraMouseWheelInput,
   DirectionalLight,
@@ -29,6 +58,9 @@ import {
   DefaultRenderingPipeline,
   ImageProcessingConfiguration,
   PointerEventTypes,
+  Animation,
+  CubicEase,
+  EasingFunction,
 } from '@babylonjs/core';
 
 // SSAO2 tiene su propio submódulo en v9, hay que importarlo por separado
@@ -41,7 +73,6 @@ const engine = new Engine(canvas, true, { antialias: true, adaptToDeviceRatio: t
 let scene, camera, sunLight, hemiLight, shadowGen, highlightLayer;
 let selectedMesh = null;
 let isNight = false;
-let isStorm = false;
 let gizmoMgr;
 let objList = [];
 let objIdCounter = 1;
@@ -50,10 +81,6 @@ let MAT = {};
 
 const vistaAlumnoId = new URLSearchParams(window.location.search).get('alumno');
 window.startTutorial = startTutorial;
-
-// variables del sistema de tormenta, ya no se usa pero se mantiene para compatibilidad
-let rainCtx, rainCanvas, rainParticles = [], stormInterval = null, lightningTimer = null;
-let windLevel = 0, windDir = 1, windTarget = 0;
 
 // estado interno del módulo de programación por bloques
 let pendingTrigger = null;
@@ -652,6 +679,38 @@ function addObjIfAllowed(type) {
   addObj(type);
 }
 
+// F2.4a · Nacimiento sobre la losa u otras piezas.
+// Antes toda pieza nueva nacía con el origen de su raíz en y = 0, es decir, hundida 20 cm dentro de la losa.
+// Convención de base: el `y` de la pieza es el ORIGEN de su raíz (no la base geométrica de su caja envolvente): una ventana
+// cuyo alféizar baja 6,5 cm del origen sigue naciendo con el origen en la cota de apoyo.
+// Tipos afectados (los que el catálogo envía a addObj): lista cerrada. barillas (sin botón), duplicar, floor_vitropiso (ya usa
+// 0,21), muros, techos y cerchas no pasan por aquí.
+const TIPOS_NACIMIENTO = ['block', 'madera', 'lamina', 'foco', 'puerta', 'ventana', 'lampara', 'vitropiso', 'concreto'];
+// Soportes del nacimiento: la losa y las piezas sueltas. Los muros no cuentan (una puerta nacida dentro de un muro no debe
+// subirse a su corona a 2,8 m); en esa posición solo vale la losa o el suelo, como antes.
+const TIPOS_SOPORTE_NACIMIENTO = ['concreto_slab_20', 'concreto', 'block', 'madera', 'lamina'];
+
+// Devuelve la `y` del origen de la raíz para que la pieza nazca apoyada, o null si no hay nada bajo ella (suelo desnudo: y = 0).
+// Usa una CAJA DE SONDEO: las mismas dimensiones y orientación que la pieza real, con la `y` elevada por encima de cualquier
+// tope. Hace falta porque buscarApoyo descarta los apoyos cuyo tope supera el de la propia pieza, y una lámina (5 cm) o un
+// vitropiso (4 cm) nacidos en y = 0 no «verían» la losa (tope 0,2). La sonda es un objeto local: no se renderiza, no se
+// añade a la escena ni a objList y no se serializa.
+function alturaNacimiento(root, type) {
+  if (!TIPOS_NACIMIENTO.includes(type)) return null;
+  const caja = getBlockHitbox(root);
+  if (!caja) return null;
+  const soportes = objList
+    .filter(o => TIPOS_SOPORTE_NACIMIENTO.includes(o.type))
+    .map(o => ({ id: o.id, caja: getBlockHitbox(o.node) }))
+    .filter(o => o.caja);
+  if (!soportes.length) return null;
+  const topeMaximo = Math.max(...soportes.map(o => limitesCaja(o.caja).max.y));
+  const subir = (topeMaximo + 1) - limitesCaja(caja).min.y;
+  const sonda = { c: { x: caja.c.x, y: caja.c.y + subir, z: caja.c.z }, u: caja.u, e: caja.e };
+  const apoyo = buscarApoyo(sonda, soportes);
+  return apoyo.tipo === 'pieza' ? apoyo.altura : null;
+}
+
 function addObj(type) {
   const id = objIdCounter++;
   const root = new TransformNode('obj_' + id + '_' + type, scene);
@@ -673,6 +732,8 @@ function addObj(type) {
       return;
     }
   }
+  const yNacimiento = alturaNacimiento(root, type);
+  if (yNacimiento !== null) root.position.y = yNacimiento;
   objList.push({ id, type, label: LABELS[type], emoji: EMOJIS[type], node: root });
   updateObjListUI(); selectObject(root);
   setTip(`<b>${EMOJIS[type]} ${LABELS[type]}</b> añadido · Arrastra las flechas de colores para moverlo · Q/E para rotar`);
@@ -697,7 +758,8 @@ const CAMARA_F1 = Object.freeze({
 });
 // Tipos que la cámara no atraviesa: muros y piezas sueltas de block, madera y lámina.
 // Puertas y ventanas no bloquean (son vanos); techos, pisos y losa tampoco en F1.
-const TIPOS_SOLIDOS_CAMARA = COLLISION_TYPES;
+// F4d (P7): las paredes generadas del plano (objeto agregado «paredes_plano») también bloquean la cámara; Rayos X las atraviesa como al resto.
+const TIPOS_SOLIDOS_CAMARA = [...COLLISION_TYPES, 'paredes_plano'];
 let rayosXActivo = false; // solo de sesión: nunca se guarda ni se serializa
 
 function configurarCamaraLibre() {
@@ -755,6 +817,665 @@ function crearBotonRayosX() {
   actualizarBotonRayosX();
 }
 
+// ── F2.2 · Avisos de colocación (solo informativos) ───────────────────────────
+// Solo LEE: nunca mueve, bloquea ni corrige la pieza. F2.3: UN solo criterio. clasificarColocacion (manipulacion.js)
+// decide apoyada/flotante/hundida/superpuesta Y el contacto (área exacta; umbral PARAMETROS_MANIPULACION.contactoMinimo);
+// la superposición viene de findBlockCollision. El estado vive en node.userData.estadoColocacion,
+// es transitorio de sesión y guardado.js no lo serializa (serializarObjeto copia solo campos explícitos).
+// Se evalúa al seleccionar, al soltar el gizmo y tras girar con teclado; nunca por fotograma.
+const OUTLINE_SELECCION = Color3.FromHexString('#1565C0');
+const OUTLINE_ERROR = Color3.FromHexString('#C62828');
+const OUTLINE_CANDIDATA = Color3.FromHexString('#F9A825').scale(0.55); // ámbar tenue: pieza candidata a apoyo
+const AVISO_UI = Object.freeze({
+  apoyada: { texto: 'Apoyada', color: '#2E7D32' },
+  flotante: { texto: 'Flotante', color: '#F9A825' },
+  hundida: { texto: 'Hundida', color: '#FBC02D' },
+  superpuesta: { texto: 'Superpuesta', color: '#C62828' },
+});
+const AVISO_HISTORIAL_MAX = 5;
+// Piezas a las que se les evalúa la colocación (las manipulables de F2) y piezas que pueden servir de apoyo.
+const TIPOS_AVISO = ['block', 'madera', 'lamina', 'puerta', 'ventana', 'foco', 'lampara', 'floor_vitropiso'];
+const TIPOS_APOYO_AVISO = [...COLLISION_TYPES, 'concreto_slab_20', 'concreto'];
+const svgAviso = d => '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" ' +
+  'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+const AVISO_ICONOS = Object.freeze({
+  apoyada: svgAviso('<circle cx="10" cy="10" r="7.5"/><path d="M6.5 10.5l2.5 2.5 4.5-5.5"/>'),
+  flotante: svgAviso('<rect x="5" y="3.5" width="10" height="6" rx="1"/><path d="M3 16.5h14M10 11.5v3M8.5 13l1.5 1.5 1.5-1.5"/>'),
+  hundida: svgAviso('<path d="M2.5 7h15"/><rect x="5.5" y="9" width="9" height="7.5" rx="1"/><path d="M10 2.5v3M8.5 4l1.5 1.5L11.5 4"/>'),
+  superpuesta: svgAviso('<rect x="3" y="3" width="9.5" height="9.5" rx="1"/><rect x="7.5" y="7.5" width="9.5" height="9.5" rx="1"/>'),
+});
+let avisoHistorial = [];        // transitorio: últimos avisos mostrados, el más reciente primero
+let avisoSonidoActivo = false;  // desactivado por defecto
+let avisoPlano = null;          // plano translúcido (reutilizable) del área de contacto
+let avisoHover = null;          // pieza candidata a apoyo resaltada en ámbar
+let avisoAudio = null;
+
+// Cajas {c,u,e} (formato de getBlockHitbox) de las piezas que pueden servir de apoyo a `node`.
+// Una pieza sólida que PENETRA a `node` (misma regla que findBlockCollision) llega marcada con `penetra: true`:
+// clasificarColocacion no la cuenta como apoyo (es una superposición, no un soporte), así no hay «hundida» respecto a ella.
+// La losa y el concreto nunca se marcan como penetrantes (no son COLLISION_TYPES): siempre son apoyo.
+function cajasApoyoAviso(node, caja) {
+  return objList
+    .filter(o => o.node !== node && TIPOS_APOYO_AVISO.includes(o.type))
+    .map(o => ({ id: o.id, tipo: o.type, caja: getBlockHitbox(o.node) }))
+    .filter(o => o.caja)
+    .map(o => ({ ...o, penetra: COLLISION_TYPES.includes(o.tipo) && obbPenetration(caja, o.caja) > COLLISION_TOLERANCE }));
+}
+
+// Evalúa la colocación de `node`. Devuelve null si no se puede (sin geometría).
+// Toda la decisión (estado, avisos simultáneos, contacto y zona) la toma clasificarColocacion; aquí solo se adapta
+// al formato del panel: dy en cm (1 decimal) y contacto en % entero. No hay umbrales ni geometría de contacto en casa.js.
+function evaluarColocacion(node) {
+  const caja = getBlockHitbox(node);
+  if (!caja) return null;
+  const choque = findBlockCollision(node);
+  const solapaCon = choque ? choque.id : null;
+  const r = clasificarColocacion(caja, cajasApoyoAviso(node, caja), { solapaCon });
+  return {
+    estado: r.estado,
+    avisos: r.avisos,
+    dy: Math.round(r.separacion * 1000) / 10 + 0, // cm, 1 decimal (+ 0 evita -0)
+    contacto: Math.round(r.contacto * 100),
+    contactoBajo: r.contactoBajo,
+    solapaCon: r.solapaCon,
+    apoyo: r.apoyo,
+    zona: r.zona,
+  };
+}
+
+function aplicarOutlineAviso(node, color) {
+  if (!node || !highlightLayer) return;
+  node.getChildMeshes().forEach(c => { try { highlightLayer.removeMesh(c); highlightLayer.addMesh(c, color); } catch (e) { } });
+}
+
+function ocultarContactoAviso() { if (avisoPlano) avisoPlano.setEnabled(false); }
+
+function mostrarContactoAviso(ev) {
+  if (!ev.zona || !scene) { ocultarContactoAviso(); return; }
+  if (!avisoPlano) {
+    avisoPlano = MeshBuilder.CreateGround('aviso_contacto', { width: 1, height: 1 }, scene);
+    const m = new StandardMaterial('aviso_contacto_mat', scene);
+    m.disableLighting = true; m.backFaceCulling = false; m.alpha = 0.38;
+    m.diffuseColor = Color3.Black(); m.specularColor = Color3.Black();
+    avisoPlano.material = m;
+    avisoPlano.isPickable = false; avisoPlano.receiveShadows = false; avisoPlano.checkCollisions = false;
+  }
+  const z = ev.zona;
+  avisoPlano.scaling.set(Math.max(z.x1 - z.x0, 0.01), 1, Math.max(z.z1 - z.z0, 0.01));
+  avisoPlano.position.set((z.x0 + z.x1) / 2, ev.apoyo.altura + 0.006, (z.z0 + z.z1) / 2);
+  avisoPlano.material.emissiveColor = Color3.FromHexString(AVISO_UI[ev.estado].color);
+  avisoPlano.setEnabled(true);
+}
+
+function quitarHoverAviso() {
+  if (avisoHover && highlightLayer) {
+    try { avisoHover.getChildMeshes().forEach(c => { try { highlightLayer.removeMesh(c); } catch (e) { } }); } catch (e) { }
+  }
+  avisoHover = null;
+}
+
+function borrarEstadosAviso() {
+  objList.forEach(o => { if (o.node?.userData) delete o.node.userData.estadoColocacion; });
+  if (selectedMesh?.userData) delete selectedMesh.userData.estadoColocacion;
+}
+
+// Oculta todo el aviso. conservarSeleccion: la pieza sigue seleccionada (p. ej. Escape) y recupera su outline azul.
+function limpiarAvisoColocacion({ conservarSeleccion = false } = {}) {
+  borrarEstadosAviso();
+  quitarHoverAviso();
+  ocultarContactoAviso();
+  document.getElementById('aviso-alerta')?.classList.remove('visible');
+  document.getElementById('aviso-panel')?.classList.remove('visible');
+  if (conservarSeleccion && selectedMesh) aplicarOutlineAviso(selectedMesh, OUTLINE_SELECCION);
+  actualizarBotonesApoyar(); // F2.4c (gancho 3/5): sin estado evaluado no hay botón «Apoyar»
+}
+
+function pintarAviso(node, ev) {
+  const alerta = document.getElementById('aviso-alerta');
+  const panel = document.getElementById('aviso-panel');
+  if (!alerta || !panel) return;
+  // Overlay de aviso: una fila por aviso (pueden ser varios); la apoyada no muestra overlay.
+  alerta.replaceChildren();
+  ev.avisos.forEach(k => {
+    const fila = document.createElement('div');
+    fila.className = 'aviso-chip';
+    fila.dataset.estado = k;
+    fila.style.setProperty('--aviso-color', AVISO_UI[k].color);
+    fila.innerHTML = AVISO_ICONOS[k];
+    const t = document.createElement('span');
+    t.textContent = AVISO_UI[k].texto;
+    fila.appendChild(t);
+    alerta.appendChild(fila);
+  });
+  alerta.dataset.estado = ev.avisos.length ? ev.estado : '';
+  alerta.classList.toggle('visible', ev.avisos.length > 0);
+  // Panel de estado de la pieza (siempre visible mientras haya una pieza evaluable seleccionada).
+  const col = AVISO_UI[ev.estado].color;
+  panel.dataset.estado = ev.estado;
+  panel.style.setProperty('--aviso-color', col);
+  document.getElementById('aviso-icono').innerHTML = AVISO_ICONOS[ev.estado];
+  document.getElementById('aviso-pieza').textContent = LABELS[node.userData.type] || node.userData.type;
+  document.getElementById('aviso-estado').textContent = AVISO_UI[ev.estado].texto;
+  const signo = ev.dy > 0 ? '+' : '';
+  document.getElementById('aviso-dy').textContent = `${signo}${ev.dy.toFixed(1)} cm`;
+  document.getElementById('aviso-contacto').textContent = `${ev.contacto} %`;
+  panel.classList.add('visible');
+}
+
+function pintarHistorialAviso() {
+  const lista = document.getElementById('aviso-hist');
+  const n = document.getElementById('aviso-hist-n');
+  if (n) n.textContent = String(avisoHistorial.length);
+  if (!lista) return;
+  lista.replaceChildren();
+  avisoHistorial.forEach(h => {
+    const li = document.createElement('li');
+    const hora = new Date(h.t).toLocaleTimeString('es-MX', { hour12: false });
+    li.textContent = `${hora} · ${h.label} · ${h.avisos.map(k => AVISO_UI[k].texto).join(' + ')} · Δy ${h.dy.toFixed(1)} cm`;
+    lista.appendChild(li);
+  });
+}
+
+function sonidoAviso() {
+  try {
+    avisoAudio = avisoAudio || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = avisoAudio.createOscillator(), gain = avisoAudio.createGain(), t0 = avisoAudio.currentTime;
+    osc.connect(gain); gain.connect(avisoAudio.destination);
+    osc.type = 'sine'; osc.frequency.value = 440;
+    gain.gain.setValueAtTime(0.12, t0); gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+    osc.start(t0); osc.stop(t0 + 0.2);
+  } catch (e) { }
+}
+
+// Anota el aviso en el historial (solo si hay aviso y no repite al último) y lo envía a la telemetría existente.
+function anotarAviso(node, ev) {
+  if (!ev.avisos.length) return;
+  const id = node.userData.id;
+  const firma = `${id}|${ev.avisos.join('+')}|${ev.dy}`;
+  if (avisoHistorial[0]?.firma === firma) return;
+  avisoHistorial.unshift({ firma, t: Date.now(), id, tipo: node.userData.type, label: LABELS[node.userData.type] || node.userData.type, avisos: [...ev.avisos], dy: ev.dy });
+  if (avisoHistorial.length > AVISO_HISTORIAL_MAX) avisoHistorial.length = AVISO_HISTORIAL_MAX;
+  pintarHistorialAviso();
+  try {
+    registrar('aviso_colocacion', {
+      pos_x: node.position.x, pos_y: node.position.y, pos_z: node.position.z,
+      contexto: { tipo: node.userData.type, id, avisos: ev.avisos, dy_cm: ev.dy, contacto_pct: ev.contacto },
+    });
+  } catch (e) { }
+  if (avisoSonidoActivo) sonidoAviso();
+}
+
+// Punto de entrada: recalcula y repinta el aviso de `node` (o lo limpia si no corresponde).
+function actualizarAvisoColocacion(node) {
+  if (vistaAlumnoId) return;
+  if (!node || !TIPOS_AVISO.includes(node.userData?.type) || node.userData?.embeddedInWall) { limpiarAvisoColocacion(); return; }
+  let ev = null;
+  try { ev = evaluarColocacion(node); } catch (e) { ev = null; }
+  if (!ev) { limpiarAvisoColocacion(); return; }
+  borrarEstadosAviso();
+  const error = ev.avisos.includes('superpuesta');
+  node.userData.estadoColocacion = {
+    estado: ev.estado, avisos: ev.avisos, dy: ev.dy, contacto: ev.contacto,
+    solapaCon: ev.solapaCon, apoyoId: ev.apoyo.soporte, outline: error ? '#C62828' : '#1565C0', t: Date.now(),
+  };
+  aplicarOutlineAviso(node, error ? OUTLINE_ERROR : OUTLINE_SELECCION); // selección = azul; error = rojo
+  mostrarContactoAviso(ev);
+  pintarAviso(node, ev);
+  anotarAviso(node, ev);
+  actualizarBotonesApoyar(); // F2.4c (gancho 4/5): muestra o habilita «Apoyar» / «Deshacer» según el estado recién evaluado
+}
+
+// Evalúa en cuanto termina el siguiente fotograma, para ver la posición ya corregida por clampToZone/colisión.
+function evaluarAvisoTrasFrame() {
+  if (scene) scene.onAfterRenderObservable.addOnce(() => { if (selectedMesh) actualizarAvisoColocacion(selectedMesh); });
+}
+
+// Escape, sonido, historial plegable y resaltado ámbar de la pieza candidata a apoyo (hover).
+function configurarAvisosColocacion() {
+  if (vistaAlumnoId) return;
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Escape' && selectedMesh?.userData?.estadoColocacion) limpiarAvisoColocacion({ conservarSeleccion: true });
+  });
+  const chk = document.getElementById('aviso-sonido');
+  if (chk) chk.addEventListener('change', () => { avisoSonidoActivo = chk.checked; });
+  const btn = document.getElementById('aviso-hist-toggle');
+  const lista = document.getElementById('aviso-hist');
+  if (btn && lista) btn.addEventListener('click', () => { lista.hidden = !lista.hidden; btn.setAttribute('aria-expanded', String(!lista.hidden)); });
+  let ultimo = 0, pendiente = null;
+  // Resalta (ámbar) la pieza candidata a apoyo bajo el puntero. Solo lectura de la escena: no toca cámara ni selección.
+  const resaltarCandidata = () => {
+    if (!selectedMesh?.userData?.estadoColocacion) { quitarHoverAviso(); return; }
+    const pick = scene.pick(scene.pointerX, scene.pointerY, m => m.isPickable && m.isVisible && m.isEnabled());
+    let nodo = pick?.hit ? pick.pickedMesh : null;
+    while (nodo && !nodo.userData?.type) nodo = nodo.parent;
+    if (!nodo || nodo === selectedMesh || !COLLISION_TYPES.includes(nodo.userData.type)) { quitarHoverAviso(); return; }
+    if (avisoHover === nodo) return;
+    quitarHoverAviso();
+    avisoHover = nodo;
+    nodo.getChildMeshes().forEach(c => { try { highlightLayer.addMesh(c, OUTLINE_CANDIDATA); } catch (e) { } });
+  };
+  scene.onPointerObservable.add(info => {
+    if (info.type !== PointerEventTypes.POINTERMOVE) return;
+    // Solo con una pieza evaluada y sin botón pulsado: no interfiere con órbita, desplazamiento ni gizmo.
+    if (!selectedMesh?.userData?.estadoColocacion || info.event?.buttons) {
+      if (pendiente) { clearTimeout(pendiente); pendiente = null; }
+      quitarHoverAviso(); return;
+    }
+    const ahora = performance.now();
+    if (ahora - ultimo < 90) {
+      // Limitado a ~11 evaluaciones/s; la última posición del puntero siempre se evalúa (evaluación diferida).
+      if (!pendiente) pendiente = setTimeout(() => { pendiente = null; ultimo = performance.now(); resaltarCandidata(); }, 90);
+      return;
+    }
+    ultimo = ahora;
+    resaltarCandidata();
+  });
+  configurarApoyar(); // F2.4c (gancho 5/5): botón, atajos, aviso de caída y deshacer
+}
+
+// ── F2.4c · «Apoyar» explícito ────────────────────────────────────────────────
+// Conecta desplazamientoParaApoyar (manipulacion.js, sin cambios) con un botón del panel de F2.2 y el atajo A.
+// Solo BAJA piezas flotantes (estado `flotante`, Δ número): nunca se apoya sola; el alumno lo pide. Animación de 200 ms
+// (ease-out). Si |Δ| > 2 m se pide confirmación. «Deshacer» revierte solo el último «Apoyar» (una ranura, transitoria).
+// Nada de esto se guarda: la nueva `y` se persiste como cualquier movimiento (p[1], marcarSucio); el estado de la
+// animación, de la confirmación y del deshacer vive en variables de módulo, no en userData ni en el estado v2.
+const APOYAR_DURACION_MS = 200;
+const APOYAR_FPS = 60;
+const APOYAR_CAIDA_MAXIMA = 2; // m: |Δ| estrictamente mayor pide confirmación
+let apoyarEnCurso = null;      // { nodo, y0, y1, estadoAnterior, anim, cancelada } mientras dura la animación (C2)
+let apoyarConfirmando = null;  // { nodo, dy, estadoAnterior } mientras el aviso de caída está abierto
+let apoyarUndo = null;         // { nodo, y0, dy, firma } del último «Apoyar»
+
+// Δy (m) que propone manipulacion.js para el nodo, o null. Mismas cajas (con la marca `penetra`) que usa el aviso F2.2.
+function desplazamientoApoyo(node) {
+  try {
+    const caja = getBlockHitbox(node);
+    return caja ? desplazamientoParaApoyar(caja, cajasApoyoAviso(node, caja)) : null;
+  } catch (e) { return null; }
+}
+
+const apoyarDatos = node => ({ pos_x: node.position.x, pos_y: node.position.y, pos_z: node.position.z });
+
+// Visibilidad y estado de los dos botones. «Apoyar»: visible solo con estado `flotante`; habilitado solo si Δ es número y
+// no hay animación en curso (C2). «Deshacer»: visible solo para la pieza del último «Apoyar», sin animación en curso.
+function actualizarBotonesApoyar() {
+  const cont = document.getElementById('apoyar-acciones');
+  const btn = document.getElementById('apoyar-btn');
+  const des = document.getElementById('apoyar-deshacer');
+  if (!cont || !btn || !des) return;
+  const node = selectedMesh;
+  const flotante = !vistaAlumnoId && !!node && node.userData?.estadoColocacion?.estado === 'flotante';
+  btn.hidden = !flotante;
+  btn.disabled = !flotante || !!apoyarEnCurso || desplazamientoApoyo(node) === null;
+  des.hidden = !(apoyarUndo && apoyarUndo.nodo === node && !node.isDisposed() && !apoyarEnCurso);
+  cont.hidden = btn.hidden && des.hidden;
+  actualizarBotonesDesapoyar(); // F2.4d (llamada 3/4): corre al final, así que su criterio de visibilidad del contenedor prevalece
+}
+
+// Aviso de caída (|Δ| > 2 m). No bloqueante: Escape, clic fuera o cambio de selección equivalen a Cancelar.
+function cerrarConfirmacionApoyo({ cancelado }) {
+  const c = apoyarConfirmando;
+  if (!c) return;
+  apoyarConfirmando = null;
+  const el = document.getElementById('apoyar-confirma');
+  if (el) el.hidden = true;
+  if (!cancelado) return;
+  try {
+    registrar('apoyar_pieza', {
+      ...apoyarDatos(c.nodo),
+      contexto: {
+        id: c.nodo.userData?.id, tipo: c.nodo.userData?.type, desplazamiento: c.dy,
+        estado_anterior: c.estadoAnterior, estado_nuevo: c.estadoAnterior, confirmado: false, cancelado: true,
+      },
+    });
+  } catch (e) { }
+}
+
+function pedirConfirmacionApoyo(node, dy, estadoAnterior) {
+  const el = document.getElementById('apoyar-confirma');
+  const txt = document.getElementById('apoyar-confirma-texto');
+  if (!el || !txt) return;
+  apoyarConfirmando = { nodo: node, dy, estadoAnterior };
+  const metros = Math.abs(dy).toFixed(1).replace(/\.0$/, '');
+  txt.textContent = `¿Apoyar la pieza a ${metros} m más abajo?`;
+  el.hidden = false;
+}
+
+// Cancela la animación en curso (interacción del alumno): la pieza vuelve a su posición inicial y no queda nada que deshacer.
+function cancelarApoyo() {
+  const a = apoyarEnCurso;
+  if (!a) return;
+  a.cancelada = true;
+  apoyarEnCurso = null;
+  try { a.anim?.stop(); } catch (e) { }
+  if (!a.nodo.isDisposed()) a.nodo.position.y = a.y0;
+  apoyarUndo = null;
+  actualizarBotonesApoyar();
+}
+
+// Anima position.y de y0 a y1 en 200 ms (ease-out). Un frame después de llegar (cuando clampToZone y la colisión ya
+// han podido actuar) se mide la posición REAL, se refresca el panel y se registra todo (finalizarApoyo).
+function ejecutarApoyo(node, dy, estadoAnterior) {
+  if (!scene) return;
+  const y0 = node.position.y;
+  const a = { nodo: node, y0, y1: y0 + dy, estadoAnterior, anim: null, cancelada: false };
+  apoyarEnCurso = a;
+  actualizarBotonesApoyar(); // C2: «Apoyar» deshabilitado durante la animación
+  const ease = new CubicEase();
+  ease.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
+  a.anim = Animation.CreateAndStartAnimation('apoyar_pieza', node, 'position.y', APOYAR_FPS,
+    Math.round(APOYAR_DURACION_MS / 1000 * APOYAR_FPS), y0, a.y1, Animation.ANIMATIONLOOPMODE_CONSTANT, ease, () => {
+      if (a.cancelada || apoyarEnCurso !== a) return; // stop() también dispara este callback: ya se canceló
+      if (!node.isDisposed()) node.position.y = a.y1;
+      scene.onAfterRenderObservable.addOnce(() => finalizarApoyo(a));
+    });
+}
+
+function finalizarApoyo(a) {
+  if (a.cancelada || apoyarEnCurso !== a) return;
+  apoyarEnCurso = null;
+  const node = a.nodo;
+  if (node.isDisposed()) { actualizarBotonesApoyar(); return; }
+  const dyReal = node.position.y - a.y0; // puede diferir de Δ si la colisión de casa.js detuvo la pieza (C1)
+  const movio = Math.abs(dyReal) > 1e-6;
+  marcarSucio();
+  if (selectedMesh === node) actualizarAvisoColocacion(node);
+  if (movio) apoyarUndo = { nodo: node, y0: a.y0, dy: dyReal, firma: blockSig(node) };
+  else setTip('No se pudo apoyar: otra pieza lo impide');
+  try {
+    registrar('apoyar_pieza', {
+      ...apoyarDatos(node),
+      contexto: {
+        id: node.userData?.id, tipo: node.userData?.type, desplazamiento: dyReal,
+        estado_anterior: a.estadoAnterior, estado_nuevo: node.userData?.estadoColocacion?.estado ?? null,
+        confirmado: true, cancelado: false,
+      },
+    });
+  } catch (e) { }
+  actualizarBotonesApoyar();
+}
+
+// Acción común del botón y del atajo A.
+function accionApoyar() {
+  const node = selectedMesh;
+  if (!node || apoyarEnCurso || apoyarConfirmando) return;
+  const estado = node.userData?.estadoColocacion?.estado;
+  if (estado !== 'flotante') return;
+  const dy = desplazamientoApoyo(node);
+  if (dy === null) { setTip('No hay apoyo disponible para esta pieza'); actualizarBotonesApoyar(); return; }
+  if (Math.abs(dy) > APOYAR_CAIDA_MAXIMA) { pedirConfirmacionApoyo(node, dy, estado); return; }
+  ejecutarApoyo(node, dy, estado);
+}
+
+function confirmarApoyo() {
+  const c = apoyarConfirmando;
+  if (!c) return;
+  cerrarConfirmacionApoyo({ cancelado: false });
+  const dy = c.nodo === selectedMesh && !c.nodo.isDisposed() ? desplazamientoApoyo(c.nodo) : null; // se recalcula al confirmar
+  if (dy === null) { actualizarBotonesApoyar(); return; }
+  ejecutarApoyo(c.nodo, dy, c.estadoAnterior);
+}
+
+// Deshace solo el último «Apoyar», y solo si la pieza sigue seleccionada y no se ha tocado desde entonces.
+function accionDeshacerApoyo() {
+  const u = apoyarUndo;
+  if (!u || apoyarEnCurso) return;
+  const node = u.nodo;
+  if (node.isDisposed() || node !== selectedMesh || blockSig(node) !== u.firma) { apoyarUndo = null; actualizarBotonesApoyar(); return; }
+  apoyarUndo = null;
+  node.position.y = u.y0;
+  marcarSucio();
+  try {
+    registrar('deshacer_apoyar', {
+      ...apoyarDatos(node),
+      contexto: { id: node.userData?.id, tipo: node.userData?.type, desplazamiento_revertido: u.dy },
+    });
+  } catch (e) { }
+  actualizarBotonesApoyar();
+  evaluarAvisoTrasFrame(); // recalcula el estado (no se recupera el guardado) y refresca el panel
+}
+
+// Gancho de selectObject (C4, 1/5): cualquier cambio de selección cancela animación y aviso; el deshacer es de UNA pieza.
+function apoyarAlCambiarSeleccion(nuevo) {
+  cancelarApoyo();
+  cerrarConfirmacionApoyo({ cancelado: true });
+  if (apoyarUndo && apoyarUndo.nodo !== nuevo) apoyarUndo = null;
+  desapoyarAlCambiarSeleccion(nuevo); // F2.4d (llamada 1/4)
+}
+
+// Gancho de deleteSelected (C4, 2/5).
+function apoyarAlBorrar() {
+  cancelarApoyo();
+  cerrarConfirmacionApoyo({ cancelado: true });
+  apoyarUndo = null;
+  desapoyarAlBorrar(); // F2.4d (llamada 2/4)
+}
+
+function configurarApoyar() {
+  if (vistaAlumnoId) return;
+  const el = id => document.getElementById(id);
+  el('apoyar-btn')?.addEventListener('click', accionApoyar);
+  el('apoyar-deshacer')?.addEventListener('click', accionDeshacerApoyo);
+  el('apoyar-confirma-si')?.addEventListener('click', confirmarApoyo);
+  el('apoyar-confirma-no')?.addEventListener('click', () => cerrarConfirmacionApoyo({ cancelado: true }));
+  // Gizmo: arrastrar la pieza durante los 200 ms cancela la animación (solo se añade un observador).
+  gizmoMgr?.gizmos?.positionGizmo?.onDragStartObservable.add(() => { cancelarApoyo(); cerrarConfirmacionApoyo({ cancelado: true }); });
+  // Clic fuera del aviso de caída = Cancelar (no bloquea: el clic sigue su curso, p. ej. seleccionar otra pieza).
+  document.addEventListener('pointerdown', e => {
+    if (!apoyarConfirmando) return;
+    if (e.target?.closest?.('#apoyar-confirma, #apoyar-btn')) return;
+    cerrarConfirmacionApoyo({ cancelado: true });
+  }, true);
+  // Escape cierra el aviso de caída. En fase de captura y solo con el aviso abierto, para que el Escape de F2.2 no oculte además el panel.
+  window.addEventListener('keydown', e => {
+    if (e.code !== 'Escape' || !apoyarConfirmando) return;
+    cerrarConfirmacionApoyo({ cancelado: true });
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }, true);
+  const enModal = () => {
+    if (document.querySelector('[id$="-overlay"].open')) return true;
+    const corte = el('cut-overlay');
+    return !!corte && getComputedStyle(corte).display !== 'none';
+  };
+  const editando = t => !!t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
+  window.addEventListener('keydown', e => {
+    if (e.repeat || editando(e.target) || editando(document.activeElement) || enModal()) return;
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (e.code === 'KeyA' && !ctrl && !e.altKey) {
+      // C2: durante la animación el atajo no hace nada; solo actúa si el botón estaría visible y habilitado.
+      const btn = el('apoyar-btn');
+      if (!selectedMesh || apoyarEnCurso || !btn || btn.hidden || btn.disabled) return;
+      e.preventDefault();
+      accionApoyar();
+    } else if (e.code === 'KeyZ' && ctrl && !e.shiftKey && !e.altKey) {
+      if (!apoyarUndo || apoyarUndo.nodo !== selectedMesh || apoyarEnCurso) return;
+      e.preventDefault();
+      accionDeshacerApoyo();
+    } else if (apoyarEnCurso && !ctrl && /^Key[QERFTGX]$/.test(e.code)) {
+      cancelarApoyo(); // girar con el teclado durante la animación = interacción: se cancela
+    }
+  });
+  configurarDesapoyar(); // F2.4d (llamada 4/4)
+}
+
+// ── F2.4d · «Desapoyar» explícito ─────────────────────────────────────────────
+// Acción inversa de «Apoyar»: sube la pieza seleccionada 50 cm desde donde está (no consulta desplazamientoParaApoyar),
+// con la misma animación de 200 ms, atajo Shift+A, deshacer de una ranura PROPIA y telemetría desapoyar_pieza.
+// No reabre F2.4c: lee sus variables (apoyarEnCurso, apoyarConfirmando, apoyarUndo) pero no cambia su lógica; solo recibe
+// 4 llamadas de una línea (apoyarAlCambiarSeleccion, apoyarAlBorrar, actualizarBotonesApoyar, configurarApoyar).
+// La animación está DUPLICADA a propósito (F2.4c la tiene dentro de ejecutarApoyo; extraerla obligaría a editar F2.4c).
+// Nada se guarda: la nueva `y` se persiste como cualquier movimiento (p[1], marcarSucio); animación y deshacer viven aquí.
+const DESAPOYAR_PASO = 0.5; // m, fijo
+let desapoyarEnCurso = null; // { nodo, y0, y1, estadoAnterior, anim, cancelada } mientras dura la animación
+let desapoyarUndo = null;    // { nodo, y0, paso, firma } del último «Desapoyar» (ranura independiente de apoyarUndo)
+
+// Piezas sobre las que actúa: las mismas que tienen panel de F2.2 (TIPOS_AVISO, sin las incrustadas en una pared).
+// Quedan fuera la losa (estática), los muros y el resto.
+function puedeDesapoyar(node) {
+  return !vistaAlumnoId && !!node && !node.isDisposed() && TIPOS_AVISO.includes(node.userData?.type) && !node.userData?.embeddedInWall;
+}
+
+function estadoActualPieza(node) {
+  const e = node.userData?.estadoColocacion?.estado;
+  if (e) return e;
+  try { return evaluarColocacion(node)?.estado ?? null; } catch (err) { return null; }
+}
+
+// «Desapoyar»: visible y habilitado con una pieza evaluable seleccionada (no depende de su estado), salvo mientras haya una
+// animación (de «Apoyar» o de «Desapoyar»). Corre al final de actualizarBotonesApoyar: aquí se decide también el bloqueo mutuo
+// (el botón «Apoyar» se deshabilita mientras «Desapoyar» anima), el único «Deshacer» visible (el de la ranura cuya firma coincide con
+// la posición actual: LIFO de dos niveles) y la visibilidad del contenedor.
+function actualizarBotonesDesapoyar() {
+  const el = id => document.getElementById(id);
+  const cont = el('apoyar-acciones'), btn = el('desapoyar-btn'), des = el('desapoyar-deshacer');
+  const btnA = el('apoyar-btn'), desA = el('apoyar-deshacer');
+  if (!cont || !btn || !des || !btnA || !desA) return;
+  const node = selectedMesh;
+  const evaluable = puedeDesapoyar(node);
+  const firma = evaluable ? blockSig(node) : null;
+  btn.hidden = !evaluable;
+  btn.disabled = !evaluable || !!apoyarEnCurso || !!desapoyarEnCurso;
+  if (desapoyarEnCurso) btnA.disabled = true; // bloqueo mutuo: no se apoya mientras se desapoya
+  des.hidden = !(evaluable && desapoyarUndo && desapoyarUndo.nodo === node && !desapoyarEnCurso && !apoyarEnCurso &&
+    desapoyarUndo.firma === firma);
+  // El «Deshacer» de «Apoyar» solo se ofrece si su firma sigue coincidiendo (si después se desapoyó, el que vale es el otro).
+  if (!desA.hidden && (!evaluable || desapoyarEnCurso || apoyarUndo?.firma !== firma)) desA.hidden = true;
+  cont.hidden = btn.hidden && btnA.hidden && desA.hidden && des.hidden;
+}
+
+// Cancela la animación en curso (interacción del alumno): la pieza vuelve a su `y` inicial y no queda nada que deshacer.
+function cancelarDesapoyo() {
+  const a = desapoyarEnCurso;
+  if (!a) return;
+  a.cancelada = true;
+  desapoyarEnCurso = null;
+  try { a.anim?.stop(); } catch (e) { }
+  if (!a.nodo.isDisposed()) a.nodo.position.y = a.y0;
+  desapoyarUndo = null;
+  actualizarBotonesApoyar();
+}
+
+function ejecutarDesapoyo(node, estadoAnterior) {
+  if (!scene) return;
+  const y0 = node.position.y;
+  const a = { nodo: node, y0, y1: y0 + DESAPOYAR_PASO, estadoAnterior, anim: null, cancelada: false };
+  desapoyarEnCurso = a;
+  actualizarBotonesApoyar(); // deshabilita «Desapoyar» y «Apoyar» durante los 200 ms
+  const ease = new CubicEase();
+  ease.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
+  a.anim = Animation.CreateAndStartAnimation('desapoyar_pieza', node, 'position.y', APOYAR_FPS,
+    Math.round(APOYAR_DURACION_MS / 1000 * APOYAR_FPS), y0, a.y1, Animation.ANIMATIONLOOPMODE_CONSTANT, ease, () => {
+      if (a.cancelada || desapoyarEnCurso !== a) return; // stop() también dispara este callback: ya se canceló
+      if (!node.isDisposed()) node.position.y = a.y1;
+      scene.onAfterRenderObservable.addOnce(() => finalizarDesapoyo(a));
+    });
+}
+
+// Un fotograma después de llegar, cuando clampToZone y la colisión de casa.js ya han podido actuar, se mide la `y` REAL:
+// al subir una pieza con otra encima la colisión la detiene, y entonces sube solo lo que cabe (o nada).
+function finalizarDesapoyo(a) {
+  if (a.cancelada || desapoyarEnCurso !== a) return;
+  desapoyarEnCurso = null;
+  const node = a.nodo;
+  if (node.isDisposed()) { actualizarBotonesApoyar(); return; }
+  const paso = node.position.y - a.y0;
+  if (Math.abs(paso) <= 1e-6) { // no se movió: sin guardado, sin telemetría, sin deshacer
+    setTip('No se pudo subir: otra pieza lo impide');
+    actualizarBotonesApoyar();
+    return;
+  }
+  marcarSucio();
+  if (selectedMesh === node) actualizarAvisoColocacion(node);
+  desapoyarUndo = { nodo: node, y0: a.y0, paso, firma: blockSig(node) };
+  try {
+    registrar('desapoyar_pieza', {
+      ...apoyarDatos(node),
+      contexto: { id: node.userData?.id, paso, estado_anterior: a.estadoAnterior, estado_nuevo: node.userData?.estadoColocacion?.estado ?? null },
+    });
+  } catch (e) { }
+  actualizarBotonesApoyar();
+}
+
+function accionDesapoyar() {
+  const node = selectedMesh;
+  if (!puedeDesapoyar(node) || apoyarEnCurso || desapoyarEnCurso || apoyarConfirmando) return;
+  ejecutarDesapoyo(node, estadoActualPieza(node));
+}
+
+// Deshace solo el último «Desapoyar», y solo si la pieza sigue seleccionada y no se ha tocado desde entonces.
+function accionDeshacerDesapoyo() {
+  const u = desapoyarUndo;
+  if (!u || desapoyarEnCurso || apoyarEnCurso) return;
+  const node = u.nodo;
+  if (node.isDisposed() || node !== selectedMesh || blockSig(node) !== u.firma) { actualizarBotonesApoyar(); return; }
+  desapoyarUndo = null;
+  node.position.y = u.y0;
+  marcarSucio();
+  try {
+    registrar('deshacer_desapoyar', {
+      ...apoyarDatos(node),
+      contexto: { id: node.userData?.id, paso_revertido: u.paso },
+    });
+  } catch (e) { }
+  actualizarBotonesApoyar();
+  evaluarAvisoTrasFrame(); // recalcula el estado (no se recupera el guardado) y refresca el panel
+}
+
+// Llamadas desde F2.4c (selectObject / deleteSelected pasan por apoyarAlCambiarSeleccion / apoyarAlBorrar).
+function desapoyarAlCambiarSeleccion(nuevo) {
+  cancelarDesapoyo();
+  if (desapoyarUndo && desapoyarUndo.nodo !== nuevo) desapoyarUndo = null;
+}
+function desapoyarAlBorrar() {
+  cancelarDesapoyo();
+  desapoyarUndo = null;
+}
+
+function configurarDesapoyar() {
+  if (vistaAlumnoId) return;
+  const el = id => document.getElementById(id);
+  el('desapoyar-btn')?.addEventListener('click', accionDesapoyar);
+  el('desapoyar-deshacer')?.addEventListener('click', accionDeshacerDesapoyo);
+  // Gizmo: arrastrar la pieza durante los 200 ms cancela la animación (solo se añade un observador).
+  gizmoMgr?.gizmos?.positionGizmo?.onDragStartObservable.add(() => cancelarDesapoyo());
+  const enModal = () => {
+    if (document.querySelector('[id$="-overlay"].open')) return true;
+    const corte = el('cut-overlay');
+    return !!corte && getComputedStyle(corte).display !== 'none';
+  };
+  const editando = t => !!t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
+  // FASE DE CAPTURA: corre antes que el oyente de «Apoyar» (F2.4c), que no distingue Shift. Shift+A es solo de «Desapoyar»:
+  // se atiende aquí y se detiene la propagación, así que «Apoyar» nunca lo ve. A sin Shift sigue siendo de «Apoyar».
+  window.addEventListener('keydown', e => {
+    if (editando(e.target) || editando(document.activeElement) || enModal()) return; // no se traga ni una «A» escrita
+    const ctrl = e.ctrlKey || e.metaKey;
+    const tragar = () => { e.stopImmediatePropagation(); e.preventDefault(); };
+    if (e.code === 'KeyA' && !ctrl && !e.altKey) {
+      if (desapoyarEnCurso) { // durante la animación A, Shift+A = interacción: se cancela y no se ejecuta nada más
+        if (!e.repeat) cancelarDesapoyo();
+        tragar();
+        return;
+      }
+      if (!e.shiftKey) return; // A sin Shift: de «Apoyar» (F2.4c)
+      tragar();
+      if (e.repeat || apoyarEnCurso || apoyarConfirmando) return;
+      const btn = el('desapoyar-btn');
+      if (!selectedMesh || !btn || btn.hidden || btn.disabled) return;
+      accionDesapoyar();
+    } else if (e.code === 'KeyZ' && ctrl && !e.shiftKey && !e.altKey) {
+      if (desapoyarEnCurso) { if (!e.repeat) cancelarDesapoyo(); tragar(); return; }
+      // Ctrl+Z lo atiende «Desapoyar» solo si su ranura es la que vale (firma = posición actual); si no, sigue a «Apoyar».
+      const u = desapoyarUndo;
+      if (e.repeat || !u || apoyarEnCurso || u.nodo !== selectedMesh || u.nodo.isDisposed() || blockSig(u.nodo) !== u.firma) return;
+      tragar();
+      accionDeshacerDesapoyo();
+    } else if (desapoyarEnCurso && !ctrl && !e.repeat && /^Key[QERFTGX]$/.test(e.code)) {
+      cancelarDesapoyo(); // girar con el teclado durante la animación = interacción: se cancela (la rotación sigue su curso)
+    }
+  }, true);
+}
+
 // configura el gizmo de posición y los controles de teclado para cámara y objetos
 function setupGizmos() {
   if (vistaAlumnoId) return; // Deshabilitado en vista de maestro
@@ -765,6 +1486,8 @@ function setupGizmos() {
   gizmoMgr.scaleGizmoEnabled = false;
 
   gizmoMgr.gizmos.positionGizmo?.onDragEndObservable.add(() => marcarSucio());
+  // F2.2: al soltar el gizmo se reevalúa el aviso de colocación (informativo; no mueve ni bloquea nada).
+  gizmoMgr.gizmos.positionGizmo?.onDragEndObservable.add(() => { if (typeof evaluarAvisoTrasFrame === 'function') evaluarAvisoTrasFrame(); });
 
   scene.registerBeforeRender(() => {
     if (selectedMesh) clampToZone(selectedMesh);
@@ -827,11 +1550,16 @@ function setupGizmos() {
       case 'KeyX': if (selectedMesh && selectedMesh.userData?.type !== 'concreto_slab_20') { selectedMesh.rotation.x = 0; selectedMesh.rotation.z = 0; handled = true; marcarSucio(); } break;
     }
     if (handled) e.preventDefault();
+    // F2.2: tras girar con teclado. El typeof mantiene autónoma a setupGizmos (tests/integracion.test.js la ejecuta aislada).
+    if (handled && /^Key[QERFTGX]$/.test(e.code) && typeof evaluarAvisoTrasFrame === 'function') evaluarAvisoTrasFrame();
   });
 }
 
 // selecciona o deselecciona un objeto, maneja el highlight y los gizmos
 function selectObject(node) {
+  // F4d: las paredes generadas del plano no se seleccionan (ni gizmo, ni teclas Q/E/R/F/T/G/X, ni borrado pieza a pieza): se gestionan desde el editor de plano.
+  if (node?.userData?.type === 'paredes_plano') { setTip('🧱 <b>Paredes del plano</b> · Se gestionan desde el editor de plano (Materializar / Desmaterializar).'); return; }
+  apoyarAlCambiarSeleccion(node); // F2.4c (gancho 1/5): cancela animación y aviso de caída; limpia el deshacer si cambia la pieza
   if (selectedMesh && highlightLayer) {
     try {
       selectedMesh.getChildMeshes().forEach(c => {
@@ -839,8 +1567,10 @@ function selectObject(node) {
       });
     } catch (e) { }
   }
+  quitarHoverAviso(); // F2.2: el resaltado ámbar de candidata no debe sobrevivir al cambio de selección
   selectedMesh = node;
   if (!node) {
+    limpiarAvisoColocacion(); // F2.2: clic en vacío / cambio de pieza limpian el aviso
     gizmoMgr.attachToMesh(null);
     document.getElementById('btnDel').style.display = 'none';
     document.getElementById('xinfo').style.display = 'none';
@@ -851,7 +1581,7 @@ function selectObject(node) {
   }
   if (highlightLayer) {
     node.getChildMeshes().forEach(c => {
-      try { highlightLayer.addMesh(c, new Color3(0.3, 0.6, 1.0)); } catch (e) { }
+      try { highlightLayer.addMesh(c, OUTLINE_SELECCION); } catch (e) { } // F2.2: azul de selección (#1565C0); el error es rojo
     });
   }
   if (node.userData?.type === 'concreto_slab_20') {
@@ -864,6 +1594,7 @@ function selectObject(node) {
   document.getElementById('btnDel').style.display = 'inline-block';
   document.getElementById('xinfo').style.display = 'block';
   updateObjListUI();
+  actualizarAvisoColocacion(node); // F2.2: aviso informativo de la pieza recién seleccionada
 }
 
 // detecta qué objeto tocó el usuario con el puntero
@@ -901,6 +1632,7 @@ function deleteSelected() {
     showLockedMessage('🪨 El concreto no se puede eliminar directamente. Usa el botón "🗑 Eliminar concreto" en la lista de objetos si deseas rehacerlo.');
     return;
   }
+  apoyarAlBorrar(); // F2.4c (gancho 2/5): la pieza desaparece; no queda animación, aviso ni deshacer
   const id = selectedMesh.userData?.id;
   const deletedType = selectedMesh.userData?.type;
   if (highlightLayer) {
@@ -917,6 +1649,7 @@ function deleteSelected() {
   // también de objList o quedarían fantasmas contando de más.
   objList = objList.filter(o => o.id !== id && o.embeddedInWall !== id);
   selectedMesh = null;
+  limpiarAvisoColocacion(); // F2.2: la pieza ya no existe
   updateObjListUI();
   document.getElementById('btnDel').style.display = 'none';
   document.getElementById('xinfo').style.display = 'none';
@@ -950,12 +1683,13 @@ function updateObjListUI() {
     const isSel = selectedMesh?.userData?.id === o.id;
     const isSlab = o.type === 'concreto_slab_20';
     const isLamp = o.type === 'lampara';
+    const isPared = o.type === 'paredes_plano';   // F4d: sin botón de clonar
     const isWallWithOpening = (o.type === 'wall_block' || o.type === 'wall_madera') &&
       (o.node?.userData?.wallMode === 'puerta' || o.node?.userData?.wallMode === 'ventana');
     // Concreto: botón especial para eliminar (re-habilita modal). Lámpara: sin clonar. Pared con puerta/ventana: sin clonar. Resto: botón clonar.
     const actionBtn = isSlab
       ? `<span class="obj-clone-hint" style="color:rgba(255,100,100,.8)" title="Eliminar concreto" onclick="event.stopPropagation();deleteConcreto(${o.id})">🗑</span>`
-      : (isLamp || isWallWithOpening)
+      : (isLamp || isWallWithOpening || isPared)
         ? ''
         : `<span class="obj-clone-hint" onclick="event.stopPropagation();cloneObj(${o.id})">⧉</span>`;
     return `<div class="obj-item ${isSel ? 'sel' : ''}" title="Clic para seleccionar" onclick="selectFromList(${o.id})">
@@ -983,6 +1717,7 @@ function updateObjListUI() {
 
 function selectFromList(id) {
   const e = objList.find(o => o.id === id);
+  if (e && e.type === 'paredes_plano') { selectObject(e.node); return; }   // F4d: informa y no selecciona
   if (e) {
     selectObject(e.node);
     const base = e.type.replace('wall_', '').replace('floor_', '');
@@ -998,6 +1733,7 @@ function selectFromList(id) {
 function cloneObj(id) {
   const src = objList.find(o => o.id === id);
   if (!src) return;
+  if (src.type === 'paredes_plano') return;   // F4d: las paredes generadas no se duplican
   // El concreto 20×20 no se puede duplicar
   if (src.type === 'concreto_slab_20') {
     showLockedMessage('🪨 El concreto 20×20 no se puede duplicar. Si quieres uno nuevo, elimina el actual primero.');
@@ -1172,6 +1908,7 @@ function deleteConcreto(id) {
     document.getElementById('btnDel').style.display = 'none';
     document.getElementById('xinfo').style.display = 'none';
     selectedMesh = null;
+    limpiarAvisoColocacion(); // F2.2
   }
   node.getChildMeshes().forEach(m => {
     if (shadowGen) try { shadowGen.removeShadowCaster(m); } catch (e) { }
@@ -1225,8 +1962,8 @@ function toggleNight() {
   try { registrar('cambio_noche', { contexto: { es_noche: isNight } }); } catch (e) { }
 }
 function applyLighting() {
-  if (isNight || isStorm) {
-    sunLight.intensity = isStorm ? 0.02 : 0.04; hemiLight.intensity = isStorm ? 0.03 : 0.06;
+  if (isNight) {
+    sunLight.intensity = 0.04; hemiLight.intensity = 0.06;
     scene.clearColor = new Color4(0.01, 0.01, 0.06, 1);
     scene.fogColor = new Color3(0.01, 0.02, 0.08);
     document.body.classList.add('night-mode');
@@ -1488,25 +2225,6 @@ function concretoFinalizar() {
   closeConcretoModal();
   marcarSucio();
 }
-
-// sistema de tormenta desactivado, se mantiene para no romper compatibilidad
-function toggleStorm() { }
-function startStorm() { }
-function stopStorm() { }
-function newRaindrop() {
-  return {
-    x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
-    len: 10 + Math.random() * 20, speed: 8 + Math.random() * 10, opacity: 0.3 + Math.random() * 0.5
-  };
-}
-function stormTick() {
-  if (!rainCtx) return;
-  rainCtx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
-  windLevel += (windTarget - windLevel) * 0.02;
-  if (Math.random() < 0.005) { windDir *= -1; windTarget = 0.3 + Math.random() * 0.7; }
-}
-function applyWindPhysics() { }
-function restoreWindPhysics() { }
 
 // valida que la casa tenga los elementos mínimos antes de habilitar programar
 function validateHouse() {
@@ -3918,7 +4636,7 @@ function openMatematicasModalGuarded() {
 // ── MÓDULO ETAPA 1: EXCAVACIÓN INTERACTIVA DEL TERRENO ────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 
-let excavacionData = null; // { largo, ancho, profundidad, volumen, activa }
+let excavacionData = null; // { largo, ancho, profundidad, volumen, activa, tipo_suelo, porcentaje_retiro } (F3 añade los dos últimos)
 let groundHoleSegments = [];
 let excavacionRootNode = null;
 
@@ -4027,7 +4745,7 @@ function clearGroundHole() {
   if (zoneFillOriginal) zoneFillOriginal.isVisible = true;
 }
 
-function crearGeometriaExcavacion(largo, ancho, profundidad, conFeedback = true) {
+function crearGeometriaExcavacion(largo, ancho, profundidad, conFeedback = true, tipoSuelo = SUELO_POR_DEFECTO, porcentajeRetiro = PORCENTAJE_RETIRO_POR_DEFECTO) {
   eliminarGeometriaExcavacion(false);
 
   const W = ancho;
@@ -4168,7 +4886,9 @@ function crearGeometriaExcavacion(largo, ancho, profundidad, conFeedback = true)
     ancho: W,
     profundidad: D,
     volumen: vol,
-    activa: true
+    activa: true,
+    tipo_suelo: sanearTipoSuelo(tipoSuelo),                      // F3
+    porcentaje_retiro: sanearPorcentajeRetiro(porcentajeRetiro)  // F3
   };
 
   const btnExc = document.getElementById('btnExcavacion');
@@ -4186,7 +4906,7 @@ function crearGeometriaExcavacion(largo, ancho, profundidad, conFeedback = true)
     setTip(`⛏️ Excavación completada · Volumen: <b>${vol.toFixed(1)} m³</b> · Tierra retirada apilada a un costado.`);
     try {
       registrar('excavacion_realizada', {
-        contexto: { largo: L, ancho: W, profundidad: D, volumen: vol }
+        contexto: { largo: L, ancho: W, profundidad: D, volumen: vol, ...contextoSueloExcavacion(excavacionData) } // F3: tipo_suelo, porcentaje_retiro, volumen_suelto, viajes
       });
     } catch (e) { }
   }
@@ -4234,6 +4954,7 @@ function openExcavacionModal() {
   const prof = excavacionData ? excavacionData.profundidad : 1.5;
 
   setExcavacionInputValues(largo, ancho, prof);
+  excInicializarSuelo(); // F3: selector y slider parten de lo guardado (o del suelo por defecto); cerrar sin confirmar descarta los cambios
   excActualizarVista();
 
   const btnDel = document.getElementById('btn-eliminar-excavacion');
@@ -4296,6 +5017,7 @@ function excActualizarVista() {
       errEl.innerHTML = errores.join('<br>');
     }
     if (evalBox) evalBox.style.display = 'none';
+    excResultadosSuelo(null); // F3
     return;
   }
 
@@ -4315,6 +5037,7 @@ function excActualizarVista() {
   if (statDims) statDims.textContent = `${lVal.toFixed(2)} × ${aVal.toFixed(2)} × ${pVal.toFixed(2)} m`;
 
   renderExcavacionSVG(lVal, aVal, pVal);
+  excResultadosSuelo(vol); // F3
 }
 
 function renderExcavacionSVG(largo, ancho, profundidad) {
@@ -4410,7 +5133,7 @@ function confirmarExcavacion() {
     return;
   }
 
-  crearGeometriaExcavacion(lVal, aVal, pVal, true);
+  crearGeometriaExcavacion(lVal, aVal, pVal, true, leerSueloExcavacion(), leerRetiroExcavacion()); // F3: tipo de suelo y % a retirar
   closeExcavacionModal();
 }
 
@@ -4419,6 +5142,1235 @@ function eliminarExcavacion() {
   if (!confirm('¿Deseas rellenar la excavación y restaurar el terreno original?')) return;
   eliminarGeometriaExcavacion(true);
   closeExcavacionModal();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── F3 · EXCAVACIÓN: TIPO DE SUELO, % A RETIRAR Y VIAJES DE VOLQUETA ──────────
+// ══════════════════════════════════════════════════════════════════════════════
+// Amplía el modal de excavación; no toca la geometría (fosa, taludes, estacas, cinta, mira, montículo).
+// Fórmulas (calculos.js, datos de referencia.js A.1): suelto = banco × factor; a retirar = suelto × %;
+// viajes = Math.ceil(a retirar / 5 m³), con el ruido de coma flotante eliminado antes (criterio educativo de operación).
+// El tipo de suelo y el % se guardan en excavacionData (→ progreso.excavacion → terreno.excavacion) al confirmar
+// «Iniciar / Actualizar Excavación»; el modal recalcula en vivo y, al cerrarlo sin confirmar, lo no confirmado se descarta.
+const EXC_TEXTO_SIN_FACTOR = 'Sin factor de conversión banco→suelto; no aplica a excavación';
+
+// (function, no const: se usan desde crearGeometriaExcavacion, que puede ejecutarse durante la restauración)
+function sanearTipoSuelo(t) { return factorBancoSuelto(t) !== null ? t : SUELO_POR_DEFECTO; }
+function sanearPorcentajeRetiro(p) { return typeof p === 'number' && isFinite(p) && p >= 0 && p <= 1 ? p : PORCENTAJE_RETIRO_POR_DEFECTO; }
+
+function leerSueloExcavacion() {
+  return sanearTipoSuelo(document.getElementById('exc-suelo')?.value);
+}
+function leerRetiroExcavacion() {
+  const v = document.getElementById('exc-retiro-range')?.value;
+  if (v === undefined || String(v).trim() === '') return PORCENTAJE_RETIRO_POR_DEFECTO;
+  const n = Number(v);
+  return sanearPorcentajeRetiro(isFinite(n) ? n / 100 : NaN);
+}
+
+// Banco → suelto → a retirar → viajes para un tipo de suelo y un porcentaje; null si algún dato no es válido.
+function resultadosSueloExcavacion(volBanco, tipoSuelo, porcentajeRetiro) {
+  const suelto = volumenSuelto(volBanco, tipoSuelo);
+  if (suelto === null) return null;
+  const v = viajesVolqueta(suelto, undefined, porcentajeRetiro);
+  return v === null ? null : { banco: volBanco, suelto, factor: factorBancoSuelto(tipoSuelo), ...v };
+}
+
+// Campos que se añaden al contexto de la telemetría «excavacion_realizada».
+function contextoSueloExcavacion(datos) {
+  const r = resultadosSueloExcavacion(datos.volumen, datos.tipo_suelo, datos.porcentaje_retiro);
+  return {
+    tipo_suelo: datos.tipo_suelo,
+    porcentaje_retiro: datos.porcentaje_retiro,
+    volumen_suelto: r ? r.suelto : null,
+    viajes: r ? r.viajes : null,
+  };
+}
+
+// Llena el selector desde A.1 (una sola vez): 11 filas, 9 con factor y 2 deshabilitadas por no tenerlo.
+function poblarSelectorSuelo() {
+  const sel = document.getElementById('exc-suelo');
+  if (!sel || sel.options.length > 0) return;
+  for (const [id, fila] of Object.entries(A1_FACTORES_SUELO.filas)) {
+    const f = fila.factor_banco_suelto.valor;
+    const op = document.createElement('option');
+    op.value = id;
+    if (f === null) {
+      op.textContent = `${fila.nombre} — sin factor`;
+      op.disabled = true;
+      op.title = EXC_TEXTO_SIN_FACTOR;
+    } else {
+      op.textContent = `${fila.nombre} — ×${f.toFixed(2)}`;
+      op.title = `${fila.nombre}: 1 m³ en banco = ${f.toFixed(2)} m³ suelto`;
+    }
+    sel.appendChild(op);
+  }
+}
+
+// Al abrir el modal: el selector y el slider parten de lo guardado en la excavación activa, o de los valores por defecto.
+function excInicializarSuelo() {
+  poblarSelectorSuelo();
+  const sel = document.getElementById('exc-suelo');
+  const rng = document.getElementById('exc-retiro-range');
+  if (sel) sel.value = sanearTipoSuelo(excavacionData?.tipo_suelo);
+  if (rng) rng.value = String(Math.round(sanearPorcentajeRetiro(excavacionData?.porcentaje_retiro) * 100));
+}
+
+// Pinta (o esconde, con volBanco = null) el panel de resultados. Solo lectura de datos: no cambia la excavación.
+function excResultadosSuelo(volBanco) {
+  const box = document.getElementById('exc-resultados');
+  if (!box) return;
+  const pct = leerRetiroExcavacion();
+  const pctTxt = Math.round(pct * 100) + ' %';
+  const valSlider = document.getElementById('exc-retiro-val');
+  if (valSlider) valSlider.textContent = pctTxt;
+  const r = volBanco === null ? null : resultadosSueloExcavacion(volBanco, leerSueloExcavacion(), pct);
+  box.hidden = r === null;
+  if (r === null) return;
+
+  const cap = PARAMETROS.volqueta_m3.valor;
+  const fuenteA1 = A1_FACTORES_SUELO.fuente;
+  const fuente = `Manual de Materiales, ${fuenteA1.tabla} (p. ${fuenteA1.pagina_impresa}): factores de conversión banco→suelto`;
+  const palabra = r.viajes === 1 ? 'viaje' : 'viajes';
+  const poner = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  poner('exc-res-cadena', `${r.banco.toFixed(2)} m³ (banco) → ${r.suelto.toFixed(2)} m³ (suelto) → ${r.viajes} ${palabra} de ${cap} m³`);
+  poner('exc-res-banco', `${r.banco.toFixed(2)} m³`);
+  poner('exc-res-factor', r.factor.toFixed(2));
+  poner('exc-res-suelto', `${r.suelto.toFixed(2)} m³`);
+  poner('exc-res-pct', pctTxt);
+  poner('exc-res-retirar', `${r.aRetirar.toFixed(2)} m³`);
+  poner('exc-res-cap', `${cap} m³`);
+  poner('exc-res-viajes', `${r.viajes} ${palabra} (${r.viajesSinRedondear.toFixed(2)} sin redondear)`);
+  poner('exc-res-fuente', `Fuente: ${fuente}. Capacidad de la volqueta: Manual de Materiales, ${PARAMETROS.volqueta_m3.fuente.tabla}.`);
+  for (const id of ['exc-res-cadena', 'exc-res-fuente']) { const el = document.getElementById(id); if (el) el.title = fuente; }
+}
+
+function excOnSueloChange() { excActualizarVista(); }
+function excOnRetiroChange() { excActualizarVista(); }
+
+// ── F4a · EDITOR 2D DEL PLANO (SVG) ──────────────────────────────────────────
+// Overlay modal con un <svg>: lote en metros, ejes, cotas, rejilla opcional y herramientas punto / línea / rectángulo.
+// Los datos viven en progreso.plano (campo aditivo; guardado.js no se toca). Las operaciones geométricas son funciones
+// puras de calculos.js. La cámara 3D no se toca: el overlay opaco absorbe puntero y rueda, y la compuerta de teclado
+// (capture, registrada al evaluar el módulo → antes que F2.2/F2.4c/F2.4d/setupGizmos) impide que el 3D reciba teclas.
+let planoGuardado = null;                                   // plano persistido (ya saneado) o null si nunca se guardó
+let prefRejilla = { visible: false, paso: PLANO_PASO_DEFECTO };
+let planoTrab = null;                                       // copia de trabajo mientras el editor está abierto
+let planoBase0 = '';                                        // huella de lo guardado al abrir / al pulsar Guardar
+let planoVista = { zoom: 1, cx: 0, cz: 0 };                 // no se guarda
+let planoHerr = 'select';
+let planoSel = null;                                        // id del elemento seleccionado
+let planoInicio = null;                                     // primer clic de una línea / rectángulo en curso
+let planoCursor = null;                                     // última posición del cursor (m, ya ajustada a la rejilla)
+let planoPan = null, planoArrastre = null;
+let planoEspacio = false, planoConfirma = false, planoTipTimer = 0;
+// F4b: habitaciones (array separado en planoTrab.habitaciones). planoSel sigue siendo SOLO el id numérico de un elemento de F4a.
+let planoSelHab = null;                                     // id ('h1', …) de la habitación seleccionada
+let planoArrastreHab = null;                                // { id, modo: 'mover' | 'esquina', esquina?, orig, w0 }
+let planoPlantillaPend = null;                              // clave de plantilla a la espera de «Reemplazar / Añadir»
+// F4c: vanos. Viven dentro de cada habitación (habitacion.vanos); planoSelVano = { hab:'h1', id:'v1' } es excluyente con planoSel y planoSelHab.
+let planoSelVano = null;
+let planoArrastreVano = null;                               // { hab, id, orig, pos0 } mientras se arrastra un vano a lo largo de su pared
+let planoVanoPrev = null;                                   // vano fantasma bajo el cursor con la herramienta Puerta / Ventana
+let planoBorrarPend = null;                                 // id de la habitación con vanos a la espera de «Borrar / Cancelar»
+const PLANO_REJILLA_MIN_PX = 4;                            // separación mínima en pantalla para dibujar la rejilla
+const PLANO_TOL_PX = 9;                                     // tolerancia de selección en píxeles
+const PLANO_HANDLE_PX = 10;                                 // F4b: lado dibujado del handle de esquina; zona de impacto = ±PLANO_HANDLE_PX
+const PLANO_AYUDA = {
+  select: 'Seleccionar: clic sobre un elemento o una habitación para elegirlo y arrastra para moverlo. Supr lo borra.',
+  punto: 'Punto: haz clic para colocarlo.',
+  linea: 'Línea: clic en el punto inicial y otro clic en el final. Esc cancela.',
+  rectangulo: 'Rectángulo: clic en una esquina y otro clic en la esquina opuesta. Esc cancela.',
+  habitacion: 'Habitación: clic en una esquina y otro clic en la esquina opuesta. Esc cancela.',
+  puerta: 'Puerta: con una habitación seleccionada, haz clic sobre una de sus paredes. Esc vuelve a Seleccionar.',
+  ventana: 'Ventana: con una habitación seleccionada, haz clic sobre una de sus paredes. Esc vuelve a Seleccionar.',
+};
+
+const planoEl = id => document.getElementById(id);
+const planoAbierto = () => planoEl('plano-overlay')?.classList.contains('open') === true;
+const planoSoloLectura = () => !!vistaAlumnoId;
+const planoHuella = p => JSON.stringify({ l: p.lote, e: p.elementos, h: p.habitaciones });
+const planoHayCambios = () => !!planoTrab && planoHuella(planoTrab) !== planoBase0;
+const planoSerial = () => sanearPlano({ ...planoTrab, rejilla: prefRejilla, materializado: matSnapshot });   // F4d: lo materializado es el de matSnapshot (aditivo)
+const planoEscribiendo = t => !!t && (t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' ||
+  (t.tagName === 'INPUT' && !['checkbox', 'radio', 'button'].includes(t.type)));
+
+function planoDims() {
+  const r = planoEl('plano-svg').getBoundingClientRect();
+  return { w: r.width || 800, h: r.height || 600, left: r.left, top: r.top };
+}
+function planoEscala() { return escalaBasePlano(planoTrab.lote, planoDims().w, planoDims().h); }
+function planoAPantalla(x, z) {
+  const d = planoDims();
+  return mundoAPantalla(planoVista, planoEscala(), d.w, d.h, x, z);
+}
+// Posición del puntero en el mundo (m). ajustar = aplicar la rejilla si está visible (D4: sin casilla extra).
+function planoMundo(e, ajustar) {
+  const d = planoDims();
+  const w = pantallaAMundo(planoVista, planoEscala(), d.w, d.h, e.clientX - d.left, e.clientY - d.top);
+  const lim = v => Math.max(-PLANO_MAX_COORDENADA, Math.min(PLANO_MAX_COORDENADA, v));
+  const paso = ajustar && prefRejilla.visible ? prefRejilla.paso : 0.001;
+  return { x: ajustarARejilla(lim(w.x), paso), z: ajustarARejilla(lim(w.z), paso) };
+}
+
+// ── F4b · habitaciones: dibujo ──
+// El nombre lo escribe el alumno: se escapa SIEMPRE antes de entrar en el innerHTML del SVG.
+const planoEscapar = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const planoHabSeleccionada = () => (planoTrab && planoSelHab ? planoTrab.habitaciones.find(h => h.id === planoSelHab) || null : null);
+const planoEsquinas = h => [['no', h.x, h.z + h.largo], ['ne', h.x + h.ancho, h.z + h.largo], ['so', h.x, h.z], ['se', h.x + h.ancho, h.z]];
+
+// Las habitaciones van DEBAJO de los elementos de F4a. Color (opción A): seleccionada = halo y handles celestes; solape = borde
+// y relleno ámbar. Los elementos de F4a conservan su ámbar de selección sin cambios.
+function planoRenderHabitaciones(P, s, f) {
+  const habs = planoTrab.habitaciones;
+  if (!habs.length) return '';
+  const solapes = solapesHabitaciones(habs);
+  const cotas = habs.length <= 12;                          // con muchas habitaciones solo se rotula la seleccionada
+  const handles = planoHerr === 'select' && !planoSoloLectura();
+  let g = '';
+  for (const h of habs) {
+    const sel = h.id === planoSelHab, sol = !!solapes[h.id];
+    const p = P(h.x, h.z + h.largo), w = f(h.ancho * s), hh = f(h.largo * s);
+    const c = P(h.x + h.ancho / 2, h.z + h.largo / 2);
+    g += `<g class="plano-hab${sel ? ' sel' : ''}${sol ? ' solape' : ''}" data-hab-id="${h.id}" data-tipo="habitacion"${sel ? ' data-sel="1"' : ''}${sol ? ' data-solape="1"' : ''}>`;
+    if (sel) g += `<rect class="hab-halo" x="${f(p.px - 4)}" y="${f(p.py - 4)}" width="${f(w + 8)}" height="${f(hh + 8)}"/>`;
+    const mascara = h.vanos && h.vanos.length ? planoMascaraHab(h, P, f) : null;                 // F4c: hueco de los vanos en la pared
+    if (mascara) g += mascara.defs;
+    g += `<rect class="hab-forma"${mascara ? ` mask="url(#${mascara.id})"` : ''} x="${f(p.px)}" y="${f(p.py)}" width="${w}" height="${hh}"/>`;
+    g += `<text class="plano-cota hab-nombre" data-hab-nombre="${h.id}" x="${f(c.px)}" y="${f(c.py - 2)}" text-anchor="middle">${planoEscapar(h.nombre)}</text>`;
+    g += `<text class="plano-cota hab-area" data-hab-area="${h.id}" x="${f(c.px)}" y="${f(c.py + 13)}" text-anchor="middle">${formatearArea(areaRectangulo(h.ancho, h.largo))}</text>`;
+    if (cotas || sel) {
+      const ta = P(h.x + h.ancho / 2, h.z + h.largo), tl = P(h.x + h.ancho, h.z + h.largo / 2);
+      g += `<text class="plano-cota" data-cota="${h.id}-ancho" x="${f(ta.px)}" y="${f(ta.py - 7)}" text-anchor="middle">${formatearCota(h.ancho)}</text>`;
+      g += `<text class="plano-cota" data-cota="${h.id}-largo" x="${f(tl.px + 8)}" y="${f(tl.py + 4)}">${formatearCota(h.largo)}</text>`;
+    }
+    if (sel && handles) {
+      for (const [k, x, z] of planoEsquinas(h)) {
+        const q = P(x, z), activo = planoArrastreHab && planoArrastreHab.id === h.id && planoArrastreHab.esquina === k;
+        g += `<rect class="plano-handle${activo ? ' activo' : ''}" data-handle="${k}" x="${f(q.px - PLANO_HANDLE_PX / 2)}" y="${f(q.py - PLANO_HANDLE_PX / 2)}" width="${PLANO_HANDLE_PX}" height="${PLANO_HANDLE_PX}"/>`;
+      }
+    }
+    g += '</g>';
+  }
+  return g;
+}
+
+// ── F4c · vanos: dibujo ──
+// Opción C: hueco real + color. El hueco recorta el borde de la habitación con una máscara SVG (el fondo del lienzo es un degradado,
+// así que no vale «pintar» del color del fondo); encima va el segmento de color (marrón = puerta, azul claro = ventana).
+const PLANO_VANO_HUECO_PX = 9;                                // grosor del recorte en la pared (más ancho que el borde)
+const PLANO_VANO_AVISO_PAD = 7, PLANO_VANO_HALO_PAD = 11;     // margen (px) de los contornos de aviso y de selección
+
+function planoMascaraHab(h, P, f) {
+  const id = `hm-${h.id}`;
+  let d = `<mask id="${id}" maskUnits="userSpaceOnUse" x="-20000" y="-20000" width="40000" height="40000">` +
+    '<rect x="-20000" y="-20000" width="40000" height="40000" fill="#fff"/>';
+  for (const v of h.vanos) {
+    const sg = segmentoVano(h, v);
+    if (!sg) continue;
+    const a = P(sg.x1, sg.z1), b = P(sg.x2, sg.z2);
+    d += `<line x1="${f(a.px)}" y1="${f(a.py)}" x2="${f(b.px)}" y2="${f(b.py)}" stroke="#000" stroke-width="${PLANO_VANO_HUECO_PX}"/>`;
+  }
+  return { id, defs: d + '</mask>' };
+}
+
+// Rectángulo (en píxeles) que rodea el segmento a-b con un margen: contorno de aviso o halo de selección.
+function planoContornoVano(a, b, pad, clase, f) {
+  const x = Math.min(a.px, b.px), y = Math.min(a.py, b.py), w = Math.abs(b.px - a.px), hh = Math.abs(b.py - a.py);
+  return `<rect class="${clase}" x="${f(x - pad)}" y="${f(y - pad)}" width="${f(w + 2 * pad)}" height="${f(hh + 2 * pad)}"/>`;
+}
+
+function planoRenderVanos(P, f) {
+  let g = '';
+  for (const h of planoTrab.habitaciones) {
+    if (!h.vanos || !h.vanos.length) continue;
+    const est = estadoVanos(h);
+    for (const v of h.vanos) {
+      const sg = segmentoVano(h, v);
+      if (!sg) continue;
+      const a = P(sg.x1, sg.z1), b = P(sg.x2, sg.z2), e = est[v.id];
+      const sel = !!planoSelVano && planoSelVano.hab === h.id && planoSelVano.id === v.id;
+      const sol = e.solapa.length > 0;
+      g += `<g class="plano-vano ${v.tipo}${sel ? ' sel' : ''}${e.fuera ? ' fuera' : ''}${sol ? ' solape' : ''}" data-vano-id="${v.id}" data-vano-hab="${h.id}" data-tipo="vano" data-vano-tipo="${v.tipo}"` +
+        `${sel ? ' data-sel="1"' : ''}${e.fuera ? ' data-fuera="1"' : ''}${sol ? ' data-solape="1"' : ''}>`;
+      g += `<line class="vano-color" x1="${f(a.px)}" y1="${f(a.py)}" x2="${f(b.px)}" y2="${f(b.py)}"/>`;
+      if (e.fuera || sol) g += planoContornoVano(a, b, PLANO_VANO_AVISO_PAD, 'vano-aviso', f);   // rojo (fuera de pared) gana al ámbar (solape)
+      if (sel) g += planoContornoVano(a, b, PLANO_VANO_HALO_PAD, 'vano-halo', f);
+      g += '</g>';
+    }
+  }
+  return g;
+}
+
+// Fantasma del vano que se colocaría con un clic (herramienta Puerta / Ventana con el cursor sobre una pared).
+function planoRenderPreviaVano(P, f) {
+  if ((planoHerr !== 'puerta' && planoHerr !== 'ventana') || !planoVanoPrev) return '';
+  const sg = segmentoVano(planoVanoPrev.hab, planoVanoPrev.vano);
+  if (!sg) return '';
+  const a = P(sg.x1, sg.z1), b = P(sg.x2, sg.z2);
+  return `<g class="plano-vano previa ${planoVanoPrev.vano.tipo}" data-vano-previa="1"><line class="vano-color" x1="${f(a.px)}" y1="${f(a.py)}" x2="${f(b.px)}" y2="${f(b.py)}"/></g>`;
+}
+
+// Fantasma de la habitación que se está dibujando (primer clic dado y cursor en movimiento), con «ancho × largo m».
+function planoRenderPreviaHab(P, f) {
+  if (planoHerr !== 'habitacion' || !planoInicio || !planoCursor) return '';
+  const r = normalizarRectangulo(planoInicio.x, planoInicio.z, planoCursor.x, planoCursor.z);
+  if (!r || !(r.ancho > 0) || !(r.largo > 0)) return '';
+  const a = P(r.x, r.z + r.largo), b = P(r.x + r.ancho, r.z), c = P(r.x + r.ancho / 2, r.z + r.largo / 2);
+  const ok = habitacionCreable(r.ancho, r.largo);
+  return `<g class="plano-hab previa${ok ? '' : ' invalida'}" data-hab-previa="1">` +
+    `<rect class="hab-forma" x="${f(a.px)}" y="${f(a.py)}" width="${f(b.px - a.px)}" height="${f(b.py - a.py)}"/>` +
+    `<text class="plano-cota" data-cota="hab-previa" x="${f(c.px)}" y="${f(c.py + 4)}" text-anchor="middle">${formatearCota(r.ancho).replace(' m', '')} × ${formatearCota(r.largo)}</text></g>`;
+}
+
+function planoRender() {
+  if (!planoAbierto() || !planoTrab) return;
+  const svg = planoEl('plano-svg');
+  const { w, h } = planoDims();
+  const base = escalaBasePlano(planoTrab.lote, w, h);
+  const s = base * planoVista.zoom;
+  const P = (x, z) => mundoAPantalla(planoVista, base, w, h, x, z);
+  const f = v => Math.round(v * 100) / 100;
+  const { ancho: LA, largo: LL } = planoTrab.lote;
+  const a = P(-LA / 2, LL / 2), b = P(LA / 2, -LL / 2);       // esquinas pantalla del lote (arriba-izq, abajo-der)
+  let out = '';
+
+  // rejilla: solo dentro del lote; se omite si quedaría demasiado densa (el imán sigue activo)
+  const paso = prefRejilla.paso;
+  const nota = planoEl('plano-rejilla-nota');
+  if (prefRejilla.visible && paso * s >= PLANO_REJILLA_MIN_PX) {
+    let d = '';
+    for (let x = Math.ceil(-LA / 2 / paso - 1e-9) * paso; x <= LA / 2 + 1e-9; x += paso) { const px = f(P(x, 0).px); d += `M${px} ${f(a.py)}V${f(b.py)}`; }
+    for (let z = Math.ceil(-LL / 2 / paso - 1e-9) * paso; z <= LL / 2 + 1e-9; z += paso) { const py = f(P(0, z).py); d += `M${f(a.px)} ${py}H${f(b.px)}`; }
+    out += `<path class="plano-rejilla" data-rejilla="1" d="${d}"/>`;
+  }
+  planoEl('plano-svg').dataset.rejillaDibujada = prefRejilla.visible && paso * s >= PLANO_REJILLA_MIN_PX ? '1' : '0';
+
+  // lote y sus cotas
+  out += `<rect class="plano-lote" data-lote="1" x="${f(a.px)}" y="${f(a.py)}" width="${f(b.px - a.px)}" height="${f(b.py - a.py)}"/>`;
+  out += `<text class="plano-cota lote" data-cota="lote-ancho" x="${f((a.px + b.px) / 2)}" y="${f(a.py - 8)}" text-anchor="middle">${formatearCota(LA)}</text>`;
+  out += `<text class="plano-cota lote" data-cota="lote-largo" x="${f(b.px + 8)}" y="${f((a.py + b.py) / 2 + 4)}">${formatearCota(LL)}</text>`;
+
+  // contorno de la excavación activa: referencia de SOLO LECTURA (no editable, no seleccionable, no se guarda)
+  if (excavacionData && excavacionData.activa) {
+    const c1 = P(-excavacionData.ancho / 2, excavacionData.largo / 2), c2 = P(excavacionData.ancho / 2, -excavacionData.largo / 2);
+    const rr = `x="${f(c1.px)}" y="${f(c1.py)}" width="${f(c2.px - c1.px)}" height="${f(c2.py - c1.py)}"`;
+    out += `<g data-contorno="excavacion"><title>Contorno de la excavación actual (solo lectura)</title>` +
+      `<rect class="plano-contorno" ${rr}/><rect class="plano-contorno-hit" ${rr}/></g>`;
+  }
+
+  // ejes X (este) y Z (norte) con origen "0,0"
+  const o = P(0, 0), xe = P(LA / 2 + 0.8, 0), xs = P(-LA / 2 - 0.4, 0), ze = P(0, LL / 2 + 0.8), zs = P(0, -LL / 2 - 0.4);
+  out += `<g data-ejes="1"><path class="plano-eje" d="M${f(xs.px)} ${f(o.py)}H${f(xe.px)}M${f(o.px)} ${f(zs.py)}V${f(ze.py)}"/>` +
+    `<path class="plano-flecha" d="M${f(xe.px)} ${f(o.py)}l-9 -4v8z"/><path class="plano-flecha" d="M${f(o.px)} ${f(ze.py)}l-4 9h8z"/>` +
+    `<text class="plano-cota eje" data-eje="x" x="${f(xe.px + 6)}" y="${f(o.py + 4)}">X (este)</text>` +
+    `<text class="plano-cota eje" data-eje="z" x="${f(o.px + 8)}" y="${f(ze.py + 4)}">Z (norte)</text>` +
+    `<text class="plano-cota eje" data-eje="origen" x="${f(o.px + 6)}" y="${f(o.py + 15)}">0,0</text></g>`;
+
+  // F4b: habitaciones (debajo de los elementos de F4a)
+  out += planoRenderHabitaciones(P, s, f);
+  out += planoRenderVanos(P, f);                             // F4c: vanos encima de las habitaciones y debajo de los elementos de F4a
+
+  // elementos
+  const cotas = planoTrab.elementos.length <= 120;           // con muchos elementos solo se rotula el seleccionado
+  const dibuja = (el, extra) => {
+    const t = el.tipo;
+    let g = `<g class="plano-el ${t === 'rectangulo' ? 'rect' : t}${el.id === planoSel ? ' sel' : ''}${extra || ''}" data-el-id="${el.id ?? ''}" data-tipo="${t}"${el.id === planoSel ? ' data-sel="1"' : ''}>`;
+    if (t === 'punto') { const p = P(el.x, el.z); g += `<circle class="forma" cx="${f(p.px)}" cy="${f(p.py)}" r="5"/>`; }
+    else if (t === 'linea') { const p = P(el.x1, el.z1), q = P(el.x2, el.z2); g += `<line class="forma" x1="${f(p.px)}" y1="${f(p.py)}" x2="${f(q.px)}" y2="${f(q.py)}"/>`; }
+    else { const p = P(el.x, el.z + el.largo); g += `<rect class="forma" data-rect="1" x="${f(p.px)}" y="${f(p.py)}" width="${f(el.ancho * s)}" height="${f(el.largo * s)}"/>`; }
+    if (cotas || el.id === planoSel || !el.id) {
+      cotasElemento(el).forEach((c, i) => {
+        const p = P(c.x, c.z);
+        const lado = t === 'punto' || (t === 'rectangulo' && i === 1);
+        g += `<text class="plano-cota" data-cota="${el.id ?? 'previa'}-${i}" x="${f(p.px + (lado ? 8 : 0))}" y="${f(p.py + (lado ? 4 : -7))}"${lado ? '' : ' text-anchor="middle"'}>${c.texto}</text>`;
+      });
+    }
+    return g + '</g>';
+  };
+  for (const el of planoTrab.elementos) out += dibuja(el, '');
+  const previa = planoElementoPrevio();
+  if (previa) out += dibuja(previa, ' fantasma');
+  out += planoRenderPreviaHab(P, f);                         // F4b
+  out += planoRenderPreviaVano(P, f);                        // F4c
+
+  svg.innerHTML = out;
+  svg.dataset.zoom = String(Math.round(planoVista.zoom * 1000) / 1000);
+  planoEl('plano-zoom-val').textContent = `${planoVista.zoom.toFixed(2)}×`;
+  if (nota) nota.hidden = !(prefRejilla.visible && paso * s < PLANO_REJILLA_MIN_PX);
+}
+
+// Elemento fantasma mientras se dibuja (primer clic dado y cursor en movimiento).
+function planoElementoPrevio() {
+  if (!planoInicio || !planoCursor) return null;
+  if (planoHerr === 'linea') {
+    return distancia(planoInicio.x, planoInicio.z, planoCursor.x, planoCursor.z) > 0
+      ? { tipo: 'linea', x1: planoInicio.x, z1: planoInicio.z, x2: planoCursor.x, z2: planoCursor.z } : null;
+  }
+  if (planoHerr === 'rectangulo') {
+    const r = normalizarRectangulo(planoInicio.x, planoInicio.z, planoCursor.x, planoCursor.z);
+    return r && r.ancho > 0 && r.largo > 0 ? { tipo: 'rectangulo', ...r } : null;
+  }
+  return null;
+}
+
+function planoActualizarUI() {
+  const lectura = planoSoloLectura();
+  document.querySelectorAll('#plano-overlay [data-herr]').forEach(b => {
+    const on = b.dataset.herr === planoHerr;
+    b.classList.toggle('activa', on);
+    b.setAttribute('aria-pressed', String(on));
+    b.disabled = lectura && b.dataset.herr !== 'select';
+  });
+  const svg = planoEl('plano-svg');
+  svg.classList.toggle('herr-dibujo', planoHerr !== 'select');
+  svg.dataset.herramienta = planoHerr;
+  planoEl('plano-borrar').disabled = lectura || (planoSel === null && planoSelHab === null && planoSelVano === null);
+  planoEl('plano-plantilla').disabled = lectura;                           // F4b
+  planoEl('plano-guardar').disabled = lectura;
+  planoEl('plano-lote-ancho').disabled = lectura;
+  planoEl('plano-lote-largo').disabled = lectura;
+  const sucio = planoHayCambios();
+  const d = planoEl('plano-dirty');
+  d.textContent = lectura ? 'Solo lectura' : sucio ? '● Cambios sin guardar' : '✓ Guardado';
+  d.classList.toggle('sucio', sucio && !lectura);
+  planoEl('plano-ayuda').textContent = planoInicio
+    ? (planoHerr === 'linea' ? 'Línea: haz clic en el punto final. Esc cancela.'
+      : planoHerr === 'habitacion' ? 'Habitación: haz clic en la esquina opuesta. Esc cancela.'
+        : 'Rectángulo: haz clic en la esquina opuesta. Esc cancela.')
+    : (lectura ? 'Vista de solo lectura. Zoom con la rueda; mueve el plano con el botón central o Espacio + arrastrar.' : PLANO_AYUDA[planoHerr]);
+  planoPanelActualizar();                                                  // F4b / F4c
+  matActualizarUI();                                                       // F4d
+}
+
+function planoSincronizarControles() {
+  planoEl('plano-lote-ancho').value = planoTrab.lote.ancho;
+  planoEl('plano-lote-largo').value = planoTrab.lote.largo;
+  planoEl('plano-rejilla-visible').checked = prefRejilla.visible;
+  planoEl('plano-rejilla-paso').value = String(prefRejilla.paso);
+  planoEl('plano-rejilla-paso').disabled = !prefRejilla.visible;
+}
+
+function planoRefrescar() { planoActualizarUI(); planoRender(); }
+
+function planoElegirHerramienta(h) {
+  if (planoSoloLectura() && h !== 'select') return;
+  planoHerr = h;
+  planoInicio = null;
+  planoVanoPrev = null;                                                    // F4c: el fantasma del vano solo existe con Puerta / Ventana
+  planoRefrescar();
+}
+
+function planoMostrarTip(texto) {
+  const tip = planoEl('plano-tip');
+  tip.textContent = texto;
+  tip.hidden = false;
+  clearTimeout(planoTipTimer);
+  planoTipTimer = setTimeout(() => { tip.hidden = true; }, 3500);
+}
+
+function planoBorrarSeleccion() {
+  if (planoSoloLectura()) return;
+  const vs = planoVanoSeleccionado();
+  if (vs) {                                                                // F4c: un vano se borra sin confirmación (y sin deshacer)
+    planoTrab.habitaciones = planoTrab.habitaciones.map(h => {
+      if (h.id !== vs.hab.id) return h;
+      const { vanos, ...resto } = h;
+      const quedan = vanos.filter(v => v.id !== vs.vano.id);
+      return quedan.length ? { ...resto, vanos: quedan } : resto;          // sin vanos la clave desaparece (igual que al guardar)
+    });
+    planoSelVano = null;
+    planoArrastreVano = null;
+    planoRefrescar();
+    return;
+  }
+  if (planoSel === null && planoSelHab !== null) {                         // F4b: habitación seleccionada
+    const hb = planoHabSeleccionada();
+    if (hb && hb.vanos && hb.vanos.length) { planoBorrarPedir(hb); return; }   // F4c: con vanos se pide confirmación
+    planoBorrarHabitacion(planoSelHab);
+    return;
+  }
+  if (planoSel === null) return;
+  planoTrab.elementos = planoTrab.elementos.filter(e => e.id !== planoSel);
+  planoSel = null;
+  planoArrastre = null;
+  planoRefrescar();
+}
+
+function planoBorrarHabitacion(id) {
+  planoTrab.habitaciones = planoTrab.habitaciones.filter(h => h.id !== id);
+  planoSelHab = null;
+  planoArrastreHab = null;
+  planoRefrescar();
+}
+
+// ── F4c · vanos: selección, alta, edición y borrado de la habitación con vanos ──
+const planoHabDeVano = () => (planoTrab && planoSelVano ? planoTrab.habitaciones.find(h => h.id === planoSelVano.hab) || null : null);
+function planoVanoSeleccionado() {
+  const hab = planoHabDeVano();
+  const vano = hab && hab.vanos ? hab.vanos.find(v => v.id === planoSelVano.id) : null;
+  return hab && vano ? { hab, vano } : null;
+}
+// Habitación a la que se añadirán los vanos: la seleccionada o, si hay un vano seleccionado, la suya.
+const planoHabObjetivo = () => planoHabSeleccionada() || planoHabDeVano();
+
+// Vano que se crearía con un clic en `libre` (m): { hab, vano } o { error: 'sinhab' | 'lejos' | 'nocabe', hab?, lado? }.
+function planoCalcularVano(tipo, libre) {
+  const hab = planoHabObjetivo();
+  if (!hab) return { error: 'sinhab' };
+  const tol = PLANO_TOL_PX / (planoEscala() * planoVista.zoom);
+  const pared = paredMasCercana(hab, libre.x, libre.z, tol);
+  if (!pared) return { error: 'lejos', hab };
+  const nuevo = vanoNuevo(hab, tipo, pared.lado, pared.pos, prefRejilla.visible ? prefRejilla.paso : 0);
+  return nuevo ? { hab, vano: nuevo } : { error: 'nocabe', hab, lado: pared.lado };
+}
+
+function planoCrearVano(tipo, libre) {
+  const r = planoCalcularVano(tipo, libre);
+  if (r.error === 'sinhab') { planoMostrarTip('Selecciona una habitación y haz clic sobre una de sus paredes.'); return; }
+  if (r.error === 'lejos') { planoMostrarTip('Haz clic sobre una de las paredes de la habitación seleccionada.'); return; }
+  if (r.error === 'nocabe') { planoMostrarTip(`No cabe: la pared ${r.lado} mide ${formatearCota(longitudPared(r.hab, r.lado))}.`); return; }
+  if ((r.hab.vanos || []).length >= VANO_MAX_POR_HAB) { planoMostrarTip(`Máximo ${VANO_MAX_POR_HAB} vanos por habitación.`); return; }
+  if (totalVanos(planoTrab.habitaciones) >= VANO_MAX_GLOBAL) { planoMostrarTip(`Máximo ${VANO_MAX_GLOBAL} vanos en el plano.`); return; }
+  const id = siguienteIdVano(r.hab.vanos || []);
+  planoTrab.habitaciones = planoTrab.habitaciones.map(h => (h.id === r.hab.id ? { ...h, vanos: [...(h.vanos || []), { id, ...r.vano }] } : h));
+  planoSelVano = { hab: r.hab.id, id };                    // el nuevo vano queda seleccionado y la herramienta sigue activa
+  planoSelHab = null; planoSel = null;
+  planoVanoPrev = null;
+}
+
+// Aplica un campo del panel del vano (al «change»). Un valor inválido, o que ya no cabe en la pared, se ignora y se restaura.
+function planoVanoEditar(campo) {
+  const vs = planoVanoSeleccionado();
+  if (!vs || planoSoloLectura()) return;
+  const { hab, vano } = vs;
+  const el = planoEl(`plano-vano-${campo}`);
+  let cambio = null;
+  if (campo === 'tipo' || campo === 'lado') {
+    if ((campo === 'tipo' ? VANO_TIPOS : VANO_LADOS).includes(el.value)) cambio = { [campo]: el.value };
+  } else {
+    const t = el.value.trim(), n = Number(t);
+    const [min, max] = campo === 'ancho' ? [VANO_ANCHO_MIN, VANO_ANCHO_MAX] : campo === 'alto' ? [VANO_ALTO_MIN, VANO_ALTO_MAX] : [0, VANO_OFFSET_MAX];
+    if (t !== '' && Number.isFinite(n) && n >= min && n <= max) cambio = { [campo]: Math.round(n * 1000) / 1000 };
+    else planoMostrarTip(`El ${campo} debe estar entre ${min} y ${max} m.`);
+  }
+  let nuevo = cambio ? { ...vano, ...cambio } : null;
+  if (nuevo && (campo === 'ancho' || campo === 'offset' || campo === 'lado') && !vanoCabeEnPared(nuevo, hab)) {
+    planoMostrarTip(`No cabe en la pared ${nuevo.lado} (mide ${formatearCota(longitudPared(hab, nuevo.lado))}).`);
+    nuevo = null;
+  }
+  if (nuevo) planoTrab.habitaciones = planoTrab.habitaciones.map(h => (h.id === hab.id ? { ...h, vanos: h.vanos.map(v => (v.id === vano.id ? nuevo : v)) } : h));
+  planoRefrescar();
+  planoPanelActualizar(true);
+}
+
+// Borrar una habitación que tiene vanos: diálogo «Borrar / Cancelar».
+function planoBorrarPedir(h) {
+  const n = h.vanos.length;
+  planoBorrarPend = h.id;
+  planoEl('plano-vano-conf-txt').textContent = `Esta habitación tiene ${n} ${n === 1 ? 'vano' : 'vanos'}. ¿Borrar también?`;
+  planoEl('plano-vano-conf').hidden = false;
+  planoEl('plano-vano-conf-cancelar').focus({ preventScroll: true });
+}
+
+function planoBorrarResolver(confirmar) {
+  const id = planoBorrarPend;
+  planoBorrarPend = null;
+  planoEl('plano-vano-conf').hidden = true;
+  planoEl('plano-overlay').focus({ preventScroll: true });
+  if (confirmar && id && planoTrab) planoBorrarHabitacion(id);
+}
+
+function planoAnadir(el) {
+  if (planoTrab.elementos.length >= PLANO_MAX_ELEMENTOS) { planoMostrarTip(`Máximo ${PLANO_MAX_ELEMENTOS} elementos en el plano.`); return false; }
+  planoTrab.elementos.push({ id: planoTrab.contador++, ...el });
+  return true;
+}
+
+// ── F4b · habitaciones: alta, panel, handles y plantillas ──
+function planoAnadirHab(r) {
+  if (planoTrab.habitaciones.length >= HAB_MAX) { planoMostrarTip(`Máximo ${HAB_MAX} habitaciones en el plano.`); return false; }
+  const id = siguienteIdHabitacion(planoTrab.habitaciones);
+  planoTrab.habitaciones.push({ id, tipo: 'habitacion', x: r.x, z: r.z, ancho: r.ancho, largo: r.largo, nombre: nombreHabitacionDefecto(Number(id.slice(1))) });
+  planoSelHab = id;                                        // la nueva queda seleccionada: el panel muestra sus datos
+  planoSel = null; planoSelVano = null;
+  return true;
+}
+
+// Panel flotante: visible solo con la herramienta Habitación activa o con una habitación seleccionada (así F4a queda intacto).
+// Los campos no se pisan mientras el alumno escribe en ellos, salvo con «forzar» (tras aplicar o restaurar un valor).
+function planoPanelActualizar(forzar = false) {
+  const panel = planoEl('plano-panel');
+  if (!panel) return;
+  const h = planoHabSeleccionada();
+  const vs = planoAbierto() && planoTrab ? planoVanoSeleccionado() : null;           // F4c
+  const visible = planoAbierto() && !!planoTrab && (planoHerr === 'habitacion' || !!h || !!vs);
+  panel.hidden = !visible;
+  if (!visible) return;
+  const lectura = planoSoloLectura();
+  planoEl('plano-panel-vacio').hidden = !!h || !!vs;
+  planoEl('plano-panel-campos').hidden = !h;
+  planoEl('plano-panel-vano').hidden = !vs;
+  if (vs) planoPanelVano(vs, forzar, lectura);
+  if (!h) return;
+  for (const [k, v] of [['nombre', h.nombre], ['ancho', h.ancho], ['largo', h.largo]]) {
+    const el = planoEl(`plano-hab-${k}`);
+    if (forzar || document.activeElement !== el) el.value = v;
+    el.disabled = lectura;
+  }
+  const area = areaRectangulo(h.ancho, h.largo), per = perimetroRectangulo(h.ancho, h.largo);
+  const a = planoEl('plano-hab-area'), p = planoEl('plano-hab-perimetro');
+  a.textContent = formatearArea(area); a.dataset.valor = String(area);
+  p.textContent = formatearCota(per); p.dataset.valor = String(per);
+  const sol = solapesHabitaciones(planoTrab.habitaciones)[h.id];
+  const aviso = planoEl('plano-hab-solape');
+  aviso.hidden = !sol;
+  if (sol) aviso.textContent = `Se solapa con ${sol.map(id => planoTrab.habitaciones.find(x => x.id === id)?.nombre ?? id).join(', ')}`;
+  const fuera = Object.entries(estadoVanos(h)).filter(([, e]) => e.fuera).map(([id]) => nombreVano(h.vanos.find(v => v.id === id)));   // F4c
+  const avVanos = planoEl('plano-hab-vanos');
+  avVanos.hidden = fuera.length === 0;
+  if (fuera.length) avVanos.textContent = `${fuera.length === 1 ? 'Un vano no cabe' : `${fuera.length} vanos no caben`} en su pared: ${fuera.join(', ')}`;
+  planoEl('plano-hab-borrar').disabled = lectura;
+}
+
+// F4c: sección del panel con los datos del vano seleccionado (tipo, ancho, alto, offset, lado) y sus avisos.
+function planoPanelVano({ hab, vano }, forzar, lectura) {
+  planoEl('plano-vano-titulo').textContent = `${nombreVano(vano)} · ${hab.nombre}`;
+  for (const k of ['tipo', 'ancho', 'alto', 'offset', 'lado']) {
+    const el = planoEl(`plano-vano-${k}`);
+    if (forzar || document.activeElement !== el) el.value = vano[k];
+    el.disabled = lectura;
+  }
+  const e = estadoVanos(hab)[vano.id];
+  const av = planoEl('plano-vano-aviso');
+  const msgs = [];
+  if (e.fuera) msgs.push(`Fuera de pared: la pared ${vano.lado} mide ${formatearCota(longitudPared(hab, vano.lado))}`);
+  if (e.solapa.length) msgs.push(`Se solapa con ${e.solapa.map(id => nombreVano(hab.vanos.find(v => v.id === id))).join(', ')}`);
+  av.hidden = msgs.length === 0;
+  av.textContent = msgs.join(' · ');
+  planoEl('plano-vano-borrar').disabled = lectura;
+}
+
+// Aplica un campo del panel (se llama al «change»: Enter o al salir del campo). Un valor inválido se ignora y se restaura.
+function planoHabEditar(campo) {
+  const h = planoHabSeleccionada();
+  if (!h || planoSoloLectura()) return;
+  const el = planoEl(`plano-hab-${campo}`);
+  let cambio = null;
+  if (campo === 'nombre') {
+    const v = el.value.trim().slice(0, HAB_NOMBRE_MAX).trim();
+    if (v) cambio = { nombre: v }; else planoMostrarTip('El nombre no puede quedar vacío.');
+  } else {
+    const t = el.value.trim(), n = Number(t);
+    if (t !== '' && Number.isFinite(n) && n >= HAB_LADO_MIN && n <= HAB_LADO_MAX) cambio = { [campo]: Math.round(n * 1000) / 1000 };
+    else planoMostrarTip(`El ${campo} debe estar entre ${HAB_LADO_MIN} y ${HAB_LADO_MAX} m.`);
+  }
+  if (cambio) planoTrab.habitaciones = planoTrab.habitaciones.map(x => (x.id === h.id ? { ...x, ...cambio } : x));
+  planoRefrescar();
+  planoPanelActualizar(true);
+}
+
+// Esquina ('no' | 'ne' | 'so' | 'se') cuyo handle está bajo el puntero, solo para la habitación seleccionada con la herramienta V.
+function planoHandleBajo(e) {
+  const h = planoHabSeleccionada();
+  if (!h || planoHerr !== 'select' || planoSoloLectura()) return null;
+  const d = planoDims(), mx = e.clientX - d.left, my = e.clientY - d.top;
+  for (const [k, x, z] of planoEsquinas(h)) {
+    const q = planoAPantalla(x, z);
+    if (Math.abs(mx - q.px) <= PLANO_HANDLE_PX && Math.abs(my - q.py) <= PLANO_HANDLE_PX) return k;
+  }
+  return null;
+}
+
+function planoInsertarPlantilla(nuevas, modo) {
+  const lista = modo === 'anadir' ? planoTrab.habitaciones.slice() : [];
+  if (lista.length + nuevas.length > HAB_MAX) { planoMostrarTip(`Máximo ${HAB_MAX} habitaciones en el plano.`); return false; }
+  for (const n of nuevas) lista.push({ id: siguienteIdHabitacion(lista), ...n });
+  planoTrab.habitaciones = lista;
+  planoSelHab = null; planoArrastreHab = null; planoSelVano = null; planoArrastreVano = null;   // F4c
+  planoRefrescar();
+  return true;
+}
+
+// Se elige una plantilla: si no cabe en el lote se avisa y no se aplica; si ya hay habitaciones, se pregunta Reemplazar / Añadir.
+function planoPlantillaElegida(clave) {
+  planoEl('plano-plantilla').value = '';                   // vuelve al texto «Plantillas…»
+  if (!clave || planoSoloLectura() || !planoTrab) return;
+  const p = Object.prototype.hasOwnProperty.call(PLANTILLAS_HABITACIONES, clave) ? PLANTILLAS_HABITACIONES[clave] : null;
+  if (!p) return;
+  const nuevas = generarPlantilla(clave, planoTrab.lote);
+  if (!nuevas) { planoMostrarTip(`«${p.etiqueta}» no cabe en el lote (necesita ${p.ancho} × ${p.largo} m). Agranda el lote para usarla.`); return; }
+  if (planoTrab.habitaciones.length > 0) {
+    planoPlantillaPend = clave;
+    const nv = totalVanos(planoTrab.habitaciones);                         // F4c (D7): avisa de los vanos que se perderían al reemplazar
+    planoEl('plano-plantilla-txt').textContent = `Ya hay habitaciones en el plano. ¿Qué hago con «${p.etiqueta}»?` + (nv > 0 ? ` (se borrarán también ${nv} ${nv === 1 ? 'vano' : 'vanos'})` : '');
+    planoEl('plano-plantilla-conf').hidden = false;
+    planoEl('plano-plantilla-reemplazar').focus({ preventScroll: true });
+    return;
+  }
+  planoInsertarPlantilla(nuevas, 'reemplazar');
+}
+
+function planoPlantillaResolver(modo) {                    // modo: 'reemplazar' | 'anadir' | null (cancelar)
+  const clave = planoPlantillaPend;
+  planoPlantillaPend = null;
+  planoEl('plano-plantilla-conf').hidden = true;
+  planoEl('plano-overlay').focus({ preventScroll: true });
+  if (!modo || !clave || !planoTrab) return;
+  const nuevas = generarPlantilla(clave, planoTrab.lote);
+  if (nuevas) planoInsertarPlantilla(nuevas, modo);
+}
+
+// ── puntero ──
+function planoPointerDown(e) {
+  const svg = planoEl('plano-svg');
+  if (e.button === 1 || (e.button === 0 && planoEspacio)) {            // pan: botón central o Espacio + arrastrar
+    e.preventDefault();
+    planoPan = { x: e.clientX, y: e.clientY, cx: planoVista.cx, cz: planoVista.cz };
+    svg.classList.add('panning');
+    svg.setPointerCapture?.(e.pointerId);
+    return;
+  }
+  if (e.button !== 0 || planoSoloLectura() && planoHerr !== 'select') return;
+  const libre = planoMundo(e, false), p = planoMundo(e, true);
+  if (planoHerr === 'select') {
+    const esq = planoHandleBajo(e);                                      // F4b: primero los handles de la habitación seleccionada
+    if (esq) {
+      planoArrastre = null;
+      planoArrastreHab = { id: planoSelHab, modo: 'esquina', esquina: esq, orig: planoHabSeleccionada(), w0: libre };
+      svg.setPointerCapture?.(e.pointerId);
+      planoCursor = p;
+      planoRefrescar();
+      return;
+    }
+    const tol = PLANO_TOL_PX / (planoEscala() * planoVista.zoom);
+    const vh = vanoEnHabitaciones(planoTrab.habitaciones, libre.x, libre.z, tol);   // F4c: los vanos van antes que los elementos y las habitaciones
+    if (vh) {
+      planoSelVano = { hab: vh.hab.id, id: vh.vano.id };
+      planoSel = null; planoSelHab = null; planoArrastre = null; planoArrastreHab = null;
+      planoArrastreVano = planoSoloLectura() ? null : { hab: vh.hab.id, id: vh.vano.id, orig: vh.vano, pos0: posicionEnPared(vh.hab, vh.vano.lado, libre.x, libre.z) };
+      if (planoArrastreVano) svg.setPointerCapture?.(e.pointerId);
+      planoCursor = p;
+      planoRefrescar();
+      return;
+    }
+    planoSelVano = null; planoArrastreVano = null;
+    const el = elementoEn(planoTrab.elementos, libre.x, libre.z, tol);
+    planoSel = el ? el.id : null;
+    planoArrastre = el && !planoSoloLectura() ? { id: el.id, orig: el, w0: libre } : null;
+    if (planoArrastre) svg.setPointerCapture?.(e.pointerId);
+    // F4b: sin elemento de F4a bajo el puntero se prueba con las habitaciones (se agarran por todo su cuerpo)
+    const hb = el ? null : habitacionEn(planoTrab.habitaciones, libre.x, libre.z, tol);
+    planoSelHab = hb ? hb.id : null;
+    planoArrastreHab = hb && !planoSoloLectura() ? { id: hb.id, modo: 'mover', orig: hb, w0: libre } : null;
+    if (planoArrastreHab) svg.setPointerCapture?.(e.pointerId);
+  } else if (planoHerr === 'puerta' || planoHerr === 'ventana') {         // F4c: un clic sobre una pared de la habitación seleccionada
+    planoCrearVano(planoHerr, libre);
+  } else if (planoHerr === 'punto') {
+    planoAnadir({ tipo: 'punto', x: p.x, z: p.z });
+  } else if (!planoInicio) {
+    planoInicio = p;
+  } else if (planoHerr === 'linea') {
+    if (distancia(planoInicio.x, planoInicio.z, p.x, p.z) > 0 &&
+      planoAnadir({ tipo: 'linea', x1: planoInicio.x, z1: planoInicio.z, x2: p.x, z2: p.z })) planoInicio = null;
+  } else if (planoHerr === 'habitacion') {                               // F4b: dos clics; si es muy pequeña no se crea
+    const r = normalizarRectangulo(planoInicio.x, planoInicio.z, p.x, p.z);
+    if (!habitacionCreable(r.ancho, r.largo)) {
+      planoMostrarTip(`No se crea: cada lado debe medir entre ${HAB_LADO_MIN} y ${HAB_LADO_MAX} m y el área debe superar 0.01 m².`);
+    } else if (planoAnadirHab(r)) planoInicio = null;
+  } else {
+    const r = normalizarRectangulo(planoInicio.x, planoInicio.z, p.x, p.z);
+    if (r.ancho > 0 && r.largo > 0 && planoAnadir({ tipo: 'rectangulo', ...r })) planoInicio = null;
+  }
+  planoCursor = p;
+  planoRefrescar();
+}
+
+function planoPointerMove(e) {
+  if (!planoTrab) return;
+  if (planoPan) {
+    const s = planoEscala() * planoVista.zoom;
+    const lim = v => Math.max(-PLANO_MAX_COORDENADA, Math.min(PLANO_MAX_COORDENADA, v));
+    planoVista = { ...planoVista, cx: lim(planoPan.cx - (e.clientX - planoPan.x) / s), cz: lim(planoPan.cz + (e.clientY - planoPan.y) / s) };
+    planoRender();
+    return;
+  }
+  const p = planoMundo(e, true);
+  planoCursor = p;
+  planoEl('plano-cursor').textContent = `x: ${p.x.toFixed(2)} m · z: ${p.z.toFixed(2)} m`;
+  if (planoArrastreVano) {                                               // F4c: arrastrar un vano a lo largo de su pared (cambia solo el offset)
+    const a = planoArrastreVano, hab = planoTrab.habitaciones.find(h => h.id === a.hab);
+    const libre = planoMundo(e, false);
+    const pos = hab ? posicionEnPared(hab, a.orig.lado, libre.x, libre.z) : null;
+    const off = pos === null || a.pos0 === null ? null : desplazarVano(hab, a.orig, pos - a.pos0, prefRejilla.visible ? prefRejilla.paso : 0);
+    if (off !== null) {
+      planoTrab.habitaciones = planoTrab.habitaciones.map(h => (h.id === a.hab ? { ...h, vanos: h.vanos.map(v => (v.id === a.id ? { ...v, offset: off } : v)) } : h));
+    }
+    planoRefrescar();
+  } else if (planoArrastre) {
+    const libre = planoMundo(e, false), orig = planoArrastre.orig, anc = anclaElemento(orig);
+    let dx = libre.x - planoArrastre.w0.x, dz = libre.z - planoArrastre.w0.z;
+    if (prefRejilla.visible) { dx = ajustarARejilla(anc.x + dx, prefRejilla.paso) - anc.x; dz = ajustarARejilla(anc.z + dz, prefRejilla.paso) - anc.z; }
+    const movido = moverElemento(orig, dx, dz);
+    if (sanearPlano({ elementos: [movido] }).elementos.length === 1) {             // nunca sacar un elemento del rango válido
+      planoTrab.elementos = planoTrab.elementos.map(x => (x.id === planoArrastre.id ? movido : x));
+    }
+    planoRefrescar();
+  } else if (planoArrastreHab) {                                         // F4b: mover el cuerpo o redimensionar desde una esquina
+    const a = planoArrastreHab, orig = a.orig;
+    let nueva = null;
+    if (a.modo === 'mover') {
+      const libre = planoMundo(e, false);
+      let dx = libre.x - a.w0.x, dz = libre.z - a.w0.z;
+      if (prefRejilla.visible) { dx = ajustarARejilla(orig.x + dx, prefRejilla.paso) - orig.x; dz = ajustarARejilla(orig.z + dz, prefRejilla.paso) - orig.z; }
+      nueva = moverElemento(orig, dx, dz);
+    } else {
+      nueva = redimensionarDesdeEsquina(orig, a.esquina, p.x, p.z);    // p ya viene ajustada a la rejilla si está visible
+    }
+    if (nueva && sanearHabitaciones([nueva]).length === 1) {             // nunca sacarla del rango válido
+      planoTrab.habitaciones = planoTrab.habitaciones.map(h => (h.id === a.id ? nueva : h));
+    }
+    planoRefrescar();
+  } else if (planoInicio) {
+    planoRender();
+  } else if (planoHerr === 'puerta' || planoHerr === 'ventana') {        // F4c: fantasma del vano bajo el cursor
+    const r = planoCalcularVano(planoHerr, planoMundo(e, false));
+    planoVanoPrev = r.vano ? { hab: r.hab, vano: r.vano } : null;
+    planoRender();
+  }
+}
+
+function planoPointerUp(e) {
+  if (planoPan) { planoPan = null; planoEl('plano-svg').classList.remove('panning'); }
+  if (planoArrastre) { planoArrastre = null; planoRefrescar(); }
+  if (planoArrastreHab) { planoArrastreHab = null; planoRefrescar(); }   // F4b
+  if (planoArrastreVano) { planoArrastreVano = null; planoRefrescar(); } // F4c
+  planoEl('plano-svg').releasePointerCapture?.(e.pointerId);
+}
+
+function planoWheel(e) {
+  e.preventDefault();
+  const d = planoDims();
+  const factor = Math.max(0.5, Math.min(2, Math.exp(-e.deltaY * 0.0015)));
+  const z = zoomEnPunto(planoVista, factor, e.clientX - d.left - d.w / 2, e.clientY - d.top - d.h / 2, planoEscala());
+  const lim = v => Math.max(-PLANO_MAX_COORDENADA, Math.min(PLANO_MAX_COORDENADA, v));
+  planoVista = { zoom: z.zoom, cx: lim(z.cx), cz: lim(z.cz) };
+  planoRender();
+}
+
+function planoEncuadrar() { planoVista = { zoom: 1, cx: 0, cz: 0 }; planoRender(); }
+
+// ── abrir / guardar / cerrar ──
+function openPlanoEditor() {
+  const ov = planoEl('plano-overlay');
+  if (!ov || ov.classList.contains('open')) return;
+  if (document.querySelector('[id$="-overlay"].open')) return;           // otro modal abierto: no se apila
+  try { registrar('modal_abierto', { contexto: { modal: 'plano' } }); } catch (e) { }
+  planoTrab = sanearPlano(planoGuardado || planoVacio());                // copia profunda; sin plano guardado → lote 10×10 vacío (C4)
+  planoTrab.rejilla = { ...prefRejilla };
+  planoBase0 = planoHuella(planoTrab);
+  planoHerr = 'select'; planoSel = null; planoInicio = null; planoCursor = null;
+  planoPan = null; planoArrastre = null; planoEspacio = false; planoConfirma = false;
+  planoSelHab = null; planoArrastreHab = null; planoPlantillaPend = null;   // F4b
+  planoSelVano = null; planoArrastreVano = null; planoVanoPrev = null; planoBorrarPend = null;   // F4c
+  planoEl('plano-plantilla-conf').hidden = true;
+  planoEl('plano-vano-conf').hidden = true;
+  matAlAbrirEditor();                                                       // F4d: aviso (una vez por sesión) si hay paredes materializadas
+  planoVista = { zoom: 1, cx: 0, cz: 0 };
+  planoEl('plano-confirma').hidden = true;
+  planoEl('plano-tip').hidden = true;
+  planoEl('plano-cursor').textContent = '';
+  ov.classList.add('open');
+  planoSincronizarControles();
+  planoRefrescar();
+  ov.focus({ preventScroll: true });
+}
+
+function planoGuardarAhora() {
+  if (planoSoloLectura() || !planoTrab) return;
+  planoGuardado = planoSerial();
+  planoBase0 = planoHuella(planoTrab);
+  marcarSucio();
+  planoActualizarUI();
+}
+
+function planoCerrarYa({ guardar = false } = {}) {
+  if (guardar) planoGuardarAhora();
+  // la rejilla es una preferencia de vista: se conserva en el plano ya guardado (si existe) aunque no haya cambios de dibujo
+  if (!planoSoloLectura() && planoGuardado && JSON.stringify(planoGuardado.rejilla) !== JSON.stringify(prefRejilla)) {
+    planoGuardado = { ...planoGuardado, rejilla: { ...prefRejilla } };
+    marcarSucio();
+  }
+  try { registrar('modal_cerrado', { contexto: { modal: 'plano' } }); } catch (e) { }
+  planoEl('plano-overlay').classList.remove('open');
+  planoEl('plano-confirma').hidden = true;
+  planoConfirma = false; planoInicio = null; planoPan = null; planoArrastre = null; planoEspacio = false; planoTrab = null;
+  planoSelHab = null; planoArrastreHab = null; planoPlantillaPend = null;   // F4b
+  planoSelVano = null; planoArrastreVano = null; planoVanoPrev = null; planoBorrarPend = null;   // F4c
+  planoEl('plano-plantilla-conf').hidden = true;
+  planoEl('plano-vano-conf').hidden = true;
+  matAlCerrarEditor();                                                      // F4d
+  planoPanelActualizar();                                                   // oculta el panel (planoTrab ya es null)
+  planoEl('btnPlano')?.focus({ preventScroll: true });
+}
+
+function closePlanoEditor() {
+  if (!planoAbierto()) return;
+  if (planoHayCambios() && !planoSoloLectura()) {                        // C5: con cambios sin guardar se pide confirmación
+    planoConfirma = true;
+    planoEl('plano-confirma').hidden = false;
+    planoEl('plano-conf-guardar').focus({ preventScroll: true });
+    return;
+  }
+  planoCerrarYa();
+}
+
+function planoConfirmaSeguir() {
+  planoConfirma = false;
+  planoEl('plano-confirma').hidden = true;
+  planoEl('plano-overlay').focus({ preventScroll: true });
+}
+
+function planoAlCambiarLote() {
+  const a = Number(planoEl('plano-lote-ancho').value), l = Number(planoEl('plano-lote-largo').value);
+  const ok = v => Number.isFinite(v) && v >= PLANO_LOTE_MIN && v <= PLANO_LOTE_MAX;
+  if (ok(a) && ok(l) && planoEl('plano-lote-ancho').value.trim() !== '' && planoEl('plano-lote-largo').value.trim() !== '') {
+    planoTrab.lote = sanearPlano({ lote: { ancho: a, largo: l } }).lote;
+    planoVista = { zoom: 1, cx: 0, cz: 0 };
+  } else {
+    planoMostrarTip(`El lote debe medir entre ${PLANO_LOTE_MIN} y ${PLANO_LOTE_MAX} m por lado.`);
+  }
+  planoSincronizarControles();
+  planoRefrescar();
+}
+
+// ── teclado ──
+// COMPUERTA: se registra al evaluar el módulo (antes de init()), en captura y solo para keydown. Con el editor cerrado
+// no hace nada (R sigue rotando en 3D). Con el editor abierto ninguna tecla llega al 3D ni a F2.2/F2.4c/F2.4d; keyup no se toca.
+function planoCompuerta(e) {
+  if (!planoAbierto()) return;
+  e.stopImmediatePropagation();
+  planoTecla(e);
+}
+function planoTecla(e) {
+  if (matPend) { if (e.code === 'Escape' && !e.repeat) matResolver(false); return; }   // F4d: diálogo de materializar / desmaterializar
+  if (planoBorrarPend) { if (e.code === 'Escape' && !e.repeat) planoBorrarResolver(false); return; }   // F4c: diálogo de borrar habitación con vanos
+  if (planoPlantillaPend) { if (e.code === 'Escape' && !e.repeat) planoPlantillaResolver(null); return; }   // F4b: diálogo de plantilla
+  if (planoConfirma) { if (e.code === 'Escape' && !e.repeat) planoConfirmaSeguir(); return; }
+  if (planoEscribiendo(e.target)) {
+    if (e.code === 'Enter' || e.code === 'Escape') { e.target.blur(); e.preventDefault(); }
+    return;
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  switch (e.code) {
+    case 'KeyV': e.preventDefault(); planoElegirHerramienta('select'); break;
+    case 'KeyP': e.preventDefault(); planoElegirHerramienta('punto'); break;
+    case 'KeyL': e.preventDefault(); planoElegirHerramienta('linea'); break;
+    case 'KeyB': e.preventDefault(); planoElegirHerramienta('rectangulo'); break;
+    case 'KeyH': e.preventDefault(); planoElegirHerramienta('habitacion'); break;     // F4b
+    case 'KeyD': e.preventDefault(); planoElegirHerramienta('puerta'); break;         // F4c
+    case 'KeyN': e.preventDefault(); planoElegirHerramienta('ventana'); break;        // F4c
+    case 'KeyR': planoMostrarTip('R rota en 3D. Para rectángulo usa B'); break;   // R queda reservada a la rotación 3D
+    case 'Delete': case 'Backspace': e.preventDefault(); planoBorrarSeleccion(); break;
+    case 'Space': e.preventDefault(); planoEspacio = true; break;
+    case 'Escape':
+      if (e.repeat) break;
+      if (planoInicio) { planoInicio = null; planoRefrescar(); }
+      else if (planoHerr === 'puerta' || planoHerr === 'ventana') planoElegirHerramienta('select');   // F4c (D4): vuelve a V conservando la selección; el 2.º Esc cierra
+      else closePlanoEditor();
+      break;
+    default: break;
+  }
+}
+window.addEventListener('keydown', planoCompuerta, true);
+window.addEventListener('keyup', e => { if (e.code === 'Space') planoEspacio = false; });
+window.addEventListener('blur', () => { planoEspacio = false; });
+
+function configurarPlano() {
+  const svg = planoEl('plano-svg');
+  if (!svg) return;
+  svg.addEventListener('pointerdown', planoPointerDown);
+  svg.addEventListener('pointermove', planoPointerMove);
+  svg.addEventListener('pointerup', planoPointerUp);
+  svg.addEventListener('pointercancel', planoPointerUp);
+  svg.addEventListener('wheel', planoWheel, { passive: false });
+  svg.addEventListener('contextmenu', e => e.preventDefault());
+  svg.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); });
+  document.querySelectorAll('#plano-overlay [data-herr]').forEach(b => b.addEventListener('click', () => planoElegirHerramienta(b.dataset.herr)));
+  planoEl('plano-borrar').addEventListener('click', planoBorrarSeleccion);
+  planoEl('plano-guardar').addEventListener('click', planoGuardarAhora);
+  planoEl('plano-cerrar').addEventListener('click', closePlanoEditor);
+  planoEl('plano-encuadrar').addEventListener('click', planoEncuadrar);
+  planoEl('plano-conf-guardar').addEventListener('click', () => planoCerrarYa({ guardar: true }));
+  planoEl('plano-conf-descartar').addEventListener('click', () => planoCerrarYa());
+  planoEl('plano-conf-seguir').addEventListener('click', planoConfirmaSeguir);
+  planoEl('plano-rejilla-visible').addEventListener('change', e => {
+    prefRejilla = { ...prefRejilla, visible: e.target.checked };
+    planoSincronizarControles(); planoRender();
+  });
+  planoEl('plano-rejilla-paso').addEventListener('change', e => {
+    const paso = Number(e.target.value);
+    prefRejilla = { ...prefRejilla, paso: PLANO_PASOS_REJILLA.includes(paso) ? paso : PLANO_PASO_DEFECTO };
+    planoSincronizarControles(); planoRender();
+  });
+  planoEl('plano-lote-ancho').addEventListener('change', planoAlCambiarLote);
+  planoEl('plano-lote-largo').addEventListener('change', planoAlCambiarLote);
+  // F4b: panel de la habitación, plantillas y su diálogo (el botón «Habitación» ya queda enlazado por [data-herr])
+  for (const k of ['nombre', 'ancho', 'largo']) planoEl(`plano-hab-${k}`).addEventListener('change', () => planoHabEditar(k));
+  planoEl('plano-hab-borrar').addEventListener('click', planoBorrarSeleccion);
+  planoEl('plano-plantilla').addEventListener('change', e => planoPlantillaElegida(e.target.value));
+  planoEl('plano-plantilla-reemplazar').addEventListener('click', () => planoPlantillaResolver('reemplazar'));
+  planoEl('plano-plantilla-anadir').addEventListener('click', () => planoPlantillaResolver('anadir'));
+  planoEl('plano-plantilla-cancelar').addEventListener('click', () => planoPlantillaResolver(null));
+  // F4c: panel del vano y diálogo de borrar una habitación con vanos (los botones Puerta / Ventana ya quedan enlazados por [data-herr])
+  for (const k of ['tipo', 'ancho', 'alto', 'offset', 'lado']) planoEl(`plano-vano-${k}`).addEventListener('change', () => planoVanoEditar(k));
+  planoEl('plano-vano-borrar').addEventListener('click', planoBorrarSeleccion);
+  planoEl('plano-vano-conf-borrar').addEventListener('click', () => planoBorrarResolver(true));
+  planoEl('plano-vano-conf-cancelar').addEventListener('click', () => planoBorrarResolver(false));
+  if (window.ResizeObserver) new ResizeObserver(() => planoRender()).observe(planoEl('plano-lienzo'));
+  const nota = document.createElement('span');
+  nota.id = 'plano-rejilla-nota'; nota.hidden = true; nota.className = 'plano-etq';
+  nota.textContent = 'Rejilla demasiado densa para dibujarla (el imán sigue activo): acerca el zoom.';
+  planoEl('plano-pie').insertBefore(nota, planoEl('plano-cursor'));
+  configurarMaterializacion();                                              // F4d
+}
+
+// ── F4d · MATERIALIZACIÓN DEL PLANO EN 3D ───────────────────────────────────
+// El botón «Materializar plano» del editor convierte las habitaciones (y sus vanos) en paredes 3D con huecos reales, SIN CSG: cada pared
+// es un conjunto de cajas sólidas alrededor de los huecos (generarParedConHuecos, calculos.js) fundidas en UNA malla por pared
+// (Mesh.MergeMeshes). Todas cuelgan de UN objeto agregado «paredes_plano» en objList. Los datos viven solo en progreso.plano.materializado
+// (snapshot compacto, aditivo; guardado.js no se toca: serializarObjeto no guarda userData, así que el objeto agregado NO va en
+// estado.objetos y se regenera desde el snapshot al cargar). El objeto agregado:
+//   · no cuenta para Programar (countWalls y validateHouse solo miran wall_*) y no es una pieza del catálogo;
+//   · no colisiona con las piezas ni es apoyo (no está en COLLISION_TYPES / TIPOS_APOYO_AVISO / TIPOS_SOPORTE_NACIMIENTO);
+//   · SÍ bloquea la cámara (TIPOS_SOLIDOS_CAMARA); Rayos X la deja pasar;
+//   · no se selecciona, mueve, gira, clona ni borra pieza a pieza (selectObject lo ignora): se gestiona desde el editor (Materializar /
+//     Desmaterializar). Sus mallas no son «pickables»: un clic sobre una pared generada atraviesa hasta lo que haya detrás.
+const PARED_PLANO_TIPO = 'paredes_plano';
+const PARED_PLANO_ETIQUETA = 'Paredes del plano';
+const PARED_PLANO_EMOJI = '🧱';
+const PARED_PLANO_COLOR = '#B0B0B0';                                  // P4: gris claro neutro (materiales realistas: F12)
+const MAT_LIMITE_BYTES = 90 * 1024;                                    // P5: el servidor rechaza cuerpos de más de 100 KB (express.json()); se rechaza antes de llegar
+const MAT_OPCIONES = Object.freeze({ altura: PARED_ALTURA_DEFECTO, grosor: PARED_GROSOR_DEFECTO, alfeizar: PARED_ALFEIZAR_DEFECTO });   // P3: sin interfaz en F4d
+const MAT_TEXTO_REMAT = 'Ya hay paredes materializadas. ¿Rematerializar? (se borrarán las generadas)';
+const MAT_NOTA_REMAT = 'Si rematerializas, las paredes generadas se regenerarán. Las piezas 3D manuales no se tocan, pero las que estén dentro de paredes generadas pueden quedar flotando.';
+let matSnapshot = null;                                                // snapshot compacto de lo materializado (es lo que se guarda) o null
+let matObjeto = null;                                                  // entrada de objList del objeto agregado, o null
+let matResumen = null;                                                 // { paredes, rectangulos, vanos, recortados, sinHueco } de lo generado
+let matPend = null;                                                    // 'remat' | 'desmat' mientras el diálogo de confirmación está abierto
+let matAvisoVisto = false;                                             // el aviso de edición se muestra una sola vez por sesión (no se guarda)
+let matUltimaMs = null;                                                // duración de la última construcción de mallas 3D (medida para las pruebas)
+let matUltimaTotalMs = null;                                           // duración total del último «Materializar» (paredes + tamaño + mallas + guardado local), en ms
+
+function matMaterial() {
+  if (!MAT.paredesPlano) {
+    const m = new PBRMaterial('paredes_plano', scene);
+    m.albedoColor = Color3.FromHexString(PARED_PLANO_COLOR);
+    m.roughness = 0.85; m.metallic = 0;
+    MAT.paredesPlano = m;
+  }
+  return MAT.paredesPlano;
+}
+
+// Construye el objeto agregado (sin añadirlo a objList). Una malla fundida por pared; si algo falla se libera todo lo creado y se relanza.
+function matConstruirObjeto(paredes) {
+  const id = objIdCounter++;
+  const root = new TransformNode('obj_' + id + '_' + PARED_PLANO_TIPO, scene);
+  root.userData = { id, type: PARED_PLANO_TIPO, label: PARED_PLANO_ETIQUETA, emoji: PARED_PLANO_EMOJI };
+  const material = matMaterial();
+  try {
+    for (const p of paredes) {
+      const horizontal = p.orientacion === 'h';
+      const cajas = generarParedConHuecos(p).map((r, j) => {
+        const caja = MeshBuilder.CreateBox(`pared_plano_${p.id}_caja_${j}`, {
+          width: horizontal ? r.u1 - r.u0 : p.grosor, height: r.y1 - r.y0, depth: horizontal ? p.grosor : r.u1 - r.u0,
+        }, scene);
+        caja.position.set(horizontal ? p.x1 + (r.u0 + r.u1) / 2 : p.x1, (r.y0 + r.y1) / 2, horizontal ? p.z1 : p.z1 + (r.u0 + r.u1) / 2);
+        return caja;
+      });
+      if (!cajas.length) continue;
+      const malla = cajas.length === 1 ? cajas[0] : Mesh.MergeMeshes(cajas, true, true);   // true, true: libera las cajas; índices de 32 bits
+      if (!malla) throw new Error('MergeMeshes no devolvió ninguna malla');
+      malla.name = `pared_plano_${p.id.slice(1)}`;                       // p3 → pared_plano_3
+      malla.metadata = { paredPlano: p.id, habitaciones: p.habitaciones.slice() };
+      malla.parent = root;
+      malla.material = material;
+      malla.isPickable = false;                                          // un clic sobre la pared atraviesa hasta lo que haya detrás
+      malla.receiveShadows = true;
+      malla.checkCollisions = true;                                      // cámara (sincronizarColisionesCamara lo mantiene)
+      if (shadowGen) shadowGen.addShadowCaster(malla, false);
+    }
+  } catch (err) {
+    root.getChildMeshes().forEach(m => { try { if (shadowGen) shadowGen.removeShadowCaster(m); } catch (_) { } m.dispose(); });
+    root.dispose();
+    throw err;
+  }
+  return { id, type: PARED_PLANO_TIPO, label: PARED_PLANO_ETIQUETA, emoji: PARED_PLANO_EMOJI, node: root };
+}
+
+function matBorrarObjeto() {
+  if (!matObjeto) return;
+  const o = matObjeto;
+  o.node.getChildMeshes().forEach(m => { try { if (shadowGen) shadowGen.removeShadowCaster(m); } catch (_) { } m.dispose(); });
+  o.node.dispose();
+  objList = objList.filter(x => x !== o);
+  matObjeto = null; matResumen = null;
+}
+
+// Mantiene planoGuardado alineado con matSnapshot (la copia que se guarda se construye siempre desde matSnapshot, pero así lo que ve el editor al abrir coincide).
+function matSincronizarGuardado() {
+  if (!planoGuardado) return;
+  const { materializado, ...resto } = planoGuardado;
+  planoGuardado = matSnapshot ? { ...resto, materializado: matSnapshot } : resto;
+}
+
+// Tamaño (bytes) del cuerpo del PUT que se enviaría con ese plano y ese snapshot: {proyecto_id, slot, estado, progreso}; el progreso viaja dos veces.
+function matBytesGuardado(plano, mat) {
+  const snap = snapshotActual({ plano, mat });
+  return new TextEncoder().encode(JSON.stringify({ proyecto_id: 2147483647, slot: 1, estado: snap.estado, progreso: snap.progreso })).length;
+}
+
+// Carga: regenera las paredes desde el snapshot guardado. Una casa sin el campo no genera nada. Si el 3D falla se conserva el snapshot (no se pierde al guardar).
+function matRestaurar(entrada) {
+  const limpio = sanearMaterializado(entrada);
+  if (!limpio) return;
+  matSnapshot = limpio;
+  try {
+    const { habitaciones, opciones } = expandirMaterializado(limpio);
+    const paredes = generarParedes3D(habitaciones, opciones);
+    const t0 = performance.now();
+    matObjeto = matConstruirObjeto(paredes);
+    matUltimaMs = performance.now() - t0;
+    matResumen = resumirMaterializacion(habitaciones, paredes);
+    objList.push(matObjeto);
+    updateObjListUI();
+  } catch (err) {
+    matObjeto = null; matResumen = null;
+    console.warn('No se pudieron regenerar las paredes del plano:', err);
+  }
+}
+
+const matTextoResumen = r => `${r.paredes} ${r.paredes === 1 ? 'pared generada' : 'paredes generadas'}, ${r.vanos} ${r.vanos === 1 ? 'vano' : 'vanos'}`;
+
+function matActualizarUI() {
+  const b = planoEl('plano-materializar');
+  if (!b) return;
+  const lectura = planoSoloLectura();
+  b.disabled = lectura;
+  planoEl('plano-desmaterializar').disabled = lectura || !matObjeto;
+  const est = planoEl('plano-mat-estado');
+  est.textContent = matObjeto && matResumen ? matTextoResumen(matResumen) + matExtras(matResumen) : '';
+}
+
+function matExtras(r) {
+  const x = [];
+  if (r.recortados) x.push(`${r.recortados} ${r.recortados === 1 ? 'vano recortado' : 'vanos recortados'} por la pared`);
+  if (r.sinHueco) x.push(`${r.sinHueco} ${r.sinHueco === 1 ? 'vano fuera de las paredes (sin hueco)' : 'vanos fuera de las paredes (sin hueco)'}`);
+  return x.length ? ' · ' + x.join(' · ') : '';
+}
+
+function matAlAbrirEditor() {
+  matPend = null;
+  planoEl('plano-mat-conf').hidden = true;
+  const mostrar = !!matObjeto && !matAvisoVisto && !planoSoloLectura();
+  planoEl('plano-mat-aviso').hidden = !mostrar;
+  if (mostrar) matAvisoVisto = true;
+}
+
+function matAlCerrarEditor() {
+  matPend = null;
+  planoEl('plano-mat-conf').hidden = true;
+  planoEl('plano-mat-aviso').hidden = true;
+}
+
+function matPedir(modo) {
+  matPend = modo;
+  const rem = modo === 'remat';
+  planoEl('plano-mat-conf-txt').textContent = rem ? MAT_TEXTO_REMAT : `Se borrarán ${matResumen ? matResumen.paredes : 0} paredes generadas. Las piezas manuales no se tocan.`;
+  const nota = planoEl('plano-mat-conf-nota');
+  nota.textContent = rem ? MAT_NOTA_REMAT : '';
+  nota.hidden = !rem;
+  planoEl('plano-mat-conf-ok').textContent = rem ? 'Rematerializar' : 'Desmaterializar';
+  planoEl('plano-mat-conf').hidden = false;
+  planoEl('plano-mat-conf-cancelar').focus({ preventScroll: true });
+}
+
+function matResolver(confirmar) {
+  const modo = matPend;
+  matPend = null;
+  planoEl('plano-mat-conf').hidden = true;
+  planoEl('plano-overlay').focus({ preventScroll: true });
+  if (!confirmar || !planoTrab) return;
+  if (modo === 'remat') matEjecutar();
+  else if (modo === 'desmat') matDesmaterializar();
+}
+
+function materializarPlano() {
+  if (planoSoloLectura() || !planoTrab || matPend) return;
+  let habs;
+  try { habs = sanearHabitaciones(planoTrab.habitaciones); } catch (_) { habs = []; }
+  if (!habs.length) { planoMostrarTip('El plano no tiene habitaciones: dibuja al menos una para materializarlo. No se generó ninguna pared.'); return; }
+  if (matObjeto) { matPedir('remat'); return; }
+  matEjecutar();
+}
+
+function matEjecutar() {
+  let nuevo = null;
+  const tIni = performance.now();
+  try {
+    const habs = sanearHabitaciones(planoTrab.habitaciones);
+    if (!habs.length) { planoMostrarTip('El plano no tiene habitaciones: dibuja al menos una para materializarlo. No se generó ninguna pared.'); return; }
+    const paredes = generarParedes3D(habs, MAT_OPCIONES);
+    const resumen = resumirMaterializacion(habs, paredes);
+    const mat = compactarMaterializado(habs, MAT_OPCIONES);
+    const bytes = matBytesGuardado(sanearPlano({ ...planoTrab, rejilla: prefRejilla, materializado: mat }), mat);
+    if (bytes > MAT_LIMITE_BYTES) {
+      planoMostrarTip(`El plano con paredes ocuparía ${(bytes / 1024).toFixed(1)} KB al guardarse y el límite es ${MAT_LIMITE_BYTES / 1024} KB: no se materializó. Reduce habitaciones o vanos.`);
+      return;
+    }
+    const t0 = performance.now();
+    nuevo = matConstruirObjeto(paredes);                                // si falla, lo anterior queda como estaba
+    matUltimaMs = performance.now() - t0;
+    matBorrarObjeto();
+    matObjeto = nuevo; nuevo = null;
+    matSnapshot = mat; matResumen = resumen;
+    objList.push(matObjeto);
+    planoGuardarAhora();                                                // el plano y su materialización se guardan juntos (coherentes)
+    updateObjListUI();
+    matActualizarUI();
+    matUltimaTotalMs = performance.now() - tIni;
+    const avisos = [];
+    if (resumen.rectangulos > PARED_RECT_AVISO) avisos.push(`Hay ${resumen.rectangulos} rectángulos de pared: el 3D puede ir más lento.`);
+    planoMostrarTip(matTextoResumen(resumen) + matExtras(resumen) + (avisos.length ? ' · ' + avisos.join(' ') : ''));
+  } catch (err) {
+    console.warn('No se pudo materializar el plano:', err);
+    if (nuevo) { nuevo.node.getChildMeshes().forEach(m => { try { if (shadowGen) shadowGen.removeShadowCaster(m); } catch (_) { } m.dispose(); }); nuevo.node.dispose(); }
+    planoMostrarTip('No se pudo materializar el plano. No se generó ninguna pared.');
+  }
+}
+
+function desmaterializarPlano() {
+  if (planoSoloLectura() || !planoTrab || matPend) return;
+  if (!matObjeto) { planoMostrarTip('No hay paredes materializadas.'); return; }
+  matPedir('desmat');
+}
+
+function matDesmaterializar() {
+  matBorrarObjeto();
+  matSnapshot = null;
+  matSincronizarGuardado();
+  marcarSucio();
+  updateObjListUI();
+  matActualizarUI();
+  planoMostrarTip('Paredes generadas borradas. Las piezas manuales no se tocaron.');
+}
+
+function configurarMaterializacion() {
+  planoEl('plano-materializar').addEventListener('click', materializarPlano);
+  planoEl('plano-desmaterializar').addEventListener('click', desmaterializarPlano);
+  planoEl('plano-mat-conf-ok').addEventListener('click', () => matResolver(true));
+  planoEl('plano-mat-conf-cancelar').addEventListener('click', () => matResolver(false));
+  planoEl('plano-mat-aviso-cerrar').addEventListener('click', () => { planoEl('plano-mat-aviso').hidden = true; });
 }
 
 // expone las funciones al scope global para que el HTML pueda llamarlas
@@ -4438,11 +6390,12 @@ Object.assign(window, {
   updateOpeningCounters,
   roofSelectShape, roofSelectMat, roofAutoFit, roofUpdate, buildRoof,
   openExcavacionModal, closeExcavacionModal, excActualizarVista,
-  excOnInputChange, excOnSliderChange,
+  excOnInputChange, excOnSliderChange, excOnSueloChange, excOnRetiroChange,
   confirmarExcavacion, eliminarExcavacion,
+  openPlanoEditor, closePlanoEditor,
 });
 
-function snapshotActual() {
+function snapshotActual(simulado = null) {   // F4d: `simulado` ({ plano, mat }) solo lo usa la salvaguarda de tamaño al materializar
   const progreso = {
     buildPhase,
     concretoUnlocked,
@@ -4456,10 +6409,21 @@ function snapshotActual() {
       ancho: excavacionData.ancho,
       profundidad: excavacionData.profundidad,
       volumen: excavacionData.volumen,
-      activa: excavacionData.activa
+      activa: excavacionData.activa,
+      tipo_suelo: excavacionData.tipo_suelo,                 // F3 (aditivo)
+      porcentaje_retiro: excavacionData.porcentaje_retiro    // F3 (aditivo)
     } : null
   };
-  const estado = serializarEscena({ objList, objIdCounter, progreso });
+  // F4a (aditivo): solo existe si el alumno guardó un plano; las casas antiguas siguen sin la clave
+  const planoBase = simulado ? simulado.plano : planoGuardado;
+  const matBase = simulado ? simulado.mat : matSnapshot;
+  if (planoBase) {
+    progreso.plano = { ...planoBase, rejilla: { ...prefRejilla } };
+    delete progreso.plano.materializado;                                   // F4d (aditivo): la clave solo existe si hay paredes materializadas
+    if (matBase) progreso.plano.materializado = matBase;
+  }
+  // F4d: el objeto agregado «paredes_plano» no va en estado.objetos (serializarObjeto no guarda userData): se regenera desde progreso.plano.materializado
+  const estado = serializarEscena({ objList: objList.filter(o => o.type !== 'paredes_plano'), objIdCounter, progreso });
   return { estado, progreso };
 }
 
@@ -4496,11 +6460,87 @@ if (new URLSearchParams(location.search).get('steamTest') === '1') {
       if (radius !== undefined) camera.radius = radius;
     },
     seleccionado: () => selectedMesh?.userData?.id ?? null,
+    // F2.2 · aviso de colocación (solo lectura): estado transitorio de la pieza seleccionada y lo que muestra la interfaz.
+    avisoColocacion: () => {
+      const el = id => document.getElementById(id);
+      const hex = m => { const e = m && (highlightLayer?._thinEffectLayer?._meshes ?? highlightLayer?._meshes)?.[m.uniqueId]; return e?.color ? e.color.toHexString().toUpperCase() : null; };
+      const panel = el('aviso-panel'), alerta = el('aviso-alerta');
+      return {
+        estado: selectedMesh?.userData?.estadoColocacion ?? null,
+        panel: panel ? {
+          visible: panel.classList.contains('visible'), estado: panel.dataset.estado || '',
+          pieza: el('aviso-pieza')?.textContent, dy: el('aviso-dy')?.textContent, contacto: el('aviso-contacto')?.textContent,
+          colorBorde: getComputedStyle(panel).borderLeftColor,
+        } : null,
+        alerta: alerta ? {
+          visible: alerta.classList.contains('visible'),
+          filas: Array.from(alerta.querySelectorAll('.aviso-chip')).map(c => ({ estado: c.dataset.estado, texto: c.textContent, color: getComputedStyle(c).borderLeftColor })),
+        } : null,
+        outlineActual: hex(selectedMesh?.getChildMeshes()[0]),
+        plano: avisoPlano ? { visible: avisoPlano.isEnabled(), y: avisoPlano.position.y, ancho: avisoPlano.scaling.x, fondo: avisoPlano.scaling.z } : null,
+        hover: avisoHover?.userData?.id ?? null,
+        hoverColor: hex(avisoHover?.getChildMeshes()[0]),
+        historial: avisoHistorial.map(h => ({ id: h.id, avisos: h.avisos, dy: h.dy })),
+        sonido: avisoSonidoActivo,
+      };
+    },
     limitesObjeto: id => {
       const o = objList.find(x => x.id === id);
       if (!o) return null;
       const b = o.node.getHierarchyBoundingVectors(true);
       return { min: { x: b.min.x, y: b.min.y, z: b.min.z }, max: { x: b.max.x, y: b.max.y, z: b.max.z } };
+    },
+    // F4a · editor de plano (solo lectura): estado del editor y conversión mundo→pantalla para dirigir el ratón en las pruebas.
+    plano: () => ({
+      abierto: planoAbierto(), herramienta: planoHerr, seleccion: planoSel, inicio: planoInicio, confirma: planoConfirma,
+      vista: { ...planoVista }, cambios: planoHayCambios(), rejilla: { ...prefRejilla },
+      trabajo: planoTrab ? JSON.parse(JSON.stringify({ lote: planoTrab.lote, elementos: planoTrab.elementos, contador: planoTrab.contador })) : null,
+      guardado: planoGuardado ? JSON.parse(JSON.stringify(planoGuardado)) : null,
+      // F4b (aditivo): habitaciones con área y perímetro calculados, selección, solapes y diálogo de plantilla
+      habitaciones: planoTrab ? JSON.parse(JSON.stringify(planoTrab.habitaciones.map(h =>
+        ({ ...h, area: areaRectangulo(h.ancho, h.largo), perimetro: perimetroRectangulo(h.ancho, h.largo) })))) : null,
+      seleccionHab: planoSelHab,
+      solapes: planoTrab ? solapesHabitaciones(planoTrab.habitaciones) : null,
+      plantillaPendiente: planoPlantillaPend,
+      // F4c (aditivo): vano seleccionado, lista plana de vanos con su segmento y avisos calculados, y diálogo de borrado pendiente
+      seleccionVano: planoSelVano ? { ...planoSelVano } : null,
+      vanos: planoTrab ? planoTrab.habitaciones.flatMap(h => {
+        const est = estadoVanos(h);
+        return (h.vanos || []).map(v => ({ hab: h.id, ...v, ...segmentoVano(h, v), fuera: est[v.id].fuera, solapa: est[v.id].solapa.slice() }));
+      }) : null,
+      borrarPendiente: planoBorrarPend,
+    }),
+    // F4d (solo lectura): estado de la materialización, mallas generadas y línea de visión desde la cámara.
+    materializacion: () => ({
+      activo: !!matObjeto, pendiente: matPend, resumen: matResumen ? { ...matResumen } : null, ms: matUltimaMs, msTotal: matUltimaTotalMs,
+      snapshot: matSnapshot ? JSON.parse(JSON.stringify(matSnapshot)) : null,
+      objeto: matObjeto ? { id: matObjeto.id, type: matObjeto.type, label: matObjeto.label, nombre: matObjeto.node.name } : null,
+      texto: planoEl('plano-mat-estado')?.textContent ?? '',
+      aviso: { visible: !!planoEl('plano-mat-aviso') && !planoEl('plano-mat-aviso').hidden, texto: planoEl('plano-mat-aviso-txt')?.textContent ?? '' },
+      dialogo: { visible: !!planoEl('plano-mat-conf') && !planoEl('plano-mat-conf').hidden, texto: planoEl('plano-mat-conf-txt')?.textContent ?? '', nota: planoEl('plano-mat-conf-nota')?.hidden ? '' : planoEl('plano-mat-conf-nota')?.textContent ?? '', boton: planoEl('plano-mat-conf-ok')?.textContent ?? '' },
+      botones: { materializar: !planoEl('plano-materializar')?.disabled, desmaterializar: !planoEl('plano-desmaterializar')?.disabled },
+      material: MAT.paredesPlano ? MAT.paredesPlano.albedoColor.toHexString().toUpperCase() : null,
+      mallas: matObjeto ? matObjeto.node.getChildMeshes().map(m => {
+        m.computeWorldMatrix(true);
+        const bb = m.getBoundingInfo().boundingBox;
+        return {
+          name: m.name, pared: m.metadata?.paredPlano ?? null, habitaciones: m.metadata?.habitaciones ?? null, vertices: m.getTotalVertices(), indices: m.getTotalIndices(),
+          pickable: m.isPickable, colision: m.checkCollisions, material: m.material?.name ?? null,
+          min: { x: bb.minimumWorld.x, y: bb.minimumWorld.y, z: bb.minimumWorld.z }, max: { x: bb.maximumWorld.x, y: bb.maximumWorld.y, z: bb.maximumWorld.z },
+        };
+      }) : [],
+      solidosCamara: TIPOS_SOLIDOS_CAMARA.slice(),
+    }),
+    // Paredes generadas que cortan el segmento (desde → punto (x, y, z)); sin `desde`, desde la cámara: permite comprobar que desde arriba se ve el interior.
+    lineaVisual: (x, y, z, desde) => {
+      if (!matObjeto) return [];
+      const o = desde ? new Vector3(desde.x, desde.y, desde.z) : camera.position.clone(), d = new Vector3(x, y, z).subtract(o), dist = d.length();
+      const rayo = new Ray(o, d.normalize(), dist);
+      return matObjeto.node.getChildMeshes().filter(m => { m.computeWorldMatrix(true); return rayo.intersectsMesh(m, false).hit; }).map(m => m.name);
+    },
+    planoAPantalla: (x, z) => {
+      const p = planoAPantalla(x, z), d = planoDims();
+      return { x: d.left + p.px, y: d.top + p.py };
     },
     // Coordenadas CSS en pantalla de un punto 3D (para dirigir el ratón en las pruebas).
     aPantalla: (x, y, z) => {
@@ -4527,6 +6567,7 @@ async function restaurarProgreso() {
   if (!data || !data.estado) return data;
 
   const { estado, progreso } = data;
+  matSnapshot = null; matObjeto = null; matResumen = null;                 // F4d: se recalculan desde progreso.plano.materializado (si existe)
 
   if (progreso) {
     if (typeof progreso.buildPhase === 'number') buildPhase = progreso.buildPhase;
@@ -4539,6 +6580,11 @@ async function restaurarProgreso() {
       try { renderProgWorkspace(); renderPseudocode(); } catch (e) { }
     }
     if (progreso.focoState) focoState = progreso.focoState;
+    if (progreso.plano && typeof progreso.plano === 'object' && !Array.isArray(progreso.plano)) { // F4a: tolerante a JSON corrupto
+      planoGuardado = sanearPlano(progreso.plano);
+      prefRejilla = { ...planoGuardado.rejilla };
+      if (planoGuardado.materializado) matRestaurar(planoGuardado.materializado);   // F4d: regenera las paredes (una casa sin ese campo no genera nada)
+    }
 
     const faseGuardada = buildPhase;
     if (faseGuardada >= 1 || matematicasValidadas) unlockPhase1();
@@ -4552,7 +6598,9 @@ async function restaurarProgreso() {
         progreso.excavacion.largo,
         progreso.excavacion.ancho,
         progreso.excavacion.profundidad,
-        false
+        false,
+        progreso.excavacion.tipo_suelo,       // F3: si falta o no es válido, crearGeometriaExcavacion aplica el suelo por defecto
+        progreso.excavacion.porcentaje_retiro // F3: si falta o no es válido, 100 %
       );
     }
   }
@@ -4893,6 +6941,7 @@ const init = () => {
              gizmoMgr.attachToMesh(null);
          }
          selectedMesh = null;
+         limpiarAvisoColocacion(); // F2.2
          objList.forEach(o => { if(o.node) o.node.dispose(); });
          objList = [];
          objIdCounter = 1;
@@ -4917,7 +6966,7 @@ const init = () => {
   highlightLayer.outerGlow = true;
   highlightLayer.blurHorizontalSize = 0.5; highlightLayer.blurVerticalSize = 0.5;
 
-  P(86, 'Picking…'); setupPicking(); setupBlockContextMenu();
+  P(86, 'Picking…'); setupPicking(); setupBlockContextMenu(); configurarAvisosColocacion(); configurarPlano();
 
   P(94, 'Post-proceso…');
   const pp = new DefaultRenderingPipeline('pp', true, scene, [camera]);
@@ -4944,7 +6993,7 @@ const init = () => {
   window.addEventListener('resize', () => { engine.resize(); });
 
   scene.registerAfterRender(() => {
-    objList.forEach(o => clampToZone(o.node));
+    objList.forEach(o => { if (o.type !== 'paredes_plano') clampToZone(o.node); });   // F4d: las paredes del plano no se encajan en la zona de construcción
     if (selectedMesh) {
       document.getElementById('xinfo').textContent =
         `${selectedMesh.userData?.emoji || ''} ${selectedMesh.userData?.label || ''}` +

@@ -59,6 +59,10 @@
       title="Ver tutorial interactivo">ℹ️ Ayuda</button>
   </div>
 
+  <!-- F4a · Botón del editor de plano: flotante (no va en la barra superior, que ya desborda a 1280 px y empujaría «Rayos X» fuera de pantalla) -->
+  <button class="btn" onclick="openPlanoEditor()" id="btnPlano"
+    title="Editor de plano: dibuja puntos, líneas y rectángulos sobre el lote">🗺️ Plano</button>
+
   <div id="catalog">
     <div id="cat-header" onclick="toggleCatalog()">
       <span>+ Materiales</span><span id="cat-arrow">▼</span>
@@ -92,20 +96,46 @@
 
   <div id="xinfo"></div>
 
+  <!-- F2.2 · Avisos de colocación: solo informativos; casa.js los rellena. No se guardan en el estado v2. -->
+  <div id="aviso-colocacion">
+    <div id="aviso-alerta" role="status" aria-live="polite" data-estado=""></div>
+    <div id="aviso-panel" data-estado="">
+      <div class="aviso-cab">
+        <span id="aviso-icono" aria-hidden="true"></span>
+        <span id="aviso-pieza"></span>
+        <span id="aviso-estado"></span>
+      </div>
+      <div class="aviso-datos">
+        <span>Δy <b id="aviso-dy">—</b></span>
+        <span>Contacto <b id="aviso-contacto">—</b></span>
+      </div>
+      <!-- F2.4c · «Apoyar» explícito (casa.js lo muestra/habilita). No se guarda en el estado v2. -->
+      <div class="aviso-acciones" id="apoyar-acciones" hidden>
+        <button type="button" id="apoyar-btn" aria-keyshortcuts="A" title="Bajar la pieza hasta su apoyo más cercano (atajo: A)" hidden>↓ Apoyar</button>
+        <button type="button" id="apoyar-deshacer" aria-keyshortcuts="Control+Z" title="Deshacer el último «Apoyar» (Ctrl+Z)" hidden>↶ Deshacer</button>
+        <!-- F2.4d · «Desapoyar»: sube la pieza 50 cm (atajo Shift+A). Su «Deshacer» es una ranura propia. -->
+        <button type="button" id="desapoyar-btn" aria-keyshortcuts="Shift+A" title="Subir la pieza 50 cm desde su apoyo (atajo: Shift+A)" disabled>↑ Desapoyar</button>
+        <button type="button" id="desapoyar-deshacer" aria-keyshortcuts="Control+Z" title="Deshacer el último «Desapoyar» (Ctrl+Z)" hidden>↶ Deshacer</button>
+      </div>
+      <div class="aviso-pie">
+        <label class="aviso-sonido"><input type="checkbox" id="aviso-sonido"> Sonido</label>
+        <button type="button" id="aviso-hist-toggle" aria-expanded="false" aria-controls="aviso-hist">Historial (<span id="aviso-hist-n">0</span>)</button>
+      </div>
+      <ol id="aviso-hist" hidden></ol>
+    </div>
+  </div>
+
+  <!-- F2.4c · Aviso de caída (|Δ| > 2 m): no bloqueante; Escape, clic fuera o cambiar de selección = Cancelar. -->
+  <div id="apoyar-confirma" role="alertdialog" aria-live="assertive" aria-label="Confirmar caída" hidden>
+    <span id="apoyar-confirma-texto"></span>
+    <button type="button" id="apoyar-confirma-si">Confirmar</button>
+    <button type="button" id="apoyar-confirma-no">Cancelar</button>
+  </div>
+
   <div id="tip">
     Empieza calculando el área con el botón 📐 Calcular Área para desbloquear los siguientes pasos<br>
     <span style="opacity:.5">Scroll = zoom · Mantén ← → ↑ ↓ para girar · Shift = más rápido · C = centrar en objeto ·
       Q/E = rotar objeto seleccionado</span>
-  </div>
-
-  <canvas id="rain-canvas"></canvas>
-  <div id="lightning-flash"></div>
-  <div id="storm-wind-bar" style="display:none">
-    <span id="storm-wind-label">💨 Viento</span>
-    <div id="storm-wind-track">
-      <div id="storm-wind-fill"></div>
-    </div>
-    <span id="storm-resist-msg"></span>
   </div>
 
   <div id="concreto-overlay" onclick="closeConcretoModal(event)">
@@ -715,6 +745,147 @@
     </div>
   </div>
 
+  <!-- F4a · Editor 2D del plano (SVG). Es un overlay modal: la cámara 3D y los atajos 3D quedan inertes mientras está abierto. -->
+  <div id="plano-overlay" role="dialog" aria-modal="true" aria-label="Editor de plano" tabindex="-1">
+    <div id="plano-barra">
+      <span id="plano-titulo">🗺️ Editor de plano</span>
+      <div class="plano-grupo" role="group" aria-label="Herramientas">
+        <button type="button" class="plano-btn" data-herr="select" title="Seleccionar y mover (V)">Seleccionar <kbd>V</kbd></button>
+        <button type="button" class="plano-btn" data-herr="punto" title="Punto (P)">Punto <kbd>P</kbd></button>
+        <button type="button" class="plano-btn" data-herr="linea" title="Línea (L)">Línea <kbd>L</kbd></button>
+        <button type="button" class="plano-btn" data-herr="rectangulo" title="Rectángulo (B)">Rectángulo <kbd>B</kbd></button>
+        <button type="button" class="plano-btn danger" id="plano-borrar" title="Borrar el elemento o la habitación seleccionada (Supr)">Borrar <kbd>Supr</kbd></button>
+      </div>
+      <!-- F4b · Habitaciones con nombre: herramienta H (dos clics) y plantillas -->
+      <div class="plano-grupo" role="group" aria-label="Habitaciones">
+        <button type="button" class="plano-btn" data-herr="habitacion" title="Habitación (H): dos clics en esquinas opuestas">
+          <svg class="plano-ico" viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M2 2h10v10H2zM2 7h5V2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          Habitación <kbd>H</kbd></button>
+        <select id="plano-plantilla" aria-label="Plantillas de casa" title="Cargar una plantilla de habitaciones">
+          <option value="">Plantillas…</option>
+          <option value="minima">Casa mínima</option>
+          <option value="dos">Casa 2 ambientes</option>
+          <option value="tres">Casa 3 ambientes</option>
+        </select>
+      </div>
+      <!-- F4c · Vanos: Puerta (D) y Ventana (N); se colocan con un clic sobre una pared de la habitación seleccionada -->
+      <div class="plano-grupo" role="group" aria-label="Vanos">
+        <button type="button" class="plano-btn" data-herr="puerta" title="Puerta (D): clic sobre una pared de la habitación seleccionada">Puerta <kbd>D</kbd></button>
+        <button type="button" class="plano-btn" data-herr="ventana" title="Ventana (N): clic sobre una pared de la habitación seleccionada">Ventana <kbd>N</kbd></button>
+      </div>
+      <!-- F4d · Materializar el plano en 3D: paredes con huecos para los vanos (una pared compartida entre habitaciones adyacentes es una sola) -->
+      <div class="plano-grupo" role="group" aria-label="Paredes en 3D">
+        <button type="button" class="plano-btn primary" id="plano-materializar" title="Genera en 3D las paredes del plano, con hueco para cada puerta y ventana">🧱 Materializar plano</button>
+        <button type="button" class="plano-btn danger" id="plano-desmaterializar" title="Borra las paredes generadas (las piezas manuales no se tocan)" disabled>Desmaterializar</button>
+        <span id="plano-mat-estado" class="plano-etq" role="status" aria-live="polite"></span>
+      </div>
+      <div class="plano-grupo" role="group" aria-label="Rejilla">
+        <label class="plano-etq"><input type="checkbox" id="plano-rejilla-visible"> Rejilla</label>
+        <select id="plano-rejilla-paso" aria-label="Separación de la rejilla">
+          <option value="0.1">0.10 m</option>
+          <option value="0.25">0.25 m</option>
+          <option value="0.5">0.50 m</option>
+          <option value="1">1.00 m</option>
+        </select>
+      </div>
+      <div class="plano-grupo" role="group" aria-label="Lote">
+        <span class="plano-etq">Lote</span>
+        <input type="number" id="plano-lote-ancho" min="1" max="100" step="0.5" aria-label="Ancho del lote (m)">
+        <span class="plano-etq">×</span>
+        <input type="number" id="plano-lote-largo" min="1" max="100" step="0.5" aria-label="Largo del lote (m)">
+        <span class="plano-etq">m</span>
+      </div>
+      <div class="plano-grupo" role="group" aria-label="Vista">
+        <span class="plano-etq" id="plano-zoom-val">1.00×</span>
+        <button type="button" class="plano-btn" id="plano-encuadrar" title="Encuadrar el lote (zoom 1×)">Encuadrar</button>
+      </div>
+      <span class="plano-espacio"></span>
+      <span id="plano-dirty" class="plano-etq" aria-live="polite"></span>
+      <button type="button" class="plano-btn primary" id="plano-guardar" title="Guardar el plano">Guardar</button>
+      <button type="button" class="plano-btn" id="plano-cerrar" title="Cerrar (Esc)">✕ Cerrar <kbd>Esc</kbd></button>
+    </div>
+    <!-- F4d · Aviso (una vez por sesión) al abrir el editor con paredes materializadas -->
+    <div id="plano-mat-aviso" role="status" hidden>
+      <span id="plano-mat-aviso-txt">El plano tiene paredes materializadas en 3D. Si editas el plano, el 3D se recalculará al rematerializar.</span>
+      <button type="button" class="plano-btn" id="plano-mat-aviso-cerrar">Entendido</button>
+    </div>
+    <div id="plano-lienzo"><svg id="plano-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plano del lote"></svg>
+      <!-- F4b · Panel flotante de la habitación: solo visible con la herramienta H activa o con una habitación seleccionada -->
+      <aside id="plano-panel" aria-label="Habitación seleccionada" hidden>
+        <div id="plano-panel-titulo">Habitación</div>
+        <p id="plano-panel-vacio">Selecciona una habitación</p>
+        <div id="plano-panel-campos">
+          <label class="plano-fila">Nombre <input type="text" id="plano-hab-nombre" maxlength="30" autocomplete="off" aria-label="Nombre de la habitación"></label>
+          <label class="plano-fila">Ancho (m) <input type="number" id="plano-hab-ancho" min="0.1" max="100" step="0.1" aria-label="Ancho de la habitación (m)"></label>
+          <label class="plano-fila">Largo (m) <input type="number" id="plano-hab-largo" min="0.1" max="100" step="0.1" aria-label="Largo de la habitación (m)"></label>
+          <div class="plano-fila">Área <output id="plano-hab-area"></output></div>
+          <div class="plano-fila">Perímetro <output id="plano-hab-perimetro"></output></div>
+          <p id="plano-hab-solape" role="status" hidden></p>
+          <p id="plano-hab-vanos" role="status" hidden></p>
+          <button type="button" class="plano-btn danger" id="plano-hab-borrar" title="Borrar la habitación (Supr)">Borrar habitación</button>
+        </div>
+        <!-- F4c · Datos del vano seleccionado -->
+        <div id="plano-panel-vano" hidden>
+          <div id="plano-vano-titulo" class="plano-panel-sub"></div>
+          <label class="plano-fila">Tipo <select id="plano-vano-tipo" aria-label="Tipo de vano"><option value="puerta">Puerta</option><option value="ventana">Ventana</option></select></label>
+          <label class="plano-fila">Ancho (m) <input type="number" id="plano-vano-ancho" min="0.1" max="100" step="0.05" aria-label="Ancho del vano (m)"></label>
+          <label class="plano-fila">Alto (m) <input type="number" id="plano-vano-alto" min="0.1" max="10" step="0.05" aria-label="Alto del vano (m)"></label>
+          <label class="plano-fila">Offset (m) <input type="number" id="plano-vano-offset" min="0" max="100" step="0.05" aria-label="Distancia desde el inicio de la pared (m)"></label>
+          <label class="plano-fila">Lado <select id="plano-vano-lado" aria-label="Pared del vano"><option value="norte">Norte</option><option value="sur">Sur</option><option value="este">Este</option><option value="oeste">Oeste</option></select></label>
+          <p id="plano-vano-aviso" role="status" hidden></p>
+          <button type="button" class="plano-btn danger" id="plano-vano-borrar" title="Borrar el vano (Supr)">Borrar vano</button>
+        </div>
+      </aside>
+    </div>
+    <div id="plano-pie">
+      <span id="plano-ayuda"></span>
+      <span id="plano-cursor"></span>
+    </div>
+    <div id="plano-tip" role="status" hidden></div>
+    <div id="plano-confirma" role="alertdialog" aria-labelledby="plano-confirma-txt" hidden>
+      <div id="plano-confirma-caja">
+        <p id="plano-confirma-txt">Hay cambios sin guardar en el plano. ¿Qué quieres hacer?</p>
+        <div class="plano-confirma-botones">
+          <button type="button" class="plano-btn primary" id="plano-conf-guardar">Guardar y cerrar</button>
+          <button type="button" class="plano-btn danger" id="plano-conf-descartar">Descartar y cerrar</button>
+          <button type="button" class="plano-btn" id="plano-conf-seguir">Seguir editando</button>
+        </div>
+      </div>
+    </div>
+    <!-- F4c · Borrar una habitación que tiene vanos: confirmación -->
+    <div id="plano-vano-conf" class="plano-dialogo" role="alertdialog" aria-labelledby="plano-vano-conf-txt" hidden>
+      <div class="plano-dialogo-caja">
+        <p id="plano-vano-conf-txt" class="plano-dialogo-txt"></p>
+        <div class="plano-confirma-botones">
+          <button type="button" class="plano-btn danger" id="plano-vano-conf-borrar">Borrar</button>
+          <button type="button" class="plano-btn" id="plano-vano-conf-cancelar">Cancelar</button>
+        </div>
+      </div>
+    </div>
+    <!-- F4b · ¿Reemplazar o añadir? al cargar una plantilla con habitaciones ya dibujadas -->
+    <div id="plano-plantilla-conf" class="plano-dialogo" role="alertdialog" aria-labelledby="plano-plantilla-txt" hidden>
+      <div class="plano-dialogo-caja">
+        <p id="plano-plantilla-txt" class="plano-dialogo-txt"></p>
+        <div class="plano-confirma-botones">
+          <button type="button" class="plano-btn danger" id="plano-plantilla-reemplazar">Reemplazar</button>
+          <button type="button" class="plano-btn primary" id="plano-plantilla-anadir">Añadir</button>
+          <button type="button" class="plano-btn" id="plano-plantilla-cancelar">Cancelar</button>
+        </div>
+      </div>
+    </div>
+    <!-- F4d · Rematerializar / Desmaterializar: confirmación (borra las paredes generadas; las piezas manuales no se tocan) -->
+    <div id="plano-mat-conf" class="plano-dialogo" role="alertdialog" aria-labelledby="plano-mat-conf-txt" hidden>
+      <div class="plano-dialogo-caja">
+        <p id="plano-mat-conf-txt" class="plano-dialogo-txt"></p>
+        <p id="plano-mat-conf-nota" class="plano-dialogo-nota" hidden></p>
+        <div class="plano-confirma-botones">
+          <button type="button" class="plano-btn danger" id="plano-mat-conf-ok">Rematerializar</button>
+          <button type="button" class="plano-btn" id="plano-mat-conf-cancelar">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal de Excavación 3D -->
   <div id="excavacion-overlay" onclick="closeExcavacionModal(event)">
     <div id="excavacion-modal">
@@ -790,6 +961,49 @@
                   oninput="excOnSliderChange('profundidad')">
                 <span class="exc-unit-badge">m</span>
               </div>
+            </div>
+          </div>
+
+          <!-- F3 · Tipo de suelo, porcentaje a retirar y resultados en volqueta. El selector se llena desde referencia.js (A.1). -->
+          <div class="exc-suelo-card" id="exc-suelo-card">
+            <div class="wb-label" style="margin-bottom:8px">Tipo de suelo y retiro en volqueta</div>
+            <div class="exc-field">
+              <label class="mat-label" for="exc-suelo">Tipo de suelo</label>
+              <select id="exc-suelo" class="mat-input exc-suelo-sel" onchange="excOnSueloChange()"
+                title="Factor de conversión banco→suelto: Manual de Materiales, Tabla 1.1"></select>
+            </div>
+            <div class="exc-field">
+              <label class="mat-label" for="exc-retiro-range">Porcentaje a retirar</label>
+              <div class="exc-input-slider-row">
+                <input type="range" id="exc-retiro-range" min="0" max="100" step="1" value="100"
+                  oninput="excOnRetiroChange()"
+                  title="Porcentaje del material suelto que se retira en volqueta. Ejemplo 1.2 del Manual de Materiales usa 70%.">
+                <span class="exc-retiro-val" id="exc-retiro-val">100 %</span>
+              </div>
+            </div>
+            <div id="exc-resultados" class="exc-resultados">
+              <div class="exc-res-cadena" id="exc-res-cadena"></div>
+              <div class="exc-stat-item">
+                <span class="exc-stat-label">Volumen en banco (L × A × P):</span>
+                <span class="exc-stat-val" id="exc-res-banco"></span>
+              </div>
+              <div class="exc-stat-item">
+                <span class="exc-stat-label">Volumen suelto (banco × <span id="exc-res-factor"></span>):</span>
+                <span class="exc-stat-val" id="exc-res-suelto"></span>
+              </div>
+              <div class="exc-stat-item">
+                <span class="exc-stat-label">Volumen a retirar (suelto × <span id="exc-res-pct"></span>):</span>
+                <span class="exc-stat-val" id="exc-res-retirar"></span>
+              </div>
+              <div class="exc-stat-item highlight">
+                <span class="exc-stat-label">Viajes de volqueta (<span id="exc-res-cap"></span>):</span>
+                <span class="exc-stat-val" id="exc-res-viajes"></span>
+              </div>
+              <div class="exc-res-nota" id="exc-res-fuente"></div>
+              <div class="exc-res-nota" id="exc-res-redondeo">El redondeo de viajes hacia arriba es criterio educativo de operación, no una regla
+                matemática.</div>
+              <div class="exc-res-nota" id="exc-res-sinfactor">Los suelos sin factor de conversión aparecen deshabilitados: la fuente no da conversión
+                banco→suelto para ellos.</div>
             </div>
           </div>
 
