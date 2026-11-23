@@ -74,6 +74,11 @@ body {
   overflow-x: hidden;
 }
 
+body:has(.classroom-layout) {
+  display: block;
+  width: 100%;
+}
+
 /* ---------------------------------------- 
               INDEX.HTML
    ---------------------------------------- */
