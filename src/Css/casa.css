@@ -3688,3 +3688,239 @@ body:has(#measure-panel) #aviso-colocacion {
   color: #ffd98a;
   max-width: 380px;
 }
+
+
+/* ── F5 · replanteo ── */
+#plano-replanteo-estado {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-estado="vigente"] {
+  color: #7dffb0;
+}
+
+[data-estado="desactualizado"] {
+  color: #ffd98a;
+}
+
+#replanteo-panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  width: min(580px, calc(100% - 290px));
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  padding: 8px 12px;
+  background: rgba(6, 14, 38, .96);
+  border: 1px solid rgba(80, 200, 255, .3);
+  border-radius: 12px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .45);
+  font-size: 11px;
+  color: rgba(170, 205, 255, .9);
+}
+
+#replanteo-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: .07em;
+  color: #7fe0ff;
+}
+
+#replanteo-aviso {
+  margin: 6px 0;
+  color: #ffd98a;
+}
+
+#replanteo-estacas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  max-height: 120px;
+  margin: 6px 0;
+  overflow-y: auto;
+}
+
+.rep-fila {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rep-dev {
+  width: 48px;
+  padding: 1px 4px;
+  background: rgba(10, 22, 60, .8);
+  color: #e6f1ff;
+  border: 1px solid rgba(50, 110, 220, .45);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+#replanteo-medidas table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+#replanteo-medidas th,
+#replanteo-medidas td {
+  padding: 2px 5px;
+  border-bottom: 1px solid rgba(80, 200, 255, .12);
+  text-align: right;
+}
+
+#replanteo-medidas th:first-child,
+#replanteo-medidas tr.grupo th {
+  text-align: left;
+}
+
+#replanteo-medidas tr.grupo th {
+  color: #7fe0ff;
+}
+
+#replanteo-medidas tr.ok td:last-child {
+  color: #7dffb0;
+}
+
+#replanteo-medidas tr.repetir td:last-child {
+  color: #ff8a80;
+}
+
+#replanteo-medidas tr.na td {
+  color: rgba(170, 205, 255, .6);
+  text-align: left;
+}
+
+#replanteo-nota {
+  margin: 6px 0 0;
+  color: rgba(170, 205, 255, .75);
+}
+
+/* ── F6a · zanjas de cimentación ── */
+#plano-zanjas-estado {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#plano-zanjas-rellenar[hidden] {
+  display: none;
+}
+
+[data-estado="desactualizada"] {
+  color: #ffd98a;
+}
+
+#cimentacion-panel {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  width: min(330px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  padding: 8px 12px;
+  background: rgba(6, 14, 38, .96);
+  border: 1px solid rgba(80, 200, 255, .3);
+  border-radius: 12px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .45);
+  font-size: 11px;
+  color: rgba(170, 205, 255, .9);
+}
+
+#cimentacion-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: .07em;
+  color: #7fe0ff;
+}
+
+.cim-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0 0;
+}
+
+.cim-fila select,
+.cim-fila input[type="text"] {
+  width: 190px;
+  padding: 2px 6px;
+  background: rgba(10, 22, 60, .8);
+  color: #e6f1ff;
+  border: 1px solid rgba(50, 110, 220, .45);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.cim-fila input[type="text"] {
+  width: 70px;
+  text-align: right;
+}
+
+.cim-fila select:disabled,
+.cim-fila input:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.cim-rango {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#cim-retiro {
+  width: 120px;
+}
+
+#cim-aviso-prof,
+#cim-avisos li {
+  color: #ffd98a;
+}
+
+#cim-aviso-prof {
+  margin: 4px 0 0;
+}
+
+#cim-modo {
+  margin: 8px 0 2px;
+  color: #7fe0ff;
+  font-weight: 700;
+}
+
+#cim-resultados {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+#cim-resultados dt {
+  color: rgba(170, 205, 255, .75);
+}
+
+#cim-resultados dd {
+  margin: 0;
+  text-align: right;
+  color: #e6f1ff;
+}
+
+#cim-avisos {
+  margin: 6px 0 0;
+  padding-left: 16px;
+}
+
+#cim-avisos:empty {
+  display: none;
+}
+
+#cim-nota {
+  margin: 6px 0 0;
+  color: rgba(170, 205, 255, .75);
+}

@@ -33,6 +33,26 @@ import {
   PARED_ALTURA_DEFECTO, PARED_GROSOR_DEFECTO, PARED_ALFEIZAR_DEFECTO, PARED_RECT_AVISO,
   generarParedes3D, generarParedConHuecos, resumirMaterializacion, compactarMaterializado, expandirMaterializado, sanearMaterializado,
 } from './calculos.js';
+// Presentación 20-nov: texturas procedurales (DynamicTexture) para las paredes del plano y el suelo; el bloque vive en «PRESENTACIÓN 20-NOV».
+import {
+  crearTexturaLadrillo, crearTexturaTierra, crearTexturaTecho, crearTexturaMadera, crearTexturaCeramica, crearTexturaConcreto,
+  texturaPisoPorNombre, aplicarTextura, proyectarUVMundo,
+} from './material_render.js';
+// Presentación 20-nov · Bloque B: cubierta a dos aguas sobre las habitaciones materializadas.
+import { calcularBoundingBoxHabitaciones, crearCubierta } from './cubierta_lite.js';
+// F5: replanteo básico (estacas en las esquinas del plano, ejes y verificación). Lógica pura en replanteo.js; fuente en referencia_topografia.js; el bloque vive en «F5 · REPLANTEO BÁSICO».
+import {
+  TEXTOS_ESTADO, ESTADO_VIGENTE, letraFila, ejesDe, crearEstacas, posicionEstaca, estadoReplanteo, validarDesviacion,
+  medidasHabitacion, resumenMedidas, serializarReplanteo, sanearReplanteo,
+} from './replanteo.js';
+import { TEXTO_FORMULA_T, TEXTO_CRITERIO, TEXTO_345 } from './referencia_topografia.js';
+// F6a: zanjas de cimentación bajo las paredes del plano. Lógica pura en cimentacion.js; fuente en referencia_cimentacion.js; el bloque vive en «F6a · ZANJAS DE CIMENTACIÓN».
+import {
+  CIM_TERRENO_MM, CIM_ZONA_MM, TEXTOS_ESTADO_CIM, validarProfundidad, crearZanjas, paredesZanja, rectangulosZanja, recortarRectangulos, fosaDesde,
+  complementoTerreno, geometriaZanjas, resumenZanjas, avisosZanjas, estadoCimentacion, serializarCimentacion, sanearCimentacion,
+} from './cimentacion.js';
+import { TEXTO_FUENTE_ANCHO, TEXTO_FUENTE_PROF, TEXTO_NO_VALIDADO } from './referencia_cimentacion.js';
+import { DynamicTexture } from '@babylonjs/core';
 import {
   Engine,
   Scene,
@@ -277,6 +297,7 @@ function buildGround() {
   MeshBuilder.CreateLineSystem('arrow_v', { lines: rL, colors: rL.map(() => [arC, arC]) }, scene).isPickable = false;
 
   buildMeasurementUI();
+  aplicarTexturasExistentes();                                   // Presentación 20-nov · Bloque A: textura de tierra en el suelo
 }
 
 // crea el panel de medidas y las etiquetas 3D proyectadas en pantalla
@@ -4680,6 +4701,7 @@ function leerDimensionesExcavacion() {
 }
 
 function setGroundHole(xMin, xMax, zMin, zMax) {
+  if (cimHayZanjas()) return cimRecomponerTerreno([xMin, xMax, zMin, zMax]);   // F6a: con zanjas el terreno se compone con fosa ∪ zanjas; sin zanjas esta función es la de F3, sin cambios
   clearGroundHole();
   const groundOriginal = scene.getMeshByName('ground');
   const zoneFillOriginal = scene.getMeshByName('zone_fill');
@@ -4732,9 +4754,11 @@ function setGroundHole(xMin, xMax, zMin, zMax) {
   zEast.material = fm; zEast.receiveShadows = true; zEast.isPickable = false;
 
   groundHoleSegments = [gNorth, gSouth, gWest, gEast, zNorth, zSouth, zWest, zEast];
+  aplicarTexturasExistentes();                                   // Presentación 20-nov · Bloque A: los segmentos del suelo también llevan tierra
 }
 
 function clearGroundHole() {
+  if (cimHayZanjas()) return cimRecomponerTerreno(null);                        // F6a: ídem (sin fosa); sin zanjas esta función es la de F3, sin cambios
   groundHoleSegments.forEach(m => {
     try { m.dispose(); } catch (e) { }
   });
@@ -4879,6 +4903,7 @@ function crearGeometriaExcavacion(largo, ancho, profundidad, conFeedback = true,
   pile.material = MAT.excSoilPile;
   pile.receiveShadows = true;
   pile.parent = excavacionRootNode;
+  pile.setEnabled(conFeedback); // solo se ve al excavar (conFeedback = excavación hecha por el usuario); al restaurar un progreso nace oculto
   if (shadowGen) shadowGen.addShadowCaster(pile, false);
 
   excavacionData = {
@@ -4948,6 +4973,7 @@ function openExcavacionModal() {
   const overlay = document.getElementById('excavacion-overlay');
   if (!overlay) return;
   overlay.classList.add('open');
+  montonTierraMostrar(true); // regresar a la etapa de excavación
 
   const largo = excavacionData ? excavacionData.largo : 12.0;
   const ancho = excavacionData ? excavacionData.ancho : 10.0;
@@ -4967,7 +4993,9 @@ function closeExcavacionModal(e) {
   if (e && e.target !== e.currentTarget && e.target.tagName !== 'BUTTON') return;
   try { registrar('modal_cerrado', { contexto: { modal: 'excavacion' } }); } catch (e) { }
   const overlay = document.getElementById('excavacion-overlay');
+  const estabaAbierto = !!overlay && overlay.classList.contains('open'); // el clic en un botón también llega al fondo y vuelve a llamar aquí con el modal ya cerrado
   if (overlay) overlay.classList.remove('open');
+  if (estabaAbierto) montonTierraMostrar(false); // cerrar sin confirmar = salir de la etapa (confirmarExcavacion lo vuelve a mostrar)
 }
 
 function setExcavacionInputValues(largo, ancho, prof) {
@@ -5135,6 +5163,7 @@ function confirmarExcavacion() {
 
   crearGeometriaExcavacion(lVal, aVal, pVal, true, leerSueloExcavacion(), leerRetiroExcavacion()); // F3: tipo de suelo y % a retirar
   closeExcavacionModal();
+  montonTierraMostrar(true); // recién excavado: el montón se ve hasta que se avance a otra etapa o función
 }
 
 function eliminarExcavacion() {
@@ -5143,6 +5172,21 @@ function eliminarExcavacion() {
   eliminarGeometriaExcavacion(true);
   closeExcavacionModal();
 }
+
+// Montón de tierra extraída (malla exc_pile): solo representa gráficamente la excavación recién hecha. Se muestra al excavar y
+// mientras se está en la etapa de excavación, y se oculta (setEnabled(false)) al pasar a otra función. No borra ni cambia la
+// excavación: fosa, terreno, datos, volumen y progreso guardado siguen igual; eliminarGeometriaExcavacion lo destruye con el resto.
+function montonTierraMostrar(ver) {
+  if (!excavacionRootNode) return;
+  const pile = excavacionRootNode.getChildMeshes().find(m => m.name === 'exc_pile');
+  if (pile) pile.setEnabled(ver);
+}
+// Avanzar de etapa = usar otra función (Calcular Área, Crear Concreto, Construir, Programar, Plano o una pieza del catálogo).
+// Un botón bloqueado (disabled) no genera clic, así que un intento sobre una etapa bloqueada no cuenta como avanzar.
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('#btnMatematicas, #btnStorm, #btnWall, #btnProgramar, #btnPlano, #cat-list .cat-item:not(#cat-excavacion)');
+  if (b && !b.disabled && !b.classList.contains('cat-disabled')) montonTierraMostrar(false);
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ── F3 · EXCAVACIÓN: TIPO DE SUELO, % A RETIRAR Y VIAJES DE VOLQUETA ──────────
@@ -6244,6 +6288,7 @@ function matRestaurar(entrada) {
     matResumen = resumirMaterializacion(habitaciones, paredes);
     objList.push(matObjeto);
     updateObjListUI();
+    aplicarTexturasExistentes();                                          // Presentación 20-nov · Bloque A
   } catch (err) {
     matObjeto = null; matResumen = null;
     console.warn('No se pudieron regenerar las paredes del plano:', err);
@@ -6260,6 +6305,9 @@ function matActualizarUI() {
   planoEl('plano-desmaterializar').disabled = lectura || !matObjeto;
   const est = planoEl('plano-mat-estado');
   est.textContent = matObjeto && matResumen ? matTextoResumen(matResumen) + matExtras(matResumen) : '';
+  cubiertaActualizarUI();                                                 // Presentación 20-nov · Bloque B
+  replanteoActualizarUI();                                                // F5
+  cimActualizarUI();                                                      // F6a
 }
 
 function matExtras(r) {
@@ -6339,6 +6387,8 @@ function matEjecutar() {
     updateObjListUI();
     matActualizarUI();
     matUltimaTotalMs = performance.now() - tIni;
+    aplicarTexturasExistentes();                                        // Presentación 20-nov · Bloque A (fuera de la medición de F4d)
+    extrasPlanoAlMaterializar(habs);                                    // Presentación 20-nov: cubierta (si había) y pisos se ajustan a las paredes nuevas
     const avisos = [];
     if (resumen.rectangulos > PARED_RECT_AVISO) avisos.push(`Hay ${resumen.rectangulos} rectángulos de pared: el 3D puede ir más lento.`);
     planoMostrarTip(matTextoResumen(resumen) + matExtras(resumen) + (avisos.length ? ' · ' + avisos.join(' ') : ''));
@@ -6358,6 +6408,7 @@ function desmaterializarPlano() {
 function matDesmaterializar() {
   matBorrarObjeto();
   matSnapshot = null;
+  extrasPlanoAlDesmaterializar();                                          // Presentación 20-nov: sin paredes no hay cubierta ni pisos
   matSincronizarGuardado();
   marcarSucio();
   updateObjListUI();
@@ -6368,10 +6419,848 @@ function matDesmaterializar() {
 function configurarMaterializacion() {
   planoEl('plano-materializar').addEventListener('click', materializarPlano);
   planoEl('plano-desmaterializar').addEventListener('click', desmaterializarPlano);
+  planoEl('plano-cubierta').addEventListener('click', cubiertaPulsada);          // Presentación 20-nov · Bloque B
   planoEl('plano-mat-conf-ok').addEventListener('click', () => matResolver(true));
   planoEl('plano-mat-conf-cancelar').addEventListener('click', () => matResolver(false));
   planoEl('plano-mat-aviso-cerrar').addEventListener('click', () => { planoEl('plano-mat-aviso').hidden = true; });
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRESENTACIÓN 20-NOV · Bloque A · Texturas procedurales
+// Ladrillo en las paredes materializadas (F4d) y tierra en el suelo (F3). Solo cambia el aspecto: las texturas no se guardan
+// (se regeneran al cargar) y no se tocan geometría, colisiones ni datos. Si algo falla, queda el material liso de antes.
+// ══════════════════════════════════════════════════════════════════════════════
+const TEX_METROS_PARED = 2;                                            // el ladrillo mide lo mismo en cualquier pared (2 m por repetición de la textura)
+const TEX_METROS_SUELO = 3;
+let texLadrillo = null, texTierra = null;
+
+function aplicarTexturasExistentes() {
+  try {
+    if (!scene) return;
+    if (matObjeto) {                                                   // paredes del plano → ladrillo
+      texLadrillo = texLadrillo || crearTexturaLadrillo(scene);
+      matObjeto.node.getChildMeshes().forEach(m => aplicarTextura(m, texLadrillo, { metrosPorTile: TEX_METROS_PARED }));
+    }
+    if (MAT.ground) {                                                  // suelo (el original y los segmentos de la excavación F3) → tierra
+      if (!texTierra) { texTierra = crearTexturaTierra(scene); MAT.ground.albedoColor = new Color3(1, 1, 1); }
+      scene.meshes.filter(m => m.name === 'ground' || m.name.startsWith('ground_seg_'))
+        .forEach(m => aplicarTextura(m, texTierra, { metrosPorTile: TEX_METROS_SUELO }));
+    }
+  } catch (err) {
+    console.warn('No se pudieron aplicar las texturas:', err);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRESENTACIÓN 20-NOV · Bloque B · Cubierta a dos aguas
+// Botón «Añadir cubierta» del editor del plano: techo de dos faldones (pendiente 27 %, A.9) sobre las habitaciones materializadas.
+// Es una superposición fuera de objList (no se selecciona, no colisiona, no entra en Programar ni en el panel de piezas); sus datos
+// viven en progreso.plano.cubierta (aditivo: la clave solo existe si hay cubierta) y se regenera al cargar la casa.
+// ══════════════════════════════════════════════════════════════════════════════
+let cubiertaDatos = null;                                              // { bbox: {minX, maxX, minZ, maxZ} } (lo que se guarda) o null
+let cubiertaObjeto = null;                                             // objeto agregado de cubierta_lite.js o null
+let texTecho = null;
+
+function cubiertaBorrar() {
+  if (!cubiertaObjeto) return;
+  const o = cubiertaObjeto;
+  cubiertaObjeto = null;
+  o.meshes.forEach(m => { try { if (shadowGen) shadowGen.removeShadowCaster(m); } catch (_) { } m.dispose(); });
+  o.nodo.dispose();
+}
+
+// (Re)construye la cubierta desde cubiertaDatos. Si falla, no queda nada a medias.
+function cubiertaConstruir() {
+  cubiertaBorrar();
+  if (!cubiertaDatos || !scene) return;
+  texTecho = texTecho || crearTexturaTecho(scene);
+  texLadrillo = texLadrillo || crearTexturaLadrillo(scene);
+  const altura = matSnapshot && Number.isFinite(matSnapshot.altura) ? matSnapshot.altura : PARED_ALTURA_DEFECTO;
+  cubiertaObjeto = crearCubierta(scene, cubiertaDatos.bbox, texTecho, { texturaFronton: texLadrillo, alturaPared: altura });
+  cubiertaObjeto.meshes.forEach(m => { if (shadowGen) shadowGen.addShadowCaster(m, false); });
+}
+
+function cubiertaActualizarUI() {
+  const b = planoEl('plano-cubierta');
+  if (!b) return;
+  b.disabled = planoSoloLectura();
+  b.textContent = cubiertaObjeto ? '🏠 Quitar cubierta' : '🏠 Añadir cubierta';
+}
+
+function cubiertaPulsada() {
+  if (planoSoloLectura() || !planoTrab || matPend) return;
+  if (cubiertaObjeto) {                                                // segunda pulsación: la quita
+    cubiertaBorrar(); cubiertaDatos = null;
+    marcarSucio(); cubiertaActualizarUI();
+    planoMostrarTip('Cubierta quitada.');
+    return;
+  }
+  let bbox = null;
+  try { if (matObjeto && matSnapshot) bbox = calcularBoundingBoxHabitaciones(expandirMaterializado(matSnapshot).habitaciones); } catch (_) { bbox = null; }
+  if (!bbox) { planoMostrarTip('No hay habitaciones. Materializa primero.'); return; }
+  cubiertaDatos = { bbox };
+  try {
+    cubiertaConstruir();
+  } catch (err) {
+    console.warn('No se pudo crear la cubierta:', err);
+    cubiertaBorrar(); cubiertaDatos = null;
+    planoMostrarTip('No se pudo crear la cubierta.');
+    return;
+  }
+  marcarSucio(); cubiertaActualizarUI();
+  planoMostrarTip(`Cubierta a dos aguas: pendiente ${Math.round(cubiertaObjeto.pendiente * 100)} % (A.9), cumbrera a ${cubiertaObjeto.alturaCumbrera.toFixed(2)} m.`);
+}
+
+// Valida lo guardado en progreso.plano.cubierta: devuelve { bbox } o null (nunca lanza).
+function cubiertaSanear(entrada) {
+  try {
+    const b = entrada && entrada.bbox;
+    if (!b || ![b.minX, b.maxX, b.minZ, b.maxZ].every(n => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= 100)) return null;
+    if (!(b.maxX > b.minX) || !(b.maxZ > b.minZ)) return null;
+    return { bbox: { minX: b.minX, maxX: b.maxX, minZ: b.minZ, maxZ: b.maxZ } };
+  } catch (_) { return null; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRESENTACIÓN 20-NOV · Bloque D · Pisos por habitación
+// Al materializar, cada habitación recibe un piso (plano a 1 cm sobre el suelo) con la textura que le toca por su nombre:
+// baño/cocina → cerámica · sala/comedor/dormitorio/habitación → madera · otro → concreto. Superposición fuera de objList (sin
+// selección, sin colisión). No se guarda aparte: se regenera de lo materializado + los nombres del plano (sanearPlano no conoce claves nuevas).
+// ══════════════════════════════════════════════════════════════════════════════
+const PISO_Y = 0.01;
+const PISO_METROS = { madera: 2, ceramica: 3, concreto: 4 };            // metros del mundo por repetición de la textura (cerámica de 0.375 m, tablón de 0.25 m)
+let pisosObjeto = null;                                                // { nodo, meshes, tipos } o null
+let texPiso = {};                                                      // texturas creadas (se reutilizan)
+let matPiso = {};                                                      // materiales por tipo de piso
+
+function pisosBorrar() {
+  if (!pisosObjeto) return;
+  const o = pisosObjeto;
+  pisosObjeto = null;
+  o.meshes.forEach(m => m.dispose());
+  o.nodo.dispose();
+}
+
+function pisoMaterial(tipo) {
+  if (!matPiso[tipo]) {
+    const fabrica = { madera: crearTexturaMadera, ceramica: crearTexturaCeramica, concreto: crearTexturaConcreto }[tipo];
+    texPiso[tipo] = texPiso[tipo] || fabrica(scene);
+    const m = new PBRMaterial('piso_' + tipo, scene);
+    m.albedoColor = new Color3(1, 1, 1);
+    m.roughness = tipo === 'ceramica' ? 0.3 : tipo === 'madera' ? 0.6 : 0.92; m.metallic = 0;
+    m.albedoTexture = texPiso[tipo];
+    matPiso[tipo] = m;
+  }
+  return matPiso[tipo];
+}
+
+// habitaciones: [{ id, x, z, ancho, largo, nombre }]. Reemplaza los pisos que hubiera. Si algo falla no queda nada a medias.
+function pisosConstruir(habitaciones) {
+  pisosBorrar();
+  if (!scene || !Array.isArray(habitaciones) || !habitaciones.length) return;
+  const nodo = new TransformNode('pisos_plano', scene);
+  nodo.metadata = { generadoPorPlano: true, tipo: 'piso' };
+  nodo.userData = { generadoPorPlano: true, tipo: 'piso' };
+  const meshes = [], tipos = {};
+  try {
+    for (const h of habitaciones) {
+      const tipo = texturaPisoPorNombre(h.nombre);
+      const m = MeshBuilder.CreateGround(`piso_hab_${h.id}`, { width: h.ancho, height: h.largo, subdivisions: 1 }, scene);
+      m.parent = nodo;
+      m.position.set(h.x + h.ancho / 2, PISO_Y, h.z + h.largo / 2);
+      m.material = pisoMaterial(tipo);
+      m.isPickable = false; m.checkCollisions = false; m.receiveShadows = true;
+      m.metadata = { generadoPorPlano: true, tipo: 'piso', habitacion: h.id, textura: tipo };
+      m.computeWorldMatrix(true);
+      proyectarUVMundo(m, PISO_METROS[tipo]);
+      meshes.push(m);
+      tipos[h.id] = tipo;
+    }
+  } catch (err) {
+    meshes.forEach(m => m.dispose());
+    nodo.dispose();
+    throw err;
+  }
+  pisosObjeto = { nodo, meshes, tipos };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRESENTACIÓN 20-NOV · Bloque C · Puertas y ventanas en 3D (opcional)
+// Marco de 4 barras en cada hueco de F4d; la puerta lleva una hoja de 4 cm y la ventana un vidrio azul claro semitransparente.
+// Se posicionan con los mismos huecos que ya cortaron las paredes (generarParedes3D: lado, offset, ancho y alto del vano). Superposición
+// fuera de objList (sin selección, sin colisión), fundida en 3 mallas (marcos, hojas, vidrios); se regenera como los pisos.
+// ══════════════════════════════════════════════════════════════════════════════
+const VANO3D_BARRA = 0.06;                                             // m, ancho de cada barra del marco
+const VANO3D_HOJA = 0.04;                                              // m, grosor de la hoja de la puerta
+let vanos3DObjeto = null;                                              // { nodo, meshes, total } o null
+let matVano3D = null;
+
+function vanos3DBorrar() {
+  if (!vanos3DObjeto) return;
+  const o = vanos3DObjeto;
+  vanos3DObjeto = null;
+  o.meshes.forEach(m => m.dispose());
+  o.nodo.dispose();
+}
+
+function vano3DMateriales() {
+  if (!matVano3D) {
+    const pbr = (nombre, color, rough, metal = 0) => {
+      const m = new PBRMaterial(nombre, scene);
+      m.albedoColor = new Color3(...color); m.roughness = rough; m.metallic = metal; return m;
+    };
+    const vidrio = pbr('vano_vidrio', [0.62, 0.82, 0.97], 0.08);
+    vidrio.alpha = 0.3; vidrio.transparencyMode = PBRMaterial.PBRMATERIAL_ALPHABLEND; vidrio.backFaceCulling = false;
+    matVano3D = { marco: pbr('vano_marco', [0.42, 0.26, 0.12], 0.65), hoja: pbr('vano_hoja', [0.33, 0.19, 0.08], 0.6), vidrio };
+  }
+  return matVano3D;
+}
+
+// paredes: lo que devuelve generarParedes3D (cada pared con sus huecos). Reemplaza lo que hubiera.
+function crearPuertasVentanas3D(paredes) {
+  vanos3DBorrar();
+  if (!scene || !Array.isArray(paredes)) return;
+  const grupos = { marco: [], hoja: [], vidrio: [] };
+  const vistos = new Set();
+  let total = 0, n = 0;
+  try {
+    for (const p of paredes) {
+      const horizontal = p.orientacion === 'h';
+      const d = p.grosor + 0.02;                                       // el marco sobresale 1 cm por cada cara de la pared
+      for (const h of p.huecos || []) {
+        const clave = [p.id, h.tipo, h.u0, h.u1, h.y0, h.y1].join('|');
+        if (vistos.has(clave)) continue;                               // la misma pared compartida puede traer el vano repetido
+        vistos.add(clave);
+        const ancho = h.u1 - h.u0, alto = h.y1 - h.y0;
+        if (!(ancho > 2 * VANO3D_BARRA + 0.02) || !(alto > 2 * VANO3D_BARRA)) continue;   // hueco demasiado pequeño para llevar marco
+        const uc = (h.u0 + h.u1) / 2, b = VANO3D_BARRA;
+        const caja = (grupo, a, y, h2, u, prof) => {                   // a: largo a lo largo de la pared; prof: grosor atravesando la pared
+          const m = MeshBuilder.CreateBox(`vano3d_${n++}`, { width: horizontal ? a : prof, height: h2, depth: horizontal ? prof : a }, scene);
+          m.position.set(horizontal ? p.x1 + u : p.x1, y, horizontal ? p.z1 : p.z1 + u);
+          grupos[grupo].push(m);
+        };
+        const umbral = h.tipo === 'puerta' ? 0.03 : b;                 // la puerta lleva un umbral bajo en vez de una barra inferior alta
+        caja('marco', b, h.y0 + alto / 2, alto, uc - ancho / 2 + b / 2, d);        // jamba izquierda
+        caja('marco', b, h.y0 + alto / 2, alto, uc + ancho / 2 - b / 2, d);        // jamba derecha
+        caja('marco', ancho - 2 * b, h.y1 - b / 2, b, uc, d);                       // dintel
+        caja('marco', ancho - 2 * b, h.y0 + umbral / 2, umbral, uc, d);             // umbral / antepecho
+        if (h.tipo === 'puerta') caja('hoja', ancho - 2 * b, h.y0 + umbral + (alto - umbral - b) / 2, alto - umbral - b, uc, VANO3D_HOJA);
+        else caja('vidrio', ancho - 2 * b, h.y0 + umbral + (alto - umbral - b) / 2, alto - umbral - b, uc, 0.01);
+        total++;
+      }
+    }
+    const nodo = new TransformNode('vanos_plano', scene);
+    nodo.metadata = { generadoPorPlano: true, tipo: 'vanos' };
+    nodo.userData = { generadoPorPlano: true, tipo: 'vanos' };
+    const mats = vano3DMateriales(), meshes = [];
+    try {
+      for (const g of ['marco', 'hoja', 'vidrio']) {
+        if (!grupos[g].length) continue;
+        const caja0 = grupos[g];
+        const m = caja0.length === 1 ? caja0[0] : Mesh.MergeMeshes(caja0, true, true);
+        if (!m) throw new Error('MergeMeshes no devolvió ninguna malla');
+        grupos[g] = [];
+        m.name = 'vanos_3d_' + g;
+        m.parent = nodo; m.material = mats[g];
+        m.isPickable = false; m.checkCollisions = false; m.receiveShadows = true;
+        m.metadata = { generadoPorPlano: true, tipo: 'vanos', grupo: g };
+        meshes.push(m);
+      }
+    } catch (err) {
+      meshes.forEach(m => m.dispose()); nodo.dispose(); throw err;
+    }
+    vanos3DObjeto = { nodo, meshes, total };
+  } catch (err) {
+    Object.values(grupos).flat().forEach(m => { try { m.dispose(); } catch (_) { } });
+    throw err;
+  }
+}
+
+function extrasPlanoLimpiar() {
+  cubiertaBorrar(); cubiertaDatos = null;
+  pisosBorrar();
+  vanos3DBorrar();
+}
+
+// Carga: regenera lo que el alumno añadió encima de las paredes. Sin paredes materializadas no se genera nada.
+function restaurarExtrasPlano(planoCrudo) {
+  try {
+    extrasPlanoLimpiar();
+    if (!matObjeto || !matSnapshot || !planoCrudo) return;
+    const c = cubiertaSanear(planoCrudo.cubierta);
+    if (c) { cubiertaDatos = c; cubiertaConstruir(); }
+  } catch (err) {
+    cubiertaBorrar(); cubiertaDatos = null;
+    console.warn('No se pudo regenerar la cubierta:', err);
+  }
+  try {                                                                // pisos: se derivan de lo materializado y de los nombres del plano (no se guardan aparte)
+    if (!matObjeto || !matSnapshot) return;
+    const nombres = new Map((planoGuardado ? planoGuardado.habitaciones : []).map(h => [h.id, h.nombre]));
+    pisosConstruir(expandirMaterializado(matSnapshot).habitaciones.map(h => ({ ...h, nombre: nombres.get(h.id) ?? h.nombre })));
+  } catch (err) {
+    pisosBorrar();
+    console.warn('No se pudieron regenerar los pisos:', err);
+  }
+  try {                                                                // puertas y ventanas 3D: mismos huecos que cortaron las paredes
+    if (!matObjeto || !matSnapshot) return;
+    const { habitaciones, opciones } = expandirMaterializado(matSnapshot);
+    crearPuertasVentanas3D(generarParedes3D(habitaciones, opciones));
+  } catch (err) {
+    vanos3DBorrar();
+    console.warn('No se pudieron regenerar las puertas y ventanas 3D:', err);
+  }
+}
+
+// Tras (re)materializar: la cubierta que ya hubiera se ajusta a las habitaciones nuevas.
+function extrasPlanoAlMaterializar(habs) {
+  try {
+    if (cubiertaDatos) {
+      const bbox = calcularBoundingBoxHabitaciones(habs);
+      if (bbox) { cubiertaDatos = { bbox }; cubiertaConstruir(); } else { cubiertaBorrar(); cubiertaDatos = null; }
+    }
+  } catch (err) {
+    cubiertaBorrar(); cubiertaDatos = null;
+    console.warn('No se pudo ajustar la cubierta:', err);
+  }
+  try { pisosConstruir(habs); } catch (err) { pisosBorrar(); console.warn('No se pudieron crear los pisos:', err); }
+  try { crearPuertasVentanas3D(generarParedes3D(habs, MAT_OPCIONES)); } catch (err) { vanos3DBorrar(); console.warn('No se pudieron crear las puertas y ventanas 3D:', err); }
+  if (cubiertaDatos) marcarSucio();                                    // el rectángulo de la cubierta pudo cambiar: se guarda con el siguiente autoguardado
+  cubiertaActualizarUI();
+}
+
+function extrasPlanoAlDesmaterializar() {
+  extrasPlanoLimpiar();
+  cubiertaActualizarUI();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// F5 · REPLANTEO BÁSICO
+// 5a: estacas en las esquinas únicas de las habitaciones del plano GUARDADO y ejes numerados (1, 2, 3… oeste→este; A, B, C… sur→norte).
+// 5b: tabla de medidas por habitación (4 lados, 2 diagonales, escuadra 3-4-5): medido, calculado, E, T = D·ER y veredicto (E > T → repetir).
+// La lógica es pura (replanteo.js); aquí solo viven la superposición 3D y el panel. La superposición está FUERA de objList (no se selecciona,
+// no colisiona, no entra en Programar ni en el panel de piezas) y sus mallas llevan los prefijos estaca_ / eje_. Los datos viven en
+// progreso.replanteo (aditivo, nivel de progreso: la clave solo existe si el alumno replanteó) y se regeneran al cargar. No necesita materializar.
+// ══════════════════════════════════════════════════════════════════════════════
+const REP_ALTURA_POSTE = 0.6;
+let repEstacas = [];                                                   // estacas {id, x, z, dx, dz} en mm; vacío = «Sin replanteo»
+let repOculto = false;                                                 // C2: ver / ocultar (se guarda)
+let repNodo = null;                                                    // TransformNode 'replanteo_plano' con las mallas estaca_* y eje_*
+let repMallas = new Map();                                             // id de estaca → { poste, cabeza, etq }
+let repHabSel = null;                                                  // habitación cuyas medidas muestra el panel (no se guarda)
+let repAviso = '';                                                     // C1: último aviso al validar una desviación (no se guarda)
+let repFirmaLista = '', repFirmaHabs = '';                             // evitan reconstruir el DOM (y perder el foco) en cada refresco
+let repMatPoste = null, repMatCabeza = null;
+
+const repHabitaciones = () => (planoGuardado && Array.isArray(planoGuardado.habitaciones) ? planoGuardado.habitaciones : []);
+const repEstado = () => estadoReplanteo(repEstacas, repHabitaciones());
+const repEsc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function repEtiqueta3D(nombre, texto, ancho, alto, fondo) {
+  const dt = new DynamicTexture('rep_dt_' + nombre, { width: 128, height: 64 }, scene, false);
+  const ctx = dt.getContext();
+  ctx.clearRect(0, 0, 128, 64);
+  ctx.fillStyle = fondo; ctx.fillRect(2, 2, 124, 60);
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 34px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(texto, 64, 34);
+  dt.hasAlpha = true; dt.update();
+  const mat = new StandardMaterial('rep_mat_' + nombre, scene);
+  mat.diffuseTexture = dt; mat.emissiveColor = Color3.White(); mat.disableLighting = true; mat.backFaceCulling = false; mat.useAlphaFromDiffuseTexture = true;
+  const m = MeshBuilder.CreatePlane(nombre, { width: ancho, height: alto }, scene);
+  m.material = mat; m.billboardMode = Mesh.BILLBOARDMODE_ALL; m.isPickable = false; m.checkCollisions = false;
+  m.parent = repNodo;
+  return m;
+}
+
+function repPosicionar(e) {
+  const m = repMallas.get(e.id);
+  if (!m) return;
+  const p = posicionEstaca(e);
+  m.poste.position.set(p.x, REP_ALTURA_POSTE / 2, p.z);
+  m.cabeza.position.set(p.x, REP_ALTURA_POSTE + 0.05, p.z);
+  m.etq.position.set(p.x, REP_ALTURA_POSTE + 0.4, p.z);
+}
+
+function repBorrar3D() {
+  if (!repNodo) return;
+  repNodo.getChildMeshes(false).forEach(m => {
+    const mat = m.material;
+    m.dispose(false, false);
+    if (mat && mat.name.startsWith('rep_mat_')) { try { mat.diffuseTexture?.dispose(); } catch (_) { } mat.dispose(); }
+  });
+  repNodo.dispose();
+  repNodo = null; repMallas = new Map();
+}
+
+// (Re)construye la superposición desde repEstacas. Si falla no queda nada a medias.
+function repConstruir3D() {
+  repBorrar3D();
+  if (!repEstacas.length || !scene) return;
+  repMatPoste = repMatPoste || Object.assign(new StandardMaterial('rep_poste', scene), { diffuseColor: Color3.FromHexString('#C9A66B') });
+  repMatCabeza = repMatCabeza || Object.assign(new StandardMaterial('rep_cabeza', scene), { diffuseColor: Color3.FromHexString('#E53935'), emissiveColor: Color3.FromHexString('#4A0D0B') });
+  repNodo = new TransformNode('replanteo_plano', scene);
+  try {
+    for (const e of repEstacas) {
+      const poste = MeshBuilder.CreateCylinder(`estaca_${e.id}_poste`, { diameter: 0.06, height: REP_ALTURA_POSTE, tessellation: 10 }, scene);
+      const cabeza = MeshBuilder.CreateCylinder(`estaca_${e.id}_cabeza`, { diameter: 0.1, height: 0.1, tessellation: 10 }, scene);
+      poste.material = repMatPoste; cabeza.material = repMatCabeza;
+      const etq = repEtiqueta3D(`estaca_${e.id}_etq`, e.id, 0.55, 0.28, 'rgba(8,16,40,.85)');
+      for (const m of [poste, cabeza, etq]) { m.parent = repNodo; m.isPickable = false; m.checkCollisions = false; m.renderingGroupId = 1; }   // grupo 1: las estacas se ven aunque las paredes materializadas las rodeen
+      repMallas.set(e.id, { poste, cabeza, etq });
+      repPosicionar(e);
+    }
+    const ejes = ejesDe(repEstacas), xs = ejes.columnas.map(v => v / 1000), zs = ejes.filas.map(v => v / 1000);
+    const x0 = xs[0] - 1, x1 = xs[xs.length - 1] + 1, z0 = zs[0] - 1, z1 = zs[zs.length - 1] + 1;
+    const lineas = [...xs.map(x => [new Vector3(x, 0.04, z0), new Vector3(x, 0.04, z1)]), ...zs.map(z => [new Vector3(x0, 0.04, z), new Vector3(x1, 0.04, z)])];
+    const ls = MeshBuilder.CreateLineSystem('eje_lineas', { lines: lineas }, scene);
+    ls.color = new Color3(0.3, 0.85, 1); ls.isPickable = false; ls.parent = repNodo;
+    if (xs.length + zs.length <= 60) {
+      xs.forEach((x, i) => { repEtiqueta3D(`eje_col_${i + 1}`, String(i + 1), 0.4, 0.2, 'rgba(14,90,130,.9)').position.set(x, 0.25, z0 - 0.25); });
+      zs.forEach((z, i) => { repEtiqueta3D(`eje_fila_${letraFila(i)}`, letraFila(i), 0.4, 0.2, 'rgba(14,90,130,.9)').position.set(x0 - 0.25, 0.25, z); });
+    }
+  } catch (err) { repBorrar3D(); throw err; }
+  repNodo.setEnabled(!repOculto);
+}
+
+const repNum = n => n.toFixed(4);
+function repTablaMedidas(m) {
+  const fila = x => `<tr class="${x.ok ? 'ok' : 'repetir'}" title="${repEsc(TEXTO_FORMULA_T)}"><th scope="row">${repEsc(x.nombre)}</th><td>${repNum(x.medido)}</td><td>${repNum(x.calculado)}</td>` +
+    `<td>${repNum(x.E)}</td><td>${repNum(x.T)}</td><td>${x.ok ? '✓ Se acepta' : '✗ Repetir la medición'}</td></tr>`;
+  const grupo = t => `<tr class="grupo"><th colspan="6" scope="colgroup">${t}</th></tr>`;
+  const esc = m.escuadras.map(x => (x.aplicable ? fila(x) : `<tr class="na"><th scope="row">${repEsc(x.nombre)}</th><td colspan="5">No aplicable: no caben ${x.orientacion === 'a' ? '3 m en x y 4 m en z' : '4 m en x y 3 m en z'}</td></tr>`));
+  return `<table><thead><tr><th>Medida</th><th>Medido (m)</th><th>Calculado (m)</th><th>E (m)</th><th>T (m)</th><th>Veredicto</th></tr></thead><tbody>` +
+    grupo('Lados') + m.lados.map(fila).join('') + grupo('Diagonales') + m.diagonales.map(fila).join('') + grupo('Escuadra 3-4-5') + esc.join('') + '</tbody></table>';
+}
+
+function repRenderPanel(estado, lectura) {
+  const est = planoEl('replanteo-estado-txt');
+  est.textContent = TEXTOS_ESTADO[estado]; est.dataset.estado = estado;
+  const av = planoEl('replanteo-aviso');
+  av.textContent = repAviso; av.hidden = !repAviso;
+  const firma = repEstacas.map(e => `${e.id}:${e.x},${e.z}`).join('|') + (lectura ? '#L' : '');
+  if (firma !== repFirmaLista) {                                       // la lista de estacas (con sus campos de texto) solo se rehace si cambió el conjunto
+    repFirmaLista = firma;
+    planoEl('replanteo-estacas').innerHTML = repEstacas.map(e => `<div class="rep-fila"><b>${e.id}</b><span>${(e.x / 1000).toFixed(2)} ; ${(e.z / 1000).toFixed(2)} m</span>` +
+      ['dx', 'dz'].map(k => `<label>${k} <input type="text" inputmode="numeric" class="rep-dev" data-estaca="${e.id}" data-eje="${k}" value="${e[k]}" autocomplete="off" ` +
+        `aria-label="Desviación ${k} de la estaca ${e.id} (mm)" ${lectura ? 'disabled' : ''}> mm</label>`).join('') + '</div>').join('');
+  }
+  const habs = repHabitaciones(), sel = planoEl('replanteo-hab');
+  const fh = habs.map(h => h.id + h.nombre).join('|');
+  if (fh !== repFirmaHabs) { repFirmaHabs = fh; sel.innerHTML = habs.map(h => `<option value="${repEsc(h.id)}">${repEsc(h.nombre)}</option>`).join(''); }
+  if (!habs.some(h => h.id === repHabSel)) repHabSel = habs.length ? habs[0].id : null;
+  sel.value = repHabSel ?? '';
+  const cont = planoEl('replanteo-medidas'), resumen = planoEl('replanteo-resumen');
+  const h = habs.find(x => x.id === repHabSel), m = estado === ESTADO_VIGENTE && h ? medidasHabitacion(h, repEstacas) : null;
+  if (!m) { cont.innerHTML = ''; resumen.textContent = estado === ESTADO_VIGENTE ? '' : TEXTOS_ESTADO[estado]; return; }
+  const r = resumenMedidas(m);
+  resumen.textContent = r.repetir ? `${r.repetir} de ${r.total} medidas superan la tolerancia: repite la medición.` : `Las ${r.total} medidas están dentro de la tolerancia.`;
+  cont.innerHTML = repTablaMedidas(m);
+}
+
+function replanteoActualizarUI() {
+  const b = planoEl('plano-replantear');
+  if (!b) return;
+  const lectura = planoSoloLectura(), hay = repEstacas.length > 0, estado = repEstado();
+  b.disabled = lectura;
+  b.textContent = hay ? '📐 Volver a replantear' : '📐 Replantear';
+  const v = planoEl('plano-replanteo-ver');
+  v.disabled = !hay; v.textContent = repOculto ? '👁 Ver replanteo' : '🙈 Ocultar replanteo';
+  const e = planoEl('plano-replanteo-estado');
+  e.textContent = TEXTOS_ESTADO[estado]; e.dataset.estado = estado;
+  planoEl('replanteo-panel').hidden = !hay;
+  if (hay) repRenderPanel(estado, lectura);
+}
+
+function replantear() {
+  if (planoSoloLectura()) return;
+  if (planoHayCambios()) { planoMostrarTip('Guarda el plano antes de replantear: hay cambios sin guardar.'); return; }
+  const previas = repEstacas, oculto = repOculto;
+  const nuevas = crearEstacas(repHabitaciones(), previas);
+  if (!nuevas.length) { planoMostrarTip('El plano guardado no tiene habitaciones: dibuja y guarda al menos una para replantear.'); return; }
+  try {
+    repEstacas = nuevas; repOculto = false;
+    if (matBytesGuardado(planoGuardado, matSnapshot) > MAT_LIMITE_BYTES) throw new Error('límite de tamaño');
+    repConstruir3D();
+  } catch (err) {
+    repEstacas = previas; repOculto = oculto;
+    try { repConstruir3D(); } catch (_) { repBorrar3D(); }
+    planoMostrarTip('No se pudo replantear: el guardado superaría el límite de tamaño o falló el 3D.');
+    return;
+  }
+  repFirmaLista = ''; repAviso = '';
+  marcarSucio(); replanteoActualizarUI();
+  const ej = ejesDe(nuevas);
+  planoMostrarTip(`Replanteo: ${nuevas.length} ${nuevas.length === 1 ? 'estaca' : 'estacas'}, ejes 1–${ej.columnas.length} y A–${letraFila(ej.filas.length - 1)}. Cierra el editor para verlas en 3D.`);
+}
+
+function repAlternar() {                                               // C2
+  if (!repEstacas.length) return;
+  repOculto = !repOculto;
+  if (repNodo) repNodo.setEnabled(!repOculto);
+  if (!planoSoloLectura()) marcarSucio();
+  replanteoActualizarUI();
+}
+
+function repAplicarDesviacion(input) {                                 // C1
+  if (planoSoloLectura()) return;
+  const e = repEstacas.find(s => s.id === input.dataset.estaca), k = input.dataset.eje === 'dz' ? 'dz' : 'dx';
+  if (!e) return;
+  const r = validarDesviacion(input.value);
+  if (!r.valido) {
+    repAviso = `Estaca ${e.id}: ${r.aviso}`; input.value = String(e[k]);                   // no se aplica: se restaura el valor anterior
+  } else {
+    repAviso = r.ajustado ? `Estaca ${e.id}: ${r.aviso}` : '';
+    input.value = String(r.valor);
+    if (r.valor !== e[k]) { e[k] = r.valor; repPosicionar(e); marcarSucio(); }
+  }
+  replanteoActualizarUI();
+}
+
+function replanteoLimpiar() {
+  repBorrar3D();
+  repEstacas = []; repOculto = false; repAviso = ''; repHabSel = null; repFirmaLista = ''; repFirmaHabs = '';
+}
+
+// Carga: valida lo guardado (nunca lanza) y regenera la superposición. Si el 3D falla se conservan los datos.
+function restaurarReplanteo(entrada) {
+  replanteoLimpiar();
+  const s = sanearReplanteo(entrada);
+  if (s) {
+    repEstacas = s.estacas; repOculto = s.oculto;
+    try { repConstruir3D(); } catch (err) { repBorrar3D(); console.warn('No se pudo regenerar el replanteo:', err); }
+  }
+  replanteoActualizarUI();
+}
+
+function configurarReplanteo() {
+  if (!planoEl('plano-replantear')) return;
+  planoEl('plano-replantear').addEventListener('click', replantear);
+  planoEl('plano-replanteo-ver').addEventListener('click', repAlternar);
+  planoEl('replanteo-estacas').addEventListener('change', ev => { if (ev.target.classList?.contains('rep-dev')) repAplicarDesviacion(ev.target); });
+  planoEl('replanteo-hab').addEventListener('change', ev => { repHabSel = ev.target.value; replanteoActualizarUI(); });
+  planoEl('replanteo-nota').textContent = `${TEXTO_FORMULA_T}. D = distancia calculada de proyecto. ${TEXTO_CRITERIO} ${TEXTO_345}`;
+}
+configurarReplanteo();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// F6a · ZANJAS DE CIMENTACIÓN
+// Una zanja bajo cada pared del plano GUARDADO (las mismas paredes que F4d: la pared compartida es una sola zanja), de 250 mm (1 piso) o 300 mm
+// (2 pisos) de ancho (NSR-10, Tabla E.2.2-1) y 0.54 m de profundidad por defecto (editable). Los huecos son REALES: el terreno se recompone como el
+// complemento de (fosa de F3 ∪ zanjas), no se dibuja nada encima. La lógica (unión de zanjas, volumen sin doble conteo, geometría, avisos, estado,
+// guardado) es pura y vive en cimentacion.js; aquí solo viven el 3D y el panel.
+// Convivencia con F3: setGroundHole / clearGroundHole llevan una guarda al principio. Sin zanjas no hacen nada distinto de F3; con zanjas, delegan
+// en cimRecomponerTerreno. F3 no pasa la profundidad de la fosa a setGroundHole, así que la recomposición completa (terreno + paredes y fondo de
+// las zanjas, que dependen de esa profundidad) se hace en un microtask, cuando F3 ya terminó de crear su fosa y excavacionData está al día.
+// Los datos viven en progreso.cimentacion (aditivo: la clave solo existe si hay zanjas) y se regeneran al cargar. La superposición está FUERA de objList
+// (no se selecciona, no colisiona, no entra en Programar ni en el panel de piezas); sus mallas son zanja_floor y zanja_wall bajo el nodo zanjas_root,
+// y el terreno recompuesto son ground_seg_z y zone_seg_z. No necesita materializar. El 3D reutiliza los materiales de la excavación (MAT.excFloor / excWall).
+// ══════════════════════════════════════════════════════════════════════════════
+let cimZ = null;                                                       // modelo de las zanjas (cimentacion.js) o null = «Sin zanjas»
+let cimHabiaGuardado = false;                                          // hubo zanjas guardadas o restauradas en esta sesión: al rellenarlas se envía null para borrarlas del servidor
+let cimSuspendido = false;                                             // el 3D falló: se conservan los datos (y el guardado) pero F3 vuelve a mandar sobre el terreno
+let cimNodo = null;                                                    // TransformNode 'zanjas_root' con zanja_floor y zanja_wall
+let cimMallasTerreno = [];                                             // ground_seg_z y zone_seg_z (también están en groundHoleSegments: así clearGroundHole de F3 las elimina)
+let cimPendiente = false;                                              // hay una recomposición completa programada (microtask)
+let cimCache = { clave: '', z: null, excavado: false, resumen: null, avisos: [] };
+let cimFirmaPanel = '';                                                // evita reconstruir el DOM del panel en cada refresco
+
+const cimHayZanjas = () => cimZ !== null && !cimSuspendido;           // lo consultan las guardas de setGroundHole / clearGroundHole
+const cimHabitaciones = () => (planoGuardado && Array.isArray(planoGuardado.habitaciones) ? planoGuardado.habitaciones : []);
+const cimEstado = () => estadoCimentacion(cimZ, cimHabitaciones());
+const cimFosa = () => fosaDesde(excavacionData);
+const cimRects = z => rectangulosZanja(paredesZanja(z.habitaciones), z.ancho);
+const cimN = (n, d = 2) => n.toFixed(d).replace('.', ',');
+
+// Malla de cuadriláteros: quads = [{ p: [4 puntos [x, y, z] en m], n: [nx, ny, nz] }]. El orden de los índices se elige para que la cara frontal
+// mire hacia n (Babylon, mano izquierda: cara frontal si cross(p1−p0, p2−p0)·n < 0). Las UV son planas por la normal dominante (el suelo las
+// reescribe luego con proyectarUVMundo). Sin colisiones ni selección.
+function cimMalla(nombre, quads, material) {
+  if (!quads.length) return null;
+  const pos = [], nor = [], uv = [], idx = [];
+  for (const { p, n } of quads) {
+    const o = pos.length / 3;
+    for (const v of p) {
+      pos.push(v[0], v[1], v[2]); nor.push(n[0], n[1], n[2]);
+      if (Math.abs(n[1]) > 0.5) uv.push(v[0], v[2]); else if (Math.abs(n[0]) > 0.5) uv.push(v[2], v[1]); else uv.push(v[0], v[1]);
+    }
+    const a = [p[1][0] - p[0][0], p[1][1] - p[0][1], p[1][2] - p[0][2]], b = [p[2][0] - p[0][0], p[2][1] - p[0][1], p[2][2] - p[0][2]];
+    const c = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    if (c[0] * n[0] + c[1] * n[1] + c[2] * n[2] < 0) idx.push(o, o + 1, o + 2, o, o + 2, o + 3); else idx.push(o, o + 2, o + 1, o, o + 3, o + 2);
+  }
+  const m = new Mesh(nombre, scene);
+  const vd = new VertexData();
+  vd.positions = pos; vd.normals = nor; vd.uvs = uv; vd.indices = idx;
+  vd.applyToMesh(m);
+  m.material = material; m.isPickable = false; m.checkCollisions = false;
+  return m;
+}
+const cimCuadro = (r, yM) => ({ p: [[r.x0 / 1000, yM, r.z0 / 1000], [r.x0 / 1000, yM, r.z1 / 1000], [r.x1 / 1000, yM, r.z1 / 1000], [r.x1 / 1000, yM, r.z0 / 1000]], n: [0, 1, 0] });
+const cimMuro = m => {
+  const c = m.c / 1000, a0 = m.a0 / 1000, a1 = m.a1 / 1000, y0 = m.y0 / 1000, y1 = m.y1 / 1000;
+  return m.eje === 'x'
+    ? { p: [[c, y0, a0], [c, y1, a0], [c, y1, a1], [c, y0, a1]], n: [m.n, 0, 0] }
+    : { p: [[a0, y0, c], [a0, y1, c], [a1, y1, c], [a1, y0, c]], n: [0, 0, m.n] };
+};
+
+function cimBorrar3D() {
+  if (!cimNodo) return;
+  cimNodo.getChildMeshes(false).forEach(m => { try { m.dispose(); } catch (_) { } });
+  cimNodo.dispose();
+  cimNodo = null;
+}
+
+// Fondo y paredes de las zanjas (solo lo que baja respecto de la fosa de F3, si la hay). Si una zanja más honda que la fosa la cruza, el piso sólido
+// de F3 (exc_floor) taparía la zanja: se oculta y el piso de la fosa lo dibuja cimentacion.js con las zanjas recortadas (pisoFosa).
+function cimZanjas3D(fosa) {
+  cimBorrar3D();
+  const ef = scene ? scene.getMeshByName('exc_floor') : null;
+  if (!cimZ || !scene) { if (ef) ef.isVisible = true; return; }
+  const geo = geometriaZanjas(recortarRectangulos(cimRects(cimZ), CIM_TERRENO_MM), cimZ.prof, fosa);
+  cimNodo = new TransformNode('zanjas_root', scene);
+  try {
+    const suelo = cimMalla('zanja_floor', [...geo.suelos, ...geo.pisoFosa].map(r => cimCuadro(r, r.y / 1000)), MAT.excFloor);
+    if (suelo) { suelo.receiveShadows = true; suelo.parent = cimNodo; }
+    const muros = cimMalla('zanja_wall', geo.muros.map(cimMuro), MAT.excWall);
+    if (muros) muros.parent = cimNodo;
+  } catch (err) { cimBorrar3D(); throw err; }
+  if (ef) ef.isVisible = !geo.fosaPerforada;
+}
+
+// Terreno = cuadrado − (fosa ∪ zanjas), en ground (±13 m) y zone_fill (±10 m): una malla por capa. fosa: { x0, x1, z0, z1 } en mm o null.
+// Hace lo mismo que clearGroundHole + setGroundHole de F3 (oculta los originales, sustituye los segmentos), sin pasar por sus guardas.
+function cimTerreno(fosa) {
+  if (!scene || !cimZ) return;
+  const huecos = cimRects(cimZ);
+  if (fosa) huecos.push({ x0: fosa.x0, x1: fosa.x1, z0: fosa.z0, z1: fosa.z1 });
+  groundHoleSegments.forEach(m => { try { m.dispose(); } catch (_) { } });
+  groundHoleSegments = []; cimMallasTerreno = [];
+  const ground = scene.getMeshByName('ground'), zonaOriginal = scene.getMeshByName('zone_fill');
+  if (ground) ground.isVisible = false;
+  if (zonaOriginal) zonaOriginal.isVisible = false;
+  const g = cimMalla('ground_seg_z', complementoTerreno(huecos, CIM_TERRENO_MM).map(r => cimCuadro(r, 0)), MAT.ground);
+  const z = cimMalla('zone_seg_z', complementoTerreno(huecos, CIM_ZONA_MM).map(r => cimCuadro(r, 0.001)), zonaOriginal?.material || MAT.ground);
+  for (const m of [g, z]) if (m) { m.receiveShadows = true; cimMallasTerreno.push(m); }
+  groundHoleSegments = [...cimMallasTerreno];
+  aplicarTexturasExistentes();                                         // los segmentos del suelo también llevan tierra (ground_seg_ …)
+}
+
+// Recomposición completa leyendo la fosa de F3 de excavacionData. El 3D va primero (puede fallar): el terreno no se abre si no hay fondo que ver.
+function cimRecomponer() {
+  const fosa = cimFosa();
+  cimZanjas3D(fosa);
+  cimTerreno(fosa);
+}
+
+function cimProgramarRecomposicion() {
+  if (cimPendiente) return;
+  cimPendiente = true;
+  queueMicrotask(() => {
+    cimPendiente = false;
+    if (!cimHayZanjas()) return;
+    try { cimRecomponer(); } catch (err) { cimSuspender(err); }
+  });
+}
+
+// Destino de las dos guardas de F3. fosa = [xMin, xMax, zMin, zMax] en m (lo que recibe setGroundHole) o null (clearGroundHole).
+function cimRecomponerTerreno(fosa) {
+  if (!scene) return;
+  try {
+    cimTerreno(Array.isArray(fosa)
+      ? { x0: Math.round(fosa[0] * 1000), x1: Math.round(fosa[1] * 1000), z0: Math.round(fosa[2] * 1000), z1: Math.round(fosa[3] * 1000) } : null);
+  } catch (err) { cimSuspender(err); return; }
+  cimProgramarRecomposicion();                                         // las paredes y el fondo dependen de la profundidad de la fosa, que F3 aún no ha fijado
+}
+
+// Devuelve el terreno y la fosa de F3 a su estado sin zanjas (con las guardas inactivas: cimZ null o suspendido).
+function cimDesmontar() {
+  cimBorrar3D();
+  if (!scene) return;
+  const ef = scene.getMeshByName('exc_floor');
+  if (ef) ef.isVisible = true;
+  clearGroundHole();                                                   // F3: elimina las mallas del terreno de las zanjas y vuelve a mostrar el original
+  cimMallasTerreno = [];
+  const e = excavacionData;
+  if (fosaDesde(e)) setGroundHole(-e.ancho / 2, e.ancho / 2, -e.largo / 2, e.largo / 2);   // como lo hace crearGeometriaExcavacion (centrada en el origen)
+}
+
+// El 3D falló: se conservan los datos (el guardado no los pierde) y F3 recupera el terreno.
+function cimSuspender(err) {
+  console.warn('No se pudo dibujar las zanjas (los datos se conservan):', err);
+  cimSuspendido = true;
+  try { cimDesmontar(); } catch (_) { cimBorrar3D(); }
+}
+
+function cimQuitar() {                                                 // sin marcarSucio
+  const hubo = cimZ !== null || cimNodo !== null || cimMallasTerreno.length > 0;
+  cimZ = null; cimSuspendido = false;
+  if (hubo) cimDesmontar();
+}
+
+function cimLimpiar() {                                                // al cargar: nada de lo anterior sobrevive
+  cimQuitar();
+  cimHabiaGuardado = false; cimFirmaPanel = ''; cimCache = { clave: '', z: null, excavado: false, resumen: null, avisos: [] };
+}
+
+// ── Panel y botones ───────────────────────────────────────────────────────────
+function cimPoblarSuelo() {                                            // 11 filas de A.1: 9 con factor y 2 deshabilitadas por no tenerlo (igual que el modal de F3)
+  const sel = planoEl('cim-suelo');
+  if (!sel || sel.options.length > 0) return;
+  for (const [id, fila] of Object.entries(A1_FACTORES_SUELO.filas)) {
+    const f = fila.factor_banco_suelto.valor, op = document.createElement('option');
+    op.value = id;
+    if (f === null) { op.textContent = `${fila.nombre} — sin factor`; op.disabled = true; op.title = EXC_TEXTO_SIN_FACTOR; }
+    else { op.textContent = `${fila.nombre} — ×${f.toFixed(2)}`; op.title = `${fila.nombre}: 1 m³ en banco = ${f.toFixed(2)} m³ suelto`; }
+    sel.appendChild(op);
+  }
+  sel.value = SUELO_POR_DEFECTO;
+}
+
+function cimLeer() {                                                   // opciones escritas en el panel; prof = resultado de validarProfundidad
+  const prof = validarProfundidad(planoEl('cim-prof').value), retiro = Number(planoEl('cim-retiro').value);
+  return { prof, op: { pisos: Number(planoEl('cim-pisos').value), prof: prof.mm, suelo: planoEl('cim-suelo').value, retiro: Number.isFinite(retiro) ? retiro / 100 : undefined } };
+}
+
+function cimSincronizarForm(z) {                                       // tras cargar: el panel muestra lo que se excavó
+  planoEl('cim-pisos').value = String(z.pisos);
+  planoEl('cim-prof').value = String(z.prof / 1000);
+  planoEl('cim-suelo').value = z.suelo;
+  planoEl('cim-retiro').value = String(Math.round(z.retiro * 100));
+  planoEl('cim-retiro-val').textContent = `${Math.round(z.retiro * 100)} %`;
+}
+
+// Resultados y avisos de lo excavado o, si aún no hay zanjas, de una vista previa con el plano guardado y las opciones del panel (memoizado).
+function cimCalculos() {
+  const excavado = cimZ !== null, fosa = cimFosa(), rep = repEstado();
+  const z = excavado ? cimZ : crearZanjas(cimHabitaciones(), cimLeer().op);
+  const clave = JSON.stringify([excavado, z ? serializarCimentacion(z) : null, fosa, rep]);
+  if (clave !== cimCache.clave) {
+    cimCache = { clave, z, excavado, resumen: z ? resumenZanjas(z, fosa) : null, avisos: z ? avisosZanjas(z, { estadoReplanteo: rep }) : [] };
+  }
+  return cimCache;
+}
+
+function cimRenderPanel(estado, lectura) {
+  const est = planoEl('cim-estado-txt');
+  est.textContent = TEXTOS_ESTADO_CIM[estado]; est.dataset.estado = estado;
+  for (const id of ['cim-pisos', 'cim-prof', 'cim-suelo', 'cim-retiro']) planoEl(id).disabled = lectura;
+  planoEl('cim-retiro-val').textContent = `${planoEl('cim-retiro').value} %`;
+  const pv = validarProfundidad(planoEl('cim-prof').value), aviso = planoEl('cim-aviso-prof');
+  aviso.textContent = pv.valido ? '' : pv.aviso; aviso.hidden = pv.valido;
+  const c = cimCalculos(), r = c.resumen;
+  let modo = r === null ? 'Guarda un plano con habitaciones para calcular las zanjas.' : c.excavado ? 'Zanjas excavadas' : 'Vista previa (aún sin excavar)';
+  if (c.excavado && !lectura) {
+    const f = cimLeer().op, z = c.z;
+    if (f.pisos !== z.pisos || f.prof !== z.prof || f.suelo !== z.suelo || Math.abs((f.retiro ?? z.retiro) - z.retiro) > 1e-9) modo += ' · los cambios del panel se aplican con «Volver a excavar»';
+  }
+  const fila = (k, etq, txt, valor = '') => `<dt>${etq}</dt><dd data-k="${k}"${valor === '' ? '' : ` data-valor="${valor}"`}>${txt}</dd>`;
+  const filas = r === null ? '' : [
+    fila('zanjas', 'Zanjas (una por pared)', String(r.zanjas), r.zanjas),
+    fila('longitud', 'Longitud de los ejes', `${cimN(r.longitudM, 2)} m`, r.longitudM),
+    fila('seccion', 'Sección (ancho × profundidad)', `${cimN(r.anchoM)} × ${cimN(r.profM)} m`),
+    fila('area', 'Área en planta', `${cimN(r.areaM2)} m²`, r.areaM2),
+    fila('volumen', 'Volumen en banco', `${cimN(r.volumen)} m³`, r.volumen),
+    r.volumenEnFosa > 0 ? fila('enfosa', 'Ya excavado por la fosa de F3', `${cimN(r.volumenEnFosa)} m³`, r.volumenEnFosa) : '',
+    fila('factor', 'Factor banco→suelto (A.1)', cimN(r.factor), r.factor),
+    fila('suelto', 'Volumen suelto', `${cimN(r.suelto)} m³`, r.suelto),
+    fila('aretirar', `A retirar (${Math.round(c.z.retiro * 100)} %)`, `${cimN(r.viajes.aRetirar)} m³`, r.viajes.aRetirar),
+    fila('viajes', `Viajes de volqueta (${PARAMETROS.volqueta_m3.valor} m³)`, `${r.viajes.viajes} (${cimN(r.viajes.viajesSinRedondear)} sin redondear)`, r.viajes.viajes),
+  ].join('');
+  const avisos = c.avisos.map(a => `<li data-codigo="${a.codigo}">${repEsc(a.texto)}</li>`).join('');
+  const firma = `${modo}|${filas}|${avisos}`;
+  if (firma === cimFirmaPanel) return;
+  cimFirmaPanel = firma;
+  planoEl('cim-modo').textContent = modo;
+  planoEl('cim-resultados').innerHTML = filas;
+  planoEl('cim-avisos').innerHTML = avisos;
+}
+
+function cimActualizarUI() {
+  const b = planoEl('plano-zanjas');
+  if (!b) return;
+  const lectura = planoSoloLectura(), hay = cimZ !== null, estado = cimEstado();
+  b.disabled = lectura;
+  b.textContent = hay ? '🕳️ Volver a excavar' : '🕳️ Excavar zanjas';
+  const rell = planoEl('plano-zanjas-rellenar');
+  rell.hidden = !hay; rell.disabled = lectura || !hay;
+  const e = planoEl('plano-zanjas-estado');
+  e.textContent = TEXTOS_ESTADO_CIM[estado]; e.dataset.estado = estado;
+  cimRenderPanel(estado, lectura);
+}
+
+function cimExcavar() {
+  if (planoSoloLectura()) return;
+  if (planoHayCambios()) { planoMostrarTip('Guarda el plano antes de excavar las zanjas: hay cambios sin guardar.'); return; }
+  const { prof, op } = cimLeer();
+  if (!prof.valido) { planoMostrarTip(prof.aviso); cimActualizarUI(); return; }
+  const z = crearZanjas(cimHabitaciones(), op);
+  if (!z) { planoMostrarTip('El plano guardado no tiene habitaciones: dibuja y guarda al menos una para excavar zanjas.'); return; }
+  const previa = cimZ, suspendida = cimSuspendido;
+  try {
+    cimZ = z; cimSuspendido = false;
+    if (matBytesGuardado(planoGuardado, matSnapshot) > MAT_LIMITE_BYTES) throw new Error('límite de tamaño');
+    cimRecomponer();
+  } catch (err) {
+    cimZ = previa; cimSuspendido = suspendida;
+    try { if (cimHayZanjas()) cimRecomponer(); else cimDesmontar(); } catch (_) { cimBorrar3D(); }
+    planoMostrarTip('No se pudieron excavar las zanjas: el guardado superaría el límite de tamaño o falló el 3D.');
+    cimActualizarUI();
+    return;
+  }
+  cimHabiaGuardado = true;
+  marcarSucio(); cimMostrarPanel(true); cimActualizarUI();
+  const r = resumenZanjas(z, cimFosa());
+  planoMostrarTip(`Zanjas: ${r.zanjas} ${r.zanjas === 1 ? 'zanja' : 'zanjas'}, ${cimN(r.volumen)} m³ en banco. Cierra el editor para verlas en 3D.`);
+}
+
+// El panel está oculto por defecto (cerrado no debe cubrir ni un píxel del lienzo): se abre con «⚙ Zanjas» y al excavar.
+function cimMostrarPanel(ver) {
+  const panel = planoEl('cimentacion-panel'), btn = planoEl('plano-zanjas-panel');
+  if (!panel) return;
+  panel.hidden = !ver;
+  if (btn) btn.setAttribute('aria-expanded', String(ver));
+  if (ver) cimActualizarUI();
+}
+
+function cimRellenar() {
+  if (planoSoloLectura() || cimZ === null) return;
+  cimQuitar();
+  marcarSucio(); cimActualizarUI();
+  planoMostrarTip('Zanjas rellenadas: el terreno volvió a su estado anterior.');
+}
+
+// Carga: valida lo guardado (nunca lanza) y regenera las zanjas. Si el 3D falla se conservan los datos. Lo inválido se descarta entero.
+function restaurarCimentacion(entrada) {
+  const z = sanearCimentacion(entrada);
+  if (z) {
+    cimZ = z; cimHabiaGuardado = true;
+    try { cimRecomponer(); } catch (err) { cimSuspender(err); }
+    try { cimSincronizarForm(z); } catch (_) { }
+  } else if (entrada !== undefined && entrada !== null) {
+    console.warn('progreso.cimentacion no es válido: se ignora.');
+  }
+  cimActualizarUI();
+}
+
+function configurarCimentacion() {
+  if (!planoEl('plano-zanjas')) return;
+  cimPoblarSuelo();
+  planoEl('plano-zanjas').addEventListener('click', cimExcavar);
+  planoEl('plano-zanjas-rellenar').addEventListener('click', cimRellenar);
+  planoEl('plano-zanjas-panel').addEventListener('click', () => cimMostrarPanel(planoEl('cimentacion-panel').hidden));
+  const alCambiar = () => cimActualizarUI();
+  planoEl('cim-pisos').addEventListener('change', alCambiar);
+  planoEl('cim-suelo').addEventListener('change', alCambiar);
+  planoEl('cim-prof').addEventListener('input', alCambiar);
+  planoEl('cim-retiro').addEventListener('input', alCambiar);
+  const panel = planoEl('cimentacion-panel');                          // los avisos dependen también del replanteo (F5): el panel se refresca al abrirlo, al pasar el ratón o al enfocarlo
+  panel.addEventListener('pointerenter', alCambiar);
+  panel.addEventListener('focusin', alCambiar);
+  panel.querySelector('details').addEventListener('toggle', alCambiar);
+  const fa1 = A1_FACTORES_SUELO.fuente;
+  planoEl('cim-nota').textContent = `${TEXTO_FUENTE_ANCHO} ${TEXTO_FUENTE_PROF} Suelo: Manual de Materiales, ${fa1.tabla} (p. ${fa1.pagina_impresa}). ` +
+    'El volumen sale de la unión de las zanjas: las esquinas y las paredes compartidas no se cuentan dos veces, y si hay fosa de F3 solo cuenta lo que queda por debajo de su fondo. ' +
+    `${TEXTO_NO_VALIDADO}`;
+}
+configurarCimentacion();
 
 // expone las funciones al scope global para que el HTML pueda llamarlas
 window.deleteConcreto = deleteConcreto;
@@ -6421,7 +7310,13 @@ function snapshotActual(simulado = null) {   // F4d: `simulado` ({ plano, mat })
     progreso.plano = { ...planoBase, rejilla: { ...prefRejilla } };
     delete progreso.plano.materializado;                                   // F4d (aditivo): la clave solo existe si hay paredes materializadas
     if (matBase) progreso.plano.materializado = matBase;
+    if (cubiertaDatos) progreso.plano.cubierta = { bbox: { ...cubiertaDatos.bbox } };   // Presentación 20-nov (aditivo): solo existe si el alumno añadió cubierta
   }
+  if (repEstacas.length) progreso.replanteo = serializarReplanteo(repEstacas, repOculto);   // F5 (aditivo): solo existe si el alumno replanteó
+  // F6a (aditivo): solo existe si hay zanjas. Si las había guardadas (o restauradas) y se rellenaron, se envía null: el servidor fusiona el
+  // progreso por claves de primer nivel y nunca borra una clave por omisión (igual que `excavacion`).
+  if (cimZ) progreso.cimentacion = serializarCimentacion(cimZ);
+  else if (cimHabiaGuardado) progreso.cimentacion = null;
   // F4d: el objeto agregado «paredes_plano» no va en estado.objetos (serializarObjeto no guarda userData): se regenera desde progreso.plano.materializado
   const estado = serializarEscena({ objList: objList.filter(o => o.type !== 'paredes_plano'), objIdCounter, progreso });
   return { estado, progreso };
@@ -6562,12 +7457,63 @@ if (new URLSearchParams(location.search).get('steamTest') === '1') {
   };
 }
 
+
+// F5 (solo lectura, solo con ?steamTest=1): estado del replanteo y de su superposición 3D, para las pruebas automatizadas.
+if (window.__steamTest) {
+  window.__steamTest.replanteo = () => ({
+    estacas: repEstacas.map(e => ({ ...e })), oculto: repOculto, estado: repEstado(), aviso: repAviso, activo: !!repNodo, visible: !!repNodo && repNodo.isEnabled(),
+    mallas: repNodo ? repNodo.getChildMeshes(false).map(m => ({ name: m.name, pickable: m.isPickable, colision: m.checkCollisions, x: m.position.x, y: m.position.y, z: m.position.z })) : [],
+    enObjList: objList.some(o => /replanteo|estaca_|eje_/.test(o.type + ' ' + (o.node?.name ?? ''))),
+  });
+}
+
+// F6a (solo lectura, solo con ?steamTest=1): estado de las zanjas y de su geometría REAL (áreas medidas sobre los vértices), para las pruebas automatizadas.
+if (window.__steamTest) {
+  const areaMalla = m => {
+    if (!m || m.isDisposed()) return 0;
+    const p = m.getVerticesData('position'), ix = m.getIndices();
+    if (!p || !ix) return 0;
+    let a = 0;
+    for (let i = 0; i < ix.length; i += 3) {
+      const [i0, i1, i2] = [ix[i] * 3, ix[i + 1] * 3, ix[i + 2] * 3];
+      const u = [p[i1] - p[i0], p[i1 + 1] - p[i0 + 1], p[i1 + 2] - p[i0 + 2]], v = [p[i2] - p[i0], p[i2 + 1] - p[i0 + 1], p[i2 + 2] - p[i0 + 2]];
+      a += Math.hypot(u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]) / 2;
+    }
+    return a;
+  };
+  window.__steamTest.cimentacion = () => {
+    const fosa = cimFosa(), ef = scene ? scene.getMeshByName('exc_floor') : null, calc = cimCalculos();
+    return {
+      activo: cimZ !== null, suspendido: cimSuspendido, habiaGuardado: cimHabiaGuardado, estado: cimEstado(),
+      opciones: cimZ ? { pisos: cimZ.pisos, ancho: cimZ.ancho, prof: cimZ.prof, suelo: cimZ.suelo, retiro: cimZ.retiro } : null,
+      habitaciones: cimZ ? cimZ.habitaciones.length : 0,
+      resumen: cimZ ? resumenZanjas(cimZ, fosa) : null,
+      vistaPrevia: !cimZ && calc.resumen ? calc.resumen : null,
+      avisos: calc.avisos.map(a => a.codigo),
+      nodo: !!cimNodo, enObjList: objList.some(o => /zanja|cimentacion/.test(o.type + ' ' + (o.node?.name ?? ''))),
+      mallas: cimNodo ? cimNodo.getChildMeshes(false).map(m => ({ name: m.name, pickable: m.isPickable, colision: m.checkCollisions, visible: m.isVisible, areaM2: areaMalla(m) })) : [],
+      terreno: groundHoleSegments.map(m => ({ name: m.name, areaM2: areaMalla(m), colision: m.checkCollisions, pickable: m.isPickable })),
+      originales: { ground: scene.getMeshByName('ground')?.isVisible ?? null, zone: scene.getMeshByName('zone_fill')?.isVisible ?? null },
+      excFloor: ef ? { visible: ef.isVisible } : null,
+      fosa: fosa ? { ...fosa } : null,
+    };
+  };
+  // Primer punto del terreno / de las zanjas que encuentra un rayo vertical hacia abajo en (x, z) metros: { nombre, y } o null.
+  window.__steamTest.cimRayo = (x, z) => {
+    const hit = scene.pickWithRay(new Ray(new Vector3(x, 8, z), new Vector3(0, -1, 0), 40), m => m.isVisible && m.isEnabled() && /^(ground|zone_|zanja_|exc_floor$|exc_w_)/.test(m.name));   // solo geometría sólida (no las líneas decorativas de F3)
+    return hit && hit.hit ? { nombre: hit.pickedMesh.name, y: hit.pickedPoint.y } : null;
+  };
+}
+
 async function restaurarProgreso() {
   const data = await cargar();
   if (!data || !data.estado) return data;
 
   const { estado, progreso } = data;
   matSnapshot = null; matObjeto = null; matResumen = null;                 // F4d: se recalculan desde progreso.plano.materializado (si existe)
+  extrasPlanoLimpiar();                                                    // Presentación 20-nov: cubierta (y pisos) se regeneran desde lo guardado
+  replanteoLimpiar();                                                      // F5: las estacas se regeneran desde progreso.replanteo (si existe)
+  cimLimpiar();                                                            // F6a: las zanjas se regeneran desde progreso.cimentacion (si existe)
 
   if (progreso) {
     if (typeof progreso.buildPhase === 'number') buildPhase = progreso.buildPhase;
@@ -6584,7 +7530,9 @@ async function restaurarProgreso() {
       planoGuardado = sanearPlano(progreso.plano);
       prefRejilla = { ...planoGuardado.rejilla };
       if (planoGuardado.materializado) matRestaurar(planoGuardado.materializado);   // F4d: regenera las paredes (una casa sin ese campo no genera nada)
+      restaurarExtrasPlano(progreso.plano);                                       // Presentación 20-nov: se lee del progreso sin sanear (sanearPlano descarta lo que no conoce)
     }
+    restaurarReplanteo(progreso.replanteo);                                   // F5: se lee del progreso (nivel superior)
 
     const faseGuardada = buildPhase;
     if (faseGuardada >= 1 || matematicasValidadas) unlockPhase1();
@@ -6603,6 +7551,7 @@ async function restaurarProgreso() {
         progreso.excavacion.porcentaje_retiro // F3: si falta o no es válido, 100 %
       );
     }
+    restaurarCimentacion(progreso.cimentacion);                               // F6a: después de la excavación de F3 (la fosa y las zanjas se componen juntas)
   }
 
   if (estado.contador) {

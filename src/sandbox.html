@@ -777,7 +777,21 @@
       <div class="plano-grupo" role="group" aria-label="Paredes en 3D">
         <button type="button" class="plano-btn primary" id="plano-materializar" title="Genera en 3D las paredes del plano, con hueco para cada puerta y ventana">🧱 Materializar plano</button>
         <button type="button" class="plano-btn danger" id="plano-desmaterializar" title="Borra las paredes generadas (las piezas manuales no se tocan)" disabled>Desmaterializar</button>
+        <button type="button" class="plano-btn" id="plano-cubierta" title="Cubierta a dos aguas (pendiente 27 %, A.9) sobre las habitaciones materializadas">🏠 Añadir cubierta</button>
         <span id="plano-mat-estado" class="plano-etq" role="status" aria-live="polite"></span>
+      </div>
+      <!-- F5 · Replanteo: estacas en las esquinas de las habitaciones guardadas, ejes numerados y verificación de medidas -->
+      <div class="plano-grupo" role="group" aria-label="Replanteo">
+        <button type="button" class="plano-btn" id="plano-replantear" title="Coloca una estaca en cada esquina de las habitaciones guardadas y numera los ejes">📐 Replantear</button>
+        <button type="button" class="plano-btn" id="plano-replanteo-ver" title="Muestra u oculta en el 3D las estacas y los ejes del replanteo" disabled>🙈 Ocultar replanteo</button>
+        <span id="plano-replanteo-estado" class="plano-etq" role="status" aria-live="polite"></span>
+      </div>
+      <!-- F6a · Zanjas de cimentación: una zanja bajo cada pared del plano guardado; las opciones, resultados y avisos están en un panel que se abre con «⚙ Zanjas» (oculto por defecto: no cubre el lienzo) -->
+      <div class="plano-grupo" role="group" aria-label="Zanjas de cimentación">
+        <button type="button" class="plano-btn" id="plano-zanjas" title="Excava en el terreno una zanja de cimentación bajo cada pared del plano guardado">🕳️ Excavar zanjas</button>
+        <button type="button" class="plano-btn danger" id="plano-zanjas-rellenar" title="Rellena las zanjas y devuelve el terreno a su estado anterior" hidden>Rellenar zanjas</button>
+        <button type="button" class="plano-btn" id="plano-zanjas-panel" aria-controls="cimentacion-panel" aria-expanded="false" title="Muestra u oculta el panel de las zanjas: pisos, profundidad, suelo, resultados y avisos">⚙ Zanjas</button>
+        <span id="plano-zanjas-estado" class="plano-etq" role="status" aria-live="polite"></span>
       </div>
       <div class="plano-grupo" role="group" aria-label="Rejilla">
         <label class="plano-etq"><input type="checkbox" id="plano-rejilla-visible"> Rejilla</label>
@@ -835,6 +849,42 @@
           <p id="plano-vano-aviso" role="status" hidden></p>
           <button type="button" class="plano-btn danger" id="plano-vano-borrar" title="Borrar el vano (Supr)">Borrar vano</button>
         </div>
+      </aside>
+      <!-- F5 · Panel del replanteo: desviación de cada estaca (mm) y medidas de la habitación elegida -->
+      <aside id="replanteo-panel" aria-label="Replanteo" hidden>
+        <details open>
+          <summary>📐 Estacas y medidas · <span id="replanteo-estado-txt" role="status"></span></summary>
+          <p id="replanteo-aviso" role="alert" hidden></p>
+          <div id="replanteo-estacas" aria-label="Estacas: desviación en mm respecto de la esquina teórica"></div>
+          <label class="rep-sel">Habitación <select id="replanteo-hab" aria-label="Habitación a verificar"></select></label>
+          <p id="replanteo-resumen" role="status"></p>
+          <div id="replanteo-medidas"></div>
+          <p id="replanteo-nota"></p>
+        </details>
+      </aside>
+      <!-- F6a · Panel de las zanjas de cimentación (oculto hasta pulsar «⚙ Zanjas» o excavar): opciones (pisos, profundidad, suelo, % a retirar), resultados y avisos -->
+      <aside id="cimentacion-panel" aria-label="Zanjas de cimentación" hidden>
+        <details open>
+          <summary>🕳️ Zanjas de cimentación · <span id="cim-estado-txt" role="status"></span></summary>
+          <label class="cim-fila" for="cim-pisos">Pisos
+            <select id="cim-pisos" aria-label="Número de pisos de la casa">
+              <option value="1">1 piso · zanja de 250 mm</option>
+              <option value="2">2 pisos · zanja de 300 mm</option>
+            </select>
+          </label>
+          <label class="cim-fila" for="cim-prof">Profundidad (m)
+            <input type="text" id="cim-prof" inputmode="decimal" value="0.54" autocomplete="off" aria-label="Profundidad de la zanja (m)">
+          </label>
+          <p id="cim-aviso-prof" role="alert" hidden></p>
+          <label class="cim-fila" for="cim-suelo">Suelo <select id="cim-suelo" aria-label="Tipo de suelo"></select></label>
+          <label class="cim-fila" for="cim-retiro">A retirar
+            <span class="cim-rango"><input type="range" id="cim-retiro" min="0" max="100" step="1" value="100" aria-label="Porcentaje del suelo a retirar en volqueta"> <output id="cim-retiro-val">100 %</output></span>
+          </label>
+          <p id="cim-modo" role="status"></p>
+          <dl id="cim-resultados"></dl>
+          <ul id="cim-avisos" aria-label="Avisos de las zanjas"></ul>
+          <p id="cim-nota"></p>
+        </details>
       </aside>
     </div>
     <div id="plano-pie">

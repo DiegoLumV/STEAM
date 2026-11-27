@@ -396,7 +396,7 @@ test('17 · la animación de entrada dura 200 ms (≤ 300 ms) y el sonido está 
 // ── 18 ──────────────────────────────────────────────────────────────────────
 test('18 · las pruebas de manipulacion.test.js siguen verdes (sin contador fijo)', async () => {
   const raiz = fileURLToPath(new URL('..', import.meta.url));
-  const salida = execFileSync(process.execPath, ['--test', 'tests/manipulacion.test.js'], { cwd: raiz, encoding: 'utf8' });
+  const salida = execFileSync(process.execPath, ['--test', '--test-reporter=tap', 'tests/manipulacion.test.js'], { cwd: raiz, encoding: 'utf8' });
   // F2.3: el archivo crece con cada fase; se verifica el estado real (todas pasan y ninguna falla), no un número fijo.
   const n = clave => Number(new RegExp(`# ${clave} (\\d+)\\b`).exec(salida)?.[1]);
   expect(n('tests')).toBeGreaterThan(0);
